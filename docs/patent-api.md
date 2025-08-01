@@ -7,6 +7,8 @@
 | Get My Patents | 로그인한 사용자의 출원 목록 | GET | /api/patents/my | – | [ { "patent_id", "title", "status" } ] | 🔹 최신순 정렬 |
 | Submit Patent | 출원 최종 제출 및 AI 분류 트리거 | POST | /api/patents/{patent_id}/submit | – | { "patent_id", "status", "classification_codes": [] } | 🔹 status → "SUBMITTED"<br>🔹 AI 분류 결과 포함 |
 | Update Patent Status | 출원 상태 수동 변경 (심사관/관리자용) | PATCH | /api/patents/{patent_id}/status | { "status" } | { "patent_id", "status" } | 🔹 권한 제한 필요 (EXAMINER or ADMIN) |
+| Update Patent | 출원 정보 수정 | PUT | /api/patents/{patent_id} | { "title", "type", "file_ids": [] } | { "patent_id", "title", "type", "status" } | – |
+| Delete Patent | 출원 삭제 | DELETE | /api/patents/{patent_id} | – | { "deleted": true } | – |
 | Get File Versions | 출원서/도면 파일 버전 목록 조회 | GET | /api/patents/{patent_id}/file-versions | – | [ { "version_id", "file_id", "version_no", "author_id", "change_summary", "is_current", "created_at" } ] | 🔹 SpecVersion 기반 버전 이력 |
 | Get Latest File | 최신 문서 파일(에디터용) 조회 | GET | /api/patents/{patent_id}/file/latest | – | { "file_id", "version_no", "content" } | 🔹 에디터 최초 로딩 시 사용 |
 | Update File Content | 문서 내용 단순 수정 (버전 없음) | PATCH | /api/patents/file/{file_id} | { "content" } | { "file_id", "updated_at" } | 🔹 임시 저장 용도로만 사용 (주의) |
