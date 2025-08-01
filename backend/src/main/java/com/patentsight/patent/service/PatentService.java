@@ -98,4 +98,29 @@ public class PatentService {
         res.setStatus(patent.getStatus());
         return res;
     }
+
+    public PatentResponse updatePatent(Long patentId, PatentRequest request) {
+        Patent patent = patentRepository.findById(patentId).orElse(null);
+        if (patent == null) return null;
+        if (request.getTitle() != null) {
+            patent.setTitle(request.getTitle());
+        }
+        if (request.getType() != null) {
+            patent.setType(request.getType());
+        }
+        patentRepository.save(patent);
+        PatentResponse res = new PatentResponse();
+        res.setPatentId(patent.getPatentId());
+        res.setTitle(patent.getTitle());
+        res.setType(patent.getType());
+        res.setStatus(patent.getStatus());
+        return res;
+    }
+
+    public boolean deletePatent(Long patentId) {
+        Patent patent = patentRepository.findById(patentId).orElse(null);
+        if (patent == null) return false;
+        patentRepository.delete(patent);
+        return true;
+    }
 }

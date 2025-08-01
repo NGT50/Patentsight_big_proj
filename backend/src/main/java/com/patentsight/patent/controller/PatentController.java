@@ -50,4 +50,20 @@ public class PatentController {
         PatentResponse res = patentService.updatePatentStatus(id, status);
         return ResponseEntity.ok(res);
     }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<PatentResponse> updatePatent(@PathVariable("id") Long id,
+                                                       @RequestBody PatentRequest request) {
+        PatentResponse res = patentService.updatePatent(id, request);
+        return ResponseEntity.ok(res);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deletePatent(@PathVariable("id") Long id) {
+        boolean deleted = patentService.deletePatent(id);
+        if (deleted) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.notFound().build();
+    }
 }
