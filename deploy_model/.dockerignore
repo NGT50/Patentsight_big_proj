@@ -1,0 +1,19 @@
+# 캐시, 테스트, 이미지 등 제외
+__pycache__/
+*.png
+*.jpg
+*.jpeg
+*.mp4
+*.zip
+
+# 프론트엔드 관련
+node_modules/
+search-ui/
+temp/
+test/
+testimage/
+Design_sample/
+KD_IMG/
+KT_IMG/
+json/
+embeddings/
