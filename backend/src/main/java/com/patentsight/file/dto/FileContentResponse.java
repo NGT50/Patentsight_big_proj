@@ -1,10 +1,12 @@
 package com.patentsight.file.dto;
 
+import com.fasterxml.jackson.annotation.JsonRawValue;
 import java.time.LocalDateTime;
 
 public class FileContentResponse {
     private Long fileId;
     private Integer versionNo;
+    @JsonRawValue
     private String content;
     private LocalDateTime updatedAt;
 

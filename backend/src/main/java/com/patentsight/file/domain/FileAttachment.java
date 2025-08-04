@@ -17,14 +17,14 @@ public class FileAttachment {
 
     private Long uploaderId;
 
-    private String fileName;
-    private String filePath;
-    private Long fileSize;
-    private String mimeType;
-    private String fileHash;
-    private LocalDateTime uploadedAt;
+    /**
+     * All patent documents are stored as raw JSON text rather than as binary
+     * files on disk. The content column keeps the latest text for the
+     * attachment and is versioned separately through {@link SpecVersion}.
+     */
     @Lob
     private String content;
+
     private LocalDateTime updatedAt;
 
     // getters and setters
@@ -34,18 +34,6 @@ public class FileAttachment {
     public void setPatent(Patent patent) { this.patent = patent; }
     public Long getUploaderId() { return uploaderId; }
     public void setUploaderId(Long uploaderId) { this.uploaderId = uploaderId; }
-    public String getFileName() { return fileName; }
-    public void setFileName(String fileName) { this.fileName = fileName; }
-    public String getFilePath() { return filePath; }
-    public void setFilePath(String filePath) { this.filePath = filePath; }
-    public Long getFileSize() { return fileSize; }
-    public void setFileSize(Long fileSize) { this.fileSize = fileSize; }
-    public String getMimeType() { return mimeType; }
-    public void setMimeType(String mimeType) { this.mimeType = mimeType; }
-    public String getFileHash() { return fileHash; }
-    public void setFileHash(String fileHash) { this.fileHash = fileHash; }
-    public LocalDateTime getUploadedAt() { return uploadedAt; }
-    public void setUploadedAt(LocalDateTime uploadedAt) { this.uploadedAt = uploadedAt; }
     public String getContent() { return content; }
     public void setContent(String content) { this.content = content; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
