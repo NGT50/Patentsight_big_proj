@@ -1,4 +1,7 @@
 package com.patentsight.user.dto;
 
-public class UserResponse {
-}
+public record UserResponse(
+        Long user_id,
+        String username,
+        String role
+) {}

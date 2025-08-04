@@ -1,4 +1,4 @@
-package com.patentsight.backend.config;
+package com.patentsight.config;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;

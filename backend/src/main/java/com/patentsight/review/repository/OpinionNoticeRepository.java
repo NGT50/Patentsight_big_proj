@@ -1,6 +1,6 @@
-package com.patentsight.backend.review.repository;
+package com.patentsight.review.repository;
 
-import com.patentsight.backend.review.domain.OpinionNotice;
+import com.patentsight.review.domain.OpinionNotice;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

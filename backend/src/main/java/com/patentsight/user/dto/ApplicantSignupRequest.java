@@ -1,4 +1,4 @@
-package com.patentsight.backend.user.dto;
+package com.patentsight.user.dto;
 
 import java.time.LocalDate;
 

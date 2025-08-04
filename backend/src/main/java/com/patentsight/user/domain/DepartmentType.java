@@ -1,4 +1,4 @@
-package com.patentsight.backend.user.domain;
+package com.patentsight.user.domain;
 
 public enum DepartmentType {
     PATENT_UTILITY,     // 특허·실용신안

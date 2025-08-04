@@ -1,7 +1,7 @@
-package com.patentsight.backend.user.dto;
+package com.patentsight.user.dto;
 
 import java.time.LocalDate;
-import com.patentsight.backend.user.domain.DepartmentType;
+import com.patentsight.user.domain.DepartmentType;
 
 public record ExaminerSignupRequest(
         String username,
