@@ -1,7 +1,7 @@
 package com.patentsight.user.dto;
 
 public record UserResponse(
-        Long user_id,
+        Long userId,
         String username,
         String role
 ) {}

@@ -19,7 +19,7 @@ public class JwtTokenProvider {
     public String createToken(Long userId, String username, String role) {
         return Jwts.builder()
                 .setSubject(username)
-                .claim("user_id", userId)
+                .claim("userId", userId)
                 .claim("role", role)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + validityInMs))

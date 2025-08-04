@@ -26,7 +26,7 @@ public class UserService {
     // 🔹 심사관 코드 검증
     public VerifyExaminerResponse verifyExaminer(VerifyExaminerRequest request) {
         // 입력한 코드가 목록에 존재하면 true, 아니면 false
-        boolean isValid = EXAMINER_CODES.contains(request.auth_code());
+        boolean isValid = EXAMINER_CODES.contains(request.authCode());
         return new VerifyExaminerResponse(isValid);
     }
 
@@ -46,7 +46,7 @@ public class UserService {
                 .build();
 
         User saved = userRepository.save(user);
-        return new UserResponse(saved.getId(), saved.getUsername(), saved.getRole());
+        return new UserResponse(saved.getUserId(), saved.getUsername(), saved.getRole());
     }
 
     public UserResponse createExaminer(ExaminerSignupRequest request) {
@@ -64,7 +64,7 @@ public class UserService {
                 .build();
 
         User saved = userRepository.save(user);
-        return new UserResponse(saved.getId(), saved.getUsername(), saved.getRole());
+        return new UserResponse(saved.getUserId(), saved.getUsername(), saved.getRole());
     }
     public LoginResponse login(LoginRequest request) {
         var user = userRepository.findByUsername(request.username())
@@ -74,8 +74,8 @@ public class UserService {
             throw new RuntimeException("Invalid password");
         }
 
-        String token = jwtTokenProvider.createToken(user.getId(), user.getUsername(), user.getRole());
+        String token = jwtTokenProvider.createToken(user.getUserId(), user.getUsername(), user.getRole());
 
-        return new LoginResponse(token, user.getId(), user.getUsername(), user.getRole());
+        return new LoginResponse(token, user.getUserId(), user.getUsername(), user.getRole());
     }
 }

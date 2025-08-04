@@ -15,6 +15,7 @@ public class Review {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "review_id")
     private Long reviewId;
 
     @ManyToOne
@@ -26,10 +27,13 @@ public class Review {
     private User examiner;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "decision")
     private Decision decision; // APPROVE, PENDING, REJECT
 
+    @Column(name = "comment")
     private String comment;
 
+    @Column(name = "reviewed_at")
     private LocalDateTime reviewedAt;
 
     public enum Decision {
