@@ -6,6 +6,7 @@ import java.util.List;
 
 public class PatentResponse {
     private Long patentId;
+    private Long applicantId;
     private String title;
     private PatentType type;
     private PatentStatus status;
@@ -22,6 +23,8 @@ public class PatentResponse {
 
     public Long getPatentId() { return patentId; }
     public void setPatentId(Long patentId) { this.patentId = patentId; }
+    public Long getApplicantId() { return applicantId; }
+    public void setApplicantId(Long applicantId) { this.applicantId = applicantId; }
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
     public PatentType getType() { return type; }

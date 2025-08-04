@@ -68,6 +68,7 @@ public class PatentService {
 
         PatentResponse response = new PatentResponse();
         response.setPatentId(patent.getPatentId());
+        response.setApplicantId(patent.getApplicantId());
         response.setTitle(patent.getTitle());
         response.setType(patent.getType());
         response.setStatus(patent.getStatus());
@@ -96,6 +97,7 @@ public class PatentService {
         if (patent == null) return null;
         PatentResponse res = new PatentResponse();
         res.setPatentId(patent.getPatentId());
+        res.setApplicantId(patent.getApplicantId());
         res.setTitle(patent.getTitle());
         res.setType(patent.getType());
         res.setStatus(patent.getStatus());
@@ -127,6 +129,7 @@ public class PatentService {
                 .map(p -> {
                     PatentResponse r = new PatentResponse();
                     r.setPatentId(p.getPatentId());
+                    r.setApplicantId(p.getApplicantId());
                     r.setTitle(p.getTitle());
                     r.setStatus(p.getStatus());
                     return r;
@@ -145,6 +148,7 @@ public class PatentService {
         patentRepository.save(patent);
         PatentResponse res = new PatentResponse();
         res.setPatentId(patent.getPatentId());
+        res.setApplicantId(patent.getApplicantId());
         res.setStatus(patent.getStatus());
         res.setApplicationNumber(patent.getApplicationNumber());
         return res;
@@ -171,6 +175,7 @@ public class PatentService {
         patentRepository.save(patent);
         PatentResponse res = new PatentResponse();
         res.setPatentId(patent.getPatentId());
+        res.setApplicantId(patent.getApplicantId());
         res.setStatus(patent.getStatus());
         return res;
     }
@@ -214,6 +219,7 @@ public class PatentService {
         patentRepository.save(patent);
         PatentResponse res = new PatentResponse();
         res.setPatentId(patent.getPatentId());
+        res.setApplicantId(patent.getApplicantId());
         res.setTitle(patent.getTitle());
         res.setType(patent.getType());
         res.setStatus(patent.getStatus());

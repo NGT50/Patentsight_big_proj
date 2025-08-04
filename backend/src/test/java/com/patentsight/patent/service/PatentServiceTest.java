@@ -84,6 +84,7 @@ class PatentServiceTest {
         PatentResponse response = patentService.createPatent(request, 100L);
 
         assertEquals(1L, response.getPatentId());
+        assertEquals(100L, response.getApplicantId());
         assertEquals(PatentStatus.DRAFT, response.getStatus());
         assertEquals("My Patent", response.getTitle());
         assertEquals(PatentType.PATENT, response.getType());
@@ -108,6 +109,7 @@ class PatentServiceTest {
     void getPatentDetail_returnsAttachmentIds() {
         Patent patent = new Patent();
         patent.setPatentId(1L);
+        patent.setApplicantId(100L);
         patent.setTitle("Title");
         patent.setType(PatentType.PATENT);
         patent.setStatus(PatentStatus.DRAFT);
@@ -123,6 +125,7 @@ class PatentServiceTest {
 
         assertNotNull(res);
         assertEquals(1L, res.getPatentId());
+        assertEquals(100L, res.getApplicantId());
         assertEquals(1, res.getAttachmentIds().size());
         assertEquals(10L, res.getAttachmentIds().get(0));
         assertEquals("B62H1/00", res.getCpc());
@@ -132,6 +135,7 @@ class PatentServiceTest {
     void updatePatent_modifiesFields() {
         Patent existing = new Patent();
         existing.setPatentId(1L);
+        existing.setApplicantId(100L);
         existing.setTitle("Old");
         existing.setType(PatentType.PATENT);
         existing.setCpc("OLD");
@@ -149,12 +153,14 @@ class PatentServiceTest {
         assertEquals("New", res.getTitle());
         assertEquals(PatentType.TRADEMARK, res.getType());
         assertEquals("NEW", res.getCpc());
+        assertEquals(100L, res.getApplicantId());
     }
 
     @Test
     void submitPatent_assignsApplicationNumber() {
         Patent patent = new Patent();
         patent.setPatentId(1L);
+        patent.setApplicantId(100L);
         patent.setType(PatentType.PATENT);
         when(patentRepository.findById(1L)).thenReturn(Optional.of(patent));
         when(patentRepository.save(any(Patent.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -163,6 +169,7 @@ class PatentServiceTest {
 
         assertNotNull(res);
         assertEquals(PatentStatus.SUBMITTED, res.getStatus());
+        assertEquals(100L, res.getApplicantId());
         assertNotNull(res.getApplicationNumber());
         String expectedPrefix = "10" + java.time.LocalDate.now().getYear();
         assertTrue(res.getApplicationNumber().startsWith(expectedPrefix));
@@ -173,6 +180,7 @@ class PatentServiceTest {
     void submitPatent_assignsApplicationNumberForUtilityModel() {
         Patent patent = new Patent();
         patent.setPatentId(2L);
+        patent.setApplicantId(200L);
         patent.setType(PatentType.UTILITY_MODEL);
         when(patentRepository.findById(2L)).thenReturn(Optional.of(patent));
         when(patentRepository.save(any(Patent.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -180,6 +188,7 @@ class PatentServiceTest {
         PatentResponse res = patentService.submitPatent(2L);
 
         assertNotNull(res);
+        assertEquals(200L, res.getApplicantId());
         String expectedPrefix = "20" + java.time.LocalDate.now().getYear();
         assertTrue(res.getApplicationNumber().startsWith(expectedPrefix));
     }
