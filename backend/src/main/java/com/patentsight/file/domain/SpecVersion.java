@@ -17,10 +17,6 @@ public class SpecVersion {
 
     private int versionNo;
 
-    @ManyToOne
-    @JoinColumn(name = "file_id")
-    private FileAttachment file;
-
     private Long authorId;
 
     @Lob
@@ -33,6 +29,8 @@ public class SpecVersion {
 
     private LocalDateTime createdAt;
 
+    private LocalDateTime updatedAt;
+
     // getters and setters
     public Long getVersionId() { return versionId; }
     public void setVersionId(Long versionId) { this.versionId = versionId; }
@@ -40,8 +38,6 @@ public class SpecVersion {
     public void setPatent(Patent patent) { this.patent = patent; }
     public int getVersionNo() { return versionNo; }
     public void setVersionNo(int versionNo) { this.versionNo = versionNo; }
-    public FileAttachment getFile() { return file; }
-    public void setFile(FileAttachment file) { this.file = file; }
     public Long getAuthorId() { return authorId; }
     public void setAuthorId(Long authorId) { this.authorId = authorId; }
     public String getChangeSummary() { return changeSummary; }
@@ -52,4 +48,6 @@ public class SpecVersion {
     public void setCurrent(boolean current) { isCurrent = current; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

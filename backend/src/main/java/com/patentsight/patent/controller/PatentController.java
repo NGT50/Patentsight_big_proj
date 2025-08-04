@@ -64,29 +64,29 @@ public class PatentController {
         return ResponseEntity.ok(res);
     }
 
-    @GetMapping("/{id}/file-versions")
-    public ResponseEntity<List<FileVersionResponse>> getFileVersions(@PathVariable("id") Long id) {
-        List<FileVersionResponse> versions = patentService.getFileVersions(id);
+    @GetMapping("/{id}/document-versions")
+    public ResponseEntity<List<FileVersionResponse>> getDocumentVersions(@PathVariable("id") Long id) {
+        List<FileVersionResponse> versions = patentService.getDocumentVersions(id);
         return ResponseEntity.ok(versions);
     }
 
-    @GetMapping("/{id}/file/latest")
-    public ResponseEntity<FileContentResponse> getLatestFile(@PathVariable("id") Long id) {
-        FileContentResponse res = patentService.getLatestFile(id);
+    @GetMapping("/{id}/document/latest")
+    public ResponseEntity<FileContentResponse> getLatestDocument(@PathVariable("id") Long id) {
+        FileContentResponse res = patentService.getLatestDocument(id);
         return ResponseEntity.ok(res);
     }
 
-    @PatchMapping("/file/{fileId}")
-    public ResponseEntity<FileContentResponse> updateFileContent(@PathVariable("fileId") Long fileId,
-                                                                 @RequestBody FileContentRequest request) {
-        FileContentResponse res = patentService.updateFileContent(fileId, request.getContent());
+    @PatchMapping("/{id}/document")
+    public ResponseEntity<FileContentResponse> updateDocumentContent(@PathVariable("id") Long id,
+                                                                     @RequestBody FileContentRequest request) {
+        FileContentResponse res = patentService.updateDocumentContent(id, request.getContent());
         return ResponseEntity.ok(res);
     }
 
-    @PostMapping("/{id}/file-versions")
-    public ResponseEntity<FileVersionResponse> createFileVersion(@PathVariable("id") Long id,
-                                                                 @RequestBody FileVersionRequest request) {
-        FileVersionResponse res = patentService.createFileVersion(id, request);
+    @PostMapping("/{id}/document-versions")
+    public ResponseEntity<FileVersionResponse> createDocumentVersion(@PathVariable("id") Long id,
+                                                                     @RequestBody FileVersionRequest request) {
+        FileVersionResponse res = patentService.createDocumentVersion(id, request);
         return ResponseEntity.ok(res);
     }
 

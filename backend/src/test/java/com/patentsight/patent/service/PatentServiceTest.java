@@ -1,10 +1,6 @@
 package com.patentsight.patent.service;
 
 import com.patentsight.file.domain.FileAttachment;
-import com.patentsight.file.domain.SpecVersion;
-import com.patentsight.file.dto.FileVersionRequest;
-import com.patentsight.file.dto.FileContentResponse;
-import com.patentsight.file.dto.FileVersionResponse;
 import com.patentsight.file.repository.FileRepository;
 import com.patentsight.file.repository.SpecVersionRepository;
 import com.patentsight.patent.domain.Patent;
@@ -204,57 +200,6 @@ class PatentServiceTest {
 
         assertTrue(deleted);
         verify(patentRepository).delete(patent);
-    }
-
-    @Test
-    void updateFileContent_updatesContent() {
-        FileAttachment file = new FileAttachment();
-        file.setFileId(5L);
-        when(fileRepository.findById(5L)).thenReturn(Optional.of(file));
-        when(fileRepository.save(any(FileAttachment.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        FileContentResponse res = patentService.updateFileContent(5L, "new text");
-
-        assertNotNull(res);
-        assertEquals(5L, res.getFileId());
-        assertEquals("new text", res.getContent());
-        assertNotNull(res.getUpdatedAt());
-    }
-
-    @Test
-    void createFileVersion_createsNewVersion() {
-        Patent patent = new Patent();
-        patent.setPatentId(1L);
-        when(patentRepository.findById(1L)).thenReturn(Optional.of(patent));
-        FileAttachment file = new FileAttachment();
-        file.setFileId(10L);
-        when(fileRepository.findById(10L)).thenReturn(Optional.of(file));
-        SpecVersion old = new SpecVersion();
-        old.setVersionId(100L);
-        old.setVersionNo(1);
-        old.setCurrent(true);
-        when(specVersionRepository.findByPatent_PatentIdOrderByVersionNoDesc(1L)).thenReturn(Collections.singletonList(old));
-        when(specVersionRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
-        when(specVersionRepository.save(any(SpecVersion.class))).thenAnswer(inv -> {
-            SpecVersion v = inv.getArgument(0);
-            v.setVersionId(200L);
-            return v;
-        });
-        when(fileRepository.save(any(FileAttachment.class))).thenAnswer(inv -> inv.getArgument(0));
-
-        FileVersionRequest req = new FileVersionRequest();
-        req.setFileId(10L);
-        req.setAuthorId(2L);
-        req.setChangeSummary("change");
-        req.setNewContent("content v2");
-
-        FileVersionResponse res = patentService.createFileVersion(1L, req);
-
-        assertNotNull(res);
-        assertEquals(2, res.getVersionNo());
-        assertTrue(res.isCurrent());
-        verify(specVersionRepository).save(any(SpecVersion.class));
-        verify(fileRepository).save(file);
     }
 
     @Test

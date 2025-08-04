@@ -266,41 +266,47 @@ public class PatentService {
     }
 
     @Transactional(readOnly = true)
-    public List<FileVersionResponse> getFileVersions(Long patentId) {
+    public List<FileVersionResponse> getDocumentVersions(Long patentId) {
         List<SpecVersion> versions = specVersionRepository.findByPatent_PatentIdOrderByVersionNoDesc(patentId);
         return versions.stream().map(this::toFileVersionResponse).collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
-    public FileContentResponse getLatestFile(Long patentId) {
-        List<SpecVersion> versions = specVersionRepository.findByPatent_PatentIdOrderByVersionNoDesc(patentId);
-        SpecVersion latest = versions.stream().filter(SpecVersion::isCurrent).findFirst().orElse(null);
+    public FileContentResponse getLatestDocument(Long patentId) {
+        SpecVersion latest = specVersionRepository.findFirstByPatent_PatentIdAndIsCurrentTrue(patentId);
         if (latest == null) return null;
         FileContentResponse res = new FileContentResponse();
-        res.setFileId(latest.getFile() != null ? latest.getFile().getFileId() : null);
         res.setVersionNo(latest.getVersionNo());
         res.setContent(latest.getContent());
+        res.setUpdatedAt(latest.getUpdatedAt());
         return res;
     }
 
-    public FileContentResponse updateFileContent(Long fileId, String content) {
-        FileAttachment file = fileRepository.findById(fileId).orElse(null);
-        if (file == null) return null;
-        file.setContent(content);
-        file.setUpdatedAt(LocalDateTime.now());
-        fileRepository.save(file);
-        FileContentResponse res = new FileContentResponse();
-        res.setFileId(file.getFileId());
-        res.setContent(file.getContent());
-        res.setUpdatedAt(file.getUpdatedAt());
-        return res;
-    }
-
-    public FileVersionResponse createFileVersion(Long patentId, FileVersionRequest request) {
+    public FileContentResponse updateDocumentContent(Long patentId, String content) {
         Patent patent = patentRepository.findById(patentId).orElse(null);
         if (patent == null) return null;
-        FileAttachment file = fileRepository.findById(request.getFileId()).orElse(null);
-        if (file == null) return null;
+        SpecVersion current = specVersionRepository.findFirstByPatent_PatentIdAndIsCurrentTrue(patentId);
+        if (current == null) {
+            current = new SpecVersion();
+            current.setPatent(patent);
+            current.setVersionNo(1);
+            current.setAuthorId(patent.getApplicantId());
+            current.setCurrent(true);
+            current.setCreatedAt(LocalDateTime.now());
+        }
+        current.setContent(content);
+        current.setUpdatedAt(LocalDateTime.now());
+        specVersionRepository.save(current);
+        FileContentResponse res = new FileContentResponse();
+        res.setVersionNo(current.getVersionNo());
+        res.setContent(current.getContent());
+        res.setUpdatedAt(current.getUpdatedAt());
+        return res;
+    }
+
+    public FileVersionResponse createDocumentVersion(Long patentId, FileVersionRequest request) {
+        Patent patent = patentRepository.findById(patentId).orElse(null);
+        if (patent == null) return null;
         List<SpecVersion> existing = specVersionRepository.findByPatent_PatentIdOrderByVersionNoDesc(patentId);
         for (SpecVersion v : existing) {
             v.setCurrent(false);
@@ -308,7 +314,6 @@ public class PatentService {
         specVersionRepository.saveAll(existing);
         SpecVersion version = new SpecVersion();
         version.setPatent(patent);
-        version.setFile(file);
         version.setAuthorId(request.getAuthorId());
         version.setChangeSummary(request.getChangeSummary());
         version.setContent(request.getNewContent());
@@ -316,10 +321,8 @@ public class PatentService {
         version.setVersionNo(nextNo);
         version.setCurrent(true);
         version.setCreatedAt(LocalDateTime.now());
+        version.setUpdatedAt(LocalDateTime.now());
         specVersionRepository.save(version);
-        file.setContent(request.getNewContent());
-        file.setUpdatedAt(LocalDateTime.now());
-        fileRepository.save(file);
         return toFileVersionResponse(version);
     }
 
@@ -336,22 +339,16 @@ public class PatentService {
             }
             version.setCurrent(true);
             specVersionRepository.saveAll(versions);
-            FileAttachment file = version.getFile();
-            if (file != null) {
-                file.setContent(version.getContent());
-                file.setUpdatedAt(LocalDateTime.now());
-                fileRepository.save(file);
-            }
         }
+        version.setUpdatedAt(LocalDateTime.now());
         specVersionRepository.save(version);
         return toFileVersionResponse(version);
     }
 
-    public FileVersionResponse restoreFileVersion(Long versionId) {
+    public FileVersionResponse restoreDocumentVersion(Long versionId) {
         SpecVersion source = specVersionRepository.findById(versionId).orElse(null);
         if (source == null) return null;
         Patent patent = source.getPatent();
-        FileAttachment file = source.getFile();
         List<SpecVersion> versions = specVersionRepository.findByPatent_PatentIdOrderByVersionNoDesc(patent.getPatentId());
         for (SpecVersion v : versions) {
             v.setCurrent(false);
@@ -359,7 +356,6 @@ public class PatentService {
         specVersionRepository.saveAll(versions);
         SpecVersion newVersion = new SpecVersion();
         newVersion.setPatent(patent);
-        newVersion.setFile(file);
         newVersion.setAuthorId(source.getAuthorId());
         newVersion.setChangeSummary("Restored from version " + source.getVersionId());
         newVersion.setContent(source.getContent());
@@ -367,16 +363,12 @@ public class PatentService {
         newVersion.setVersionNo(nextNo);
         newVersion.setCurrent(true);
         newVersion.setCreatedAt(LocalDateTime.now());
+        newVersion.setUpdatedAt(LocalDateTime.now());
         specVersionRepository.save(newVersion);
-        if (file != null) {
-            file.setContent(source.getContent());
-            file.setUpdatedAt(LocalDateTime.now());
-            fileRepository.save(file);
-        }
         return toFileVersionResponse(newVersion);
     }
 
-    public boolean deleteFileVersion(Long versionId) {
+    public boolean deleteDocumentVersion(Long versionId) {
         SpecVersion version = specVersionRepository.findById(versionId).orElse(null);
         if (version == null || version.isCurrent()) return false;
         specVersionRepository.delete(version);
@@ -386,7 +378,6 @@ public class PatentService {
     private FileVersionResponse toFileVersionResponse(SpecVersion v) {
         FileVersionResponse res = new FileVersionResponse();
         res.setVersionId(v.getVersionId());
-        res.setFileId(v.getFile() != null ? v.getFile().getFileId() : null);
         res.setVersionNo(v.getVersionNo());
         res.setAuthorId(v.getAuthorId());
         res.setChangeSummary(v.getChangeSummary());

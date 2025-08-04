@@ -4,7 +4,6 @@ import java.time.LocalDateTime;
 
 public class FileVersionResponse {
     private Long versionId;
-    private Long fileId;
     private int versionNo;
     private Long authorId;
     private String changeSummary;
@@ -13,8 +12,6 @@ public class FileVersionResponse {
 
     public Long getVersionId() { return versionId; }
     public void setVersionId(Long versionId) { this.versionId = versionId; }
-    public Long getFileId() { return fileId; }
-    public void setFileId(Long fileId) { this.fileId = fileId; }
     public int getVersionNo() { return versionNo; }
     public void setVersionNo(int versionNo) { this.versionNo = versionNo; }
     public Long getAuthorId() { return authorId; }

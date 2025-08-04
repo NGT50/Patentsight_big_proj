@@ -19,13 +19,13 @@
 | Get My Patents | 로그인한 사용자의 출원 목록 | GET | /api/patents/my | – | [ { "patent_id", "applicant_id", "title", "status" } ] | 🔹 최신순 정렬 |
 | Submit Patent | 출원 최종 제출 및 AI 분류 트리거 | POST | /api/patents/{patent_id}/submit | – | { "patent_id", "status", "application_number", "classification_codes": [] } | 🔹 status → "SUBMITTED"<br>🔹 application_number 자동 부여 (형식: ttyyyynnnnnnn, tt=10 발명 / 20 실용신안 / 30 디자인 / 40 상표)<br>🔹 AI 분류 결과 포함 |
 | Update Patent Status | 출원 상태 수동 변경 (심사관/관리자용) | PATCH | /api/patents/{patent_id}/status | { "status" } | { "patent_id", "status" } | 🔹 권한 제한 필요 (EXAMINER or ADMIN) |
-| Get File Versions | 출원서/도면 파일 버전 목록 조회 | GET | /api/patents/{patent_id}/file-versions | – | [ { "version_id", "file_id", "version_no", "author_id", "change_summary", "is_current", "created_at" } ] | 🔹 SpecVersion 기반 버전 이력 |
-| Get Latest File | 최신 문서 파일(에디터용) 조회 | GET | /api/patents/{patent_id}/file/latest | – | { "file_id", "version_no", "content" } | 🔹 에디터 최초 로딩 시 사용 |
-| Update File Content | 문서 내용 단순 수정 (버전 없음) | PATCH | /api/patents/file/{file_id} | { "content" } | { "file_id", "updated_at" } | 🔹 임시 저장 용도로만 사용 (주의) |
-| Create File Version | 새 문서 버전 생성 (내용 포함) | POST | /api/patents/{patent_id}/file-versions | { "file_id", "new_content", "author_id", "change_summary" } | { "version_id", "version_no", "is_current" } | 🔹 생성 시 이전 버전 is_current=false 처리 |
-| Update Version Info | 버전 정보(요약 등) 수정 | PATCH | /api/file-versions/{version_id} | { "change_summary", "is_current" } | { "version_id", "updated_at" } | 🔹 is_current=true 지정 시 기존 버전들 비활성화 |
-| Restore File Version | 특정 버전 복원 → 새 버전 생성 | POST | /api/file-versions/{version_id}/restore | – | { "version_id", "new_version_no", "restored_from" } | 🔹 기존 버전 내용을 복사해 새 버전 생성 |
-| Delete File Version | 특정 버전 삭제 | DELETE | /api/file-versions/{version_id} | – | { "deleted": true } | 🔹 현재 버전(is_current)은 삭제 불가 |
+| Get Document Versions | 출원 문서 버전 목록 조회 | GET | /api/patents/{patent_id}/document-versions | – | [ { "version_id", "version_no", "author_id", "change_summary", "is_current", "created_at" } ] | 🔹 SpecVersion 기반 버전 이력 |
+| Get Latest Document | 최신 문서 내용 조회 (에디터용) | GET | /api/patents/{patent_id}/document/latest | – | { "version_no", "content", "updated_at" } | 🔹 에디터 최초 로딩 시 사용 |
+| Update Document Content | 문서 내용 단순 수정 (버전 없음) | PATCH | /api/patents/{patent_id}/document | { "content" } | { "version_no", "content", "updated_at" } | 🔹 임시 저장 용도로만 사용 (주의) |
+| Create Document Version | 새 문서 버전 생성 (내용 포함) | POST | /api/patents/{patent_id}/document-versions | { "new_content", "author_id", "change_summary" } | { "version_id", "version_no", "is_current" } | 🔹 생성 시 이전 버전 is_current=false 처리 |
+| Update Version Info | 버전 정보(요약 등) 수정 | PATCH | /api/document-versions/{version_id} | { "change_summary", "is_current" } | { "version_id", "updated_at" } | 🔹 is_current=true 지정 시 기존 버전들 비활성화 |
+| Restore Document Version | 특정 버전 복원 → 새 버전 생성 | POST | /api/document-versions/{version_id}/restore | – | { "version_id", "new_version_no", "restored_from" } | 🔹 기존 버전 내용을 복사해 새 버전 생성 |
+| Delete Document Version | 특정 버전 삭제 | DELETE | /api/document-versions/{version_id} | – | { "deleted": true } | 🔹 현재 버전(is_current)은 삭제 불가 |
 
 ---
 
@@ -69,7 +69,7 @@
 | Get Chat History | 특정 챗봇 세션 대화 내역 조회 | GET | /api/ai/chat/sessions/{session_id}/messages | – | [ { "message_id", "sender", "content", "executed_features", "features_result", "created_at" } ] | session 단위 대화 이력 제공 |
 | End Chat Session | 챗봇 세션 종료 및 요약 저장 | PATCH | /api/ai/chat/sessions/{session_id}/end | – | { "session_id", "ended_at", "session_summary" } | 요약 자동 저장 |
 | Get Action Logs | 메시지별 AI 행동 로그 조회 | GET | /api/ai/actions?message_id={message_id} | – | [ { "action_id", "action_type", "action_input", "action_output", "status", "created_at" } ] | AI_ActionLog 조회 |
-| Get File Versions | 출원서 및 도면 파일 버전 목록 조회 | GET | /api/file-versions?patent_id={patent_id} | – | [ { "version_id", "file_id", "version_no", "author_id", "change_summary", "is_current", "created_at" } ] | SpecVersion 테이블 구조 반영 |
+| Get Document Versions | 출원 문서 버전 목록 조회 | GET | /api/document-versions?patent_id={patent_id} | – | [ { "version_id", "version_no", "author_id", "change_summary", "is_current", "created_at" } ] | SpecVersion 테이블 구조 반영 |
 | Get Unread Notifications | 로그인 사용자 미확인 알림 조회 | GET | /api/notifications/unread | – | [ { "notification_id", "notification_type", "message", "target_type", "target_id" } ] | ERD 기반 Notification 구조 사용 |
 | Run AI Check | AI 기반 문서 점검 수행 | POST | /api/ai/checks | { "version_id": string, "model_version"?: string } | { "check_id": string, "risk_score": float, "detailed_results": [...] } | GPT 기반 점검, check_id로 결과 식별 |
 | Get AI Check Result | 점검 결과 상세 조회 | GET | /api/ai/checks/result/{check_id} | – | { "check_id": string, "risk_score": float, "detailed_results": [...] } | 상세 결과를 개별 호출로 조회 가능 |
