@@ -12,8 +12,8 @@
 
 | API 이름 | 설명 | Method | URL | 요청 데이터 | 응답 데이터 | 비고 |
 | --- | --- | --- | --- | --- | --- | --- |
-| Create Patent | 출원 생성 (임시 저장 상태로 생성) | POST | /api/patents | { "title", "type", "file_ids": [] } | { "patent_id", "status" } | 🔹 status: "DRAFT" 자동 설정<br>🔹 type: "PATENT", "TRADEMARK", "DESIGN" |
-| Get Patent Detail | 출원 상세 정보 조회 | GET | /api/patents/{patent_id} | – | { "patent_id", "title", "type", "status", "attachments": [], "classification_codes": [] } | 🔹 attachments: FileAttachment 기준<br>🔹 classification_codes: AI 분류 결과 포함 가능 |
+| Create Patent | 출원 생성 (임시 저장 상태로 생성) | POST | /api/patents | { "title", "type", "file_ids": [], "cpc", "application_number", "inventor", "technical_field", "background_technology", "invention_details": { "problem_to_solve", "solution", "effect" }, "summary", "drawing_description", "claims": [] } | { "patent_id", "status" } | 🔹 status: "DRAFT" 자동 설정<br>🔹 type: "PATENT", "TRADEMARK", "DESIGN" |
+| Get Patent Detail | 출원 상세 정보 조회 | GET | /api/patents/{patent_id} | – | { "patent_id", "title", "type", "status", "attachments": [], "cpc", "application_number", "inventor", "technical_field", "background_technology", "invention_details": { "problem_to_solve", "solution", "effect" }, "summary", "drawing_description", "claims": [], "classification_codes": [] } | 🔹 attachments: FileAttachment 기준<br>🔹 classification_codes: AI 분류 결과 포함 가능 |
 | Get My Patents | 로그인한 사용자의 출원 목록 | GET | /api/patents/my | – | [ { "patent_id", "title", "status" } ] | 🔹 최신순 정렬 |
 | Submit Patent | 출원 최종 제출 및 AI 분류 트리거 | POST | /api/patents/{patent_id}/submit | – | { "patent_id", "status", "classification_codes": [] } | 🔹 status → "SUBMITTED"<br>🔹 AI 분류 결과 포함 |
 | Update Patent Status | 출원 상태 수동 변경 (심사관/관리자용) | PATCH | /api/patents/{patent_id}/status | { "status" } | { "patent_id", "status" } | 🔹 권한 제한 필요 (EXAMINER or ADMIN) |

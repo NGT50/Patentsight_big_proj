@@ -49,6 +49,21 @@ class PatentServiceTest {
         request.setTitle("My Patent");
         request.setType(PatentType.PATENT);
         request.setFileIds(Arrays.asList(10L, 20L));
+        request.setCpc("B62H1/00");
+        request.setApplicationNumber("1020240001234");
+        request.setInventor("홍길동");
+        request.setTechnicalField("자전거 잠금장치 관련 기술");
+        request.setBackgroundTechnology("기존 자물쇠 방식은 위치 감지가 어렵고 분실 위험이 있음.");
+        PatentRequest.InventionDetails details = new PatentRequest.InventionDetails();
+        details.setProblemToSolve("스마트폰과 연동 가능한 자전거 잠금장치 부재");
+        details.setSolution("BLE 기반 잠금장치 및 위치 추적 모듈 개발");
+        details.setEffect("도난 방지와 위치 추적이 동시에 가능");
+        request.setInventionDetails(details);
+        request.setSummary("본 발명은 BLE 통신 기반의 스마트 자전거 잠금장치에 관한 것이다.");
+        request.setDrawingDescription("도 1은 잠금장치의 회로 구성도이다.");
+        request.setClaims(Arrays.asList(
+                "BLE 통신 모듈을 포함하는 자전거 잠금장치",
+                "상기 잠금장치가 GPS 모듈과 통신 가능한 것을 특징으로 하는 시스템"));
 
         FileAttachment file1 = new FileAttachment();
         file1.setFileId(10L);
@@ -70,6 +85,18 @@ class PatentServiceTest {
         assertEquals("My Patent", response.getTitle());
         assertEquals(PatentType.PATENT, response.getType());
         assertEquals(Arrays.asList(10L, 20L), response.getAttachmentIds());
+        assertEquals("B62H1/00", response.getCpc());
+        assertEquals("1020240001234", response.getApplicationNumber());
+        assertEquals("홍길동", response.getInventor());
+        assertEquals("자전거 잠금장치 관련 기술", response.getTechnicalField());
+        assertEquals("기존 자물쇠 방식은 위치 감지가 어렵고 분실 위험이 있음.", response.getBackgroundTechnology());
+        assertNotNull(response.getInventionDetails());
+        assertEquals("스마트폰과 연동 가능한 자전거 잠금장치 부재", response.getInventionDetails().getProblemToSolve());
+        assertEquals("BLE 기반 잠금장치 및 위치 추적 모듈 개발", response.getInventionDetails().getSolution());
+        assertEquals("도난 방지와 위치 추적이 동시에 가능", response.getInventionDetails().getEffect());
+        assertEquals("본 발명은 BLE 통신 기반의 스마트 자전거 잠금장치에 관한 것이다.", response.getSummary());
+        assertEquals("도 1은 잠금장치의 회로 구성도이다.", response.getDrawingDescription());
+        assertEquals(2, response.getClaims().size());
         assertNotNull(file1.getPatent());
         assertEquals(1L, file1.getPatent().getPatentId());
     }
@@ -81,6 +108,7 @@ class PatentServiceTest {
         patent.setTitle("Title");
         patent.setType(PatentType.PATENT);
         patent.setStatus(PatentStatus.DRAFT);
+        patent.setCpc("B62H1/00");
         when(patentRepository.findById(1L)).thenReturn(Optional.of(patent));
 
         FileAttachment file = new FileAttachment();
@@ -94,6 +122,7 @@ class PatentServiceTest {
         assertEquals(1L, res.getPatentId());
         assertEquals(1, res.getAttachmentIds().size());
         assertEquals(10L, res.getAttachmentIds().get(0));
+        assertEquals("B62H1/00", res.getCpc());
     }
 
     @Test
@@ -102,18 +131,21 @@ class PatentServiceTest {
         existing.setPatentId(1L);
         existing.setTitle("Old");
         existing.setType(PatentType.PATENT);
+        existing.setCpc("OLD");
         when(patentRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(patentRepository.save(any(Patent.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         PatentRequest req = new PatentRequest();
         req.setTitle("New");
         req.setType(PatentType.TRADEMARK);
+        req.setCpc("NEW");
 
         PatentResponse res = patentService.updatePatent(1L, req);
 
         assertNotNull(res);
         assertEquals("New", res.getTitle());
         assertEquals(PatentType.TRADEMARK, res.getType());
+        assertEquals("NEW", res.getCpc());
     }
 
     @Test

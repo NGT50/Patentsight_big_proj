@@ -2,6 +2,7 @@ package com.patentsight.patent.domain;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 public class Patent {
@@ -22,7 +23,36 @@ public class Patent {
 
     private LocalDateTime submittedAt;
 
-    private String ipcCode;
+    private String cpc;
+
+    private String applicationNumber;
+
+    private String inventor;
+
+    private String technicalField;
+
+    @Lob
+    private String backgroundTechnology;
+
+    @Lob
+    private String problemToSolve;
+
+    @Lob
+    private String solution;
+
+    @Lob
+    private String effect;
+
+    @Lob
+    private String summary;
+
+    @Lob
+    private String drawingDescription;
+
+    @ElementCollection
+    @CollectionTable(name = "patent_claims", joinColumns = @JoinColumn(name = "patent_id"))
+    @Column(name = "claim_text")
+    private List<String> claims;
 
     // getters and setters
     public Long getPatentId() { return patentId; }
@@ -37,6 +67,26 @@ public class Patent {
     public void setStatus(PatentStatus status) { this.status = status; }
     public LocalDateTime getSubmittedAt() { return submittedAt; }
     public void setSubmittedAt(LocalDateTime submittedAt) { this.submittedAt = submittedAt; }
-    public String getIpcCode() { return ipcCode; }
-    public void setIpcCode(String ipcCode) { this.ipcCode = ipcCode; }
+    public String getCpc() { return cpc; }
+    public void setCpc(String cpc) { this.cpc = cpc; }
+    public String getApplicationNumber() { return applicationNumber; }
+    public void setApplicationNumber(String applicationNumber) { this.applicationNumber = applicationNumber; }
+    public String getInventor() { return inventor; }
+    public void setInventor(String inventor) { this.inventor = inventor; }
+    public String getTechnicalField() { return technicalField; }
+    public void setTechnicalField(String technicalField) { this.technicalField = technicalField; }
+    public String getBackgroundTechnology() { return backgroundTechnology; }
+    public void setBackgroundTechnology(String backgroundTechnology) { this.backgroundTechnology = backgroundTechnology; }
+    public String getProblemToSolve() { return problemToSolve; }
+    public void setProblemToSolve(String problemToSolve) { this.problemToSolve = problemToSolve; }
+    public String getSolution() { return solution; }
+    public void setSolution(String solution) { this.solution = solution; }
+    public String getEffect() { return effect; }
+    public void setEffect(String effect) { this.effect = effect; }
+    public String getSummary() { return summary; }
+    public void setSummary(String summary) { this.summary = summary; }
+    public String getDrawingDescription() { return drawingDescription; }
+    public void setDrawingDescription(String drawingDescription) { this.drawingDescription = drawingDescription; }
+    public List<String> getClaims() { return claims; }
+    public void setClaims(List<String> claims) { this.claims = claims; }
 }

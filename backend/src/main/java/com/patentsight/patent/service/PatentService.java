@@ -37,6 +37,19 @@ public class PatentService {
         patent.setType(request.getType());
         patent.setApplicantId(applicantId);
         patent.setStatus(PatentStatus.DRAFT);
+        patent.setCpc(request.getCpc());
+        patent.setApplicationNumber(request.getApplicationNumber());
+        patent.setInventor(request.getInventor());
+        patent.setTechnicalField(request.getTechnicalField());
+        patent.setBackgroundTechnology(request.getBackgroundTechnology());
+        if (request.getInventionDetails() != null) {
+            patent.setProblemToSolve(request.getInventionDetails().getProblemToSolve());
+            patent.setSolution(request.getInventionDetails().getSolution());
+            patent.setEffect(request.getInventionDetails().getEffect());
+        }
+        patent.setSummary(request.getSummary());
+        patent.setDrawingDescription(request.getDrawingDescription());
+        patent.setClaims(request.getClaims());
         patentRepository.save(patent);
 
         List<FileAttachment> attachments = java.util.Collections.emptyList();
@@ -56,6 +69,19 @@ public class PatentService {
         response.setAttachmentIds(attachments.stream()
                 .map(FileAttachment::getFileId)
                 .collect(Collectors.toList()));
+        response.setCpc(patent.getCpc());
+        response.setApplicationNumber(patent.getApplicationNumber());
+        response.setInventor(patent.getInventor());
+        response.setTechnicalField(patent.getTechnicalField());
+        response.setBackgroundTechnology(patent.getBackgroundTechnology());
+        PatentResponse.InventionDetails details = new PatentResponse.InventionDetails();
+        details.setProblemToSolve(patent.getProblemToSolve());
+        details.setSolution(patent.getSolution());
+        details.setEffect(patent.getEffect());
+        response.setInventionDetails(details);
+        response.setSummary(patent.getSummary());
+        response.setDrawingDescription(patent.getDrawingDescription());
+        response.setClaims(patent.getClaims());
         return response;
     }
 
@@ -68,6 +94,19 @@ public class PatentService {
         res.setTitle(patent.getTitle());
         res.setType(patent.getType());
         res.setStatus(patent.getStatus());
+        res.setCpc(patent.getCpc());
+        res.setApplicationNumber(patent.getApplicationNumber());
+        res.setInventor(patent.getInventor());
+        res.setTechnicalField(patent.getTechnicalField());
+        res.setBackgroundTechnology(patent.getBackgroundTechnology());
+        PatentResponse.InventionDetails details = new PatentResponse.InventionDetails();
+        details.setProblemToSolve(patent.getProblemToSolve());
+        details.setSolution(patent.getSolution());
+        details.setEffect(patent.getEffect());
+        res.setInventionDetails(details);
+        res.setSummary(patent.getSummary());
+        res.setDrawingDescription(patent.getDrawingDescription());
+        res.setClaims(patent.getClaims());
         List<Long> attachmentIds = fileRepository.findAll().stream()
                 .filter(f -> f.getPatent() != null && f.getPatent().getPatentId().equals(patentId))
                 .map(FileAttachment::getFileId)
@@ -122,12 +161,55 @@ public class PatentService {
         if (request.getType() != null) {
             patent.setType(request.getType());
         }
+        if (request.getCpc() != null) {
+            patent.setCpc(request.getCpc());
+        }
+        if (request.getApplicationNumber() != null) {
+            patent.setApplicationNumber(request.getApplicationNumber());
+        }
+        if (request.getInventor() != null) {
+            patent.setInventor(request.getInventor());
+        }
+        if (request.getTechnicalField() != null) {
+            patent.setTechnicalField(request.getTechnicalField());
+        }
+        if (request.getBackgroundTechnology() != null) {
+            patent.setBackgroundTechnology(request.getBackgroundTechnology());
+        }
+        if (request.getInventionDetails() != null) {
+            PatentRequest.InventionDetails d = request.getInventionDetails();
+            if (d.getProblemToSolve() != null) patent.setProblemToSolve(d.getProblemToSolve());
+            if (d.getSolution() != null) patent.setSolution(d.getSolution());
+            if (d.getEffect() != null) patent.setEffect(d.getEffect());
+        }
+        if (request.getSummary() != null) {
+            patent.setSummary(request.getSummary());
+        }
+        if (request.getDrawingDescription() != null) {
+            patent.setDrawingDescription(request.getDrawingDescription());
+        }
+        if (request.getClaims() != null) {
+            patent.setClaims(request.getClaims());
+        }
         patentRepository.save(patent);
         PatentResponse res = new PatentResponse();
         res.setPatentId(patent.getPatentId());
         res.setTitle(patent.getTitle());
         res.setType(patent.getType());
         res.setStatus(patent.getStatus());
+        res.setCpc(patent.getCpc());
+        res.setApplicationNumber(patent.getApplicationNumber());
+        res.setInventor(patent.getInventor());
+        res.setTechnicalField(patent.getTechnicalField());
+        res.setBackgroundTechnology(patent.getBackgroundTechnology());
+        PatentResponse.InventionDetails details = new PatentResponse.InventionDetails();
+        details.setProblemToSolve(patent.getProblemToSolve());
+        details.setSolution(patent.getSolution());
+        details.setEffect(patent.getEffect());
+        res.setInventionDetails(details);
+        res.setSummary(patent.getSummary());
+        res.setDrawingDescription(patent.getDrawingDescription());
+        res.setClaims(patent.getClaims());
         return res;
     }
 
