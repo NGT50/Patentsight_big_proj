@@ -149,6 +149,7 @@ public class PatentService {
         String typeCode;
         switch (patent.getType()) {
             case PATENT -> typeCode = "10";
+            case UTILITY_MODEL -> typeCode = "20";
             case DESIGN -> typeCode = "30";
             case TRADEMARK -> typeCode = "40";
             default -> typeCode = "10";

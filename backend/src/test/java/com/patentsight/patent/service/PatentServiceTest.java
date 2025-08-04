@@ -166,6 +166,21 @@ class PatentServiceTest {
     }
 
     @Test
+    void submitPatent_assignsApplicationNumberForUtilityModel() {
+        Patent patent = new Patent();
+        patent.setPatentId(2L);
+        patent.setType(PatentType.UTILITY_MODEL);
+        when(patentRepository.findById(2L)).thenReturn(Optional.of(patent));
+        when(patentRepository.save(any(Patent.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        PatentResponse res = patentService.submitPatent(2L);
+
+        assertNotNull(res);
+        String expectedPrefix = "20" + java.time.LocalDate.now().getYear();
+        assertTrue(res.getApplicationNumber().startsWith(expectedPrefix));
+    }
+
+    @Test
     void deletePatent_removesRecord() {
         Patent patent = new Patent();
         patent.setPatentId(1L);
