@@ -10,6 +10,8 @@
 
 ## **2️⃣ Patents (출원 관리)**
 
+모든 출원 문서는 JSON 텍스트로 저장되며 파일 업로드 대신 `content` 필드로 관리됩니다.
+
 | API 이름 | 설명 | Method | URL | 요청 데이터 | 응답 데이터 | 비고 |
 | --- | --- | --- | --- | --- | --- | --- |
 | Create Patent | 출원 생성 (임시 저장 상태로 생성) | POST | /api/patents | { "title", "type", "file_ids": [], "cpc", "inventor", "technical_field", "background_technology", "invention_details": { "problem_to_solve", "solution", "effect" }, "summary", "drawing_description", "claims": [] } | { "patent_id", "status" } | 🔹 status: "DRAFT" 자동 설정<br>🔹 type: "PATENT", "UTILITY_MODEL", "DESIGN", "TRADEMARK" |

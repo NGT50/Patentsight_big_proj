@@ -1,5 +1,9 @@
 package com.patentsight.patent.controller;
 
+import com.patentsight.file.dto.FileContentRequest;
+import com.patentsight.file.dto.FileContentResponse;
+import com.patentsight.file.dto.FileVersionRequest;
+import com.patentsight.file.dto.FileVersionResponse;
 import com.patentsight.patent.domain.PatentStatus;
 import com.patentsight.patent.dto.PatentRequest;
 import com.patentsight.patent.dto.PatentResponse;
@@ -55,6 +59,32 @@ public class PatentController {
     public ResponseEntity<PatentResponse> updatePatent(@PathVariable("id") Long id,
                                                        @RequestBody PatentRequest request) {
         PatentResponse res = patentService.updatePatent(id, request);
+        return ResponseEntity.ok(res);
+    }
+
+    @GetMapping("/{id}/file-versions")
+    public ResponseEntity<List<FileVersionResponse>> getFileVersions(@PathVariable("id") Long id) {
+        List<FileVersionResponse> versions = patentService.getFileVersions(id);
+        return ResponseEntity.ok(versions);
+    }
+
+    @GetMapping("/{id}/file/latest")
+    public ResponseEntity<FileContentResponse> getLatestFile(@PathVariable("id") Long id) {
+        FileContentResponse res = patentService.getLatestFile(id);
+        return ResponseEntity.ok(res);
+    }
+
+    @PatchMapping("/file/{fileId}")
+    public ResponseEntity<FileContentResponse> updateFileContent(@PathVariable("fileId") Long fileId,
+                                                                 @RequestBody FileContentRequest request) {
+        FileContentResponse res = patentService.updateFileContent(fileId, request.getContent());
+        return ResponseEntity.ok(res);
+    }
+
+    @PostMapping("/{id}/file-versions")
+    public ResponseEntity<FileVersionResponse> createFileVersion(@PathVariable("id") Long id,
+                                                                 @RequestBody FileVersionRequest request) {
+        FileVersionResponse res = patentService.createFileVersion(id, request);
         return ResponseEntity.ok(res);
     }
 

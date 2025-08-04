@@ -1,53 +1,26 @@
-package com.patentsight.file.domain;
+package com.patentsight.file.dto;
 
-import com.patentsight.patent.domain.Patent;
-import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
-@Entity
-public class SpecVersion {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+public class FileVersionResponse {
     private Long versionId;
-
-    @ManyToOne
-    @JoinColumn(name = "patent_id")
-    private Patent patent;
-
+    private Long fileId;
     private int versionNo;
-
-    @ManyToOne
-    @JoinColumn(name = "file_id")
-    private FileAttachment file;
-
     private Long authorId;
-
-    @Lob
     private String changeSummary;
-
-    @Lob
-    private String content;
-
     private boolean isCurrent;
-
     private LocalDateTime createdAt;
 
-    // getters and setters
     public Long getVersionId() { return versionId; }
     public void setVersionId(Long versionId) { this.versionId = versionId; }
-    public Patent getPatent() { return patent; }
-    public void setPatent(Patent patent) { this.patent = patent; }
+    public Long getFileId() { return fileId; }
+    public void setFileId(Long fileId) { this.fileId = fileId; }
     public int getVersionNo() { return versionNo; }
     public void setVersionNo(int versionNo) { this.versionNo = versionNo; }
-    public FileAttachment getFile() { return file; }
-    public void setFile(FileAttachment file) { this.file = file; }
     public Long getAuthorId() { return authorId; }
     public void setAuthorId(Long authorId) { this.authorId = authorId; }
     public String getChangeSummary() { return changeSummary; }
     public void setChangeSummary(String changeSummary) { this.changeSummary = changeSummary; }
-    public String getContent() { return content; }
-    public void setContent(String content) { this.content = content; }
     public boolean isCurrent() { return isCurrent; }
     public void setCurrent(boolean current) { isCurrent = current; }
     public LocalDateTime getCreatedAt() { return createdAt; }

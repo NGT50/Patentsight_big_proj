@@ -23,6 +23,9 @@ public class FileAttachment {
     private String mimeType;
     private String fileHash;
     private LocalDateTime uploadedAt;
+    @Lob
+    private String content;
+    private LocalDateTime updatedAt;
 
     // getters and setters
     public Long getFileId() { return fileId; }
@@ -43,4 +46,8 @@ public class FileAttachment {
     public void setFileHash(String fileHash) { this.fileHash = fileHash; }
     public LocalDateTime getUploadedAt() { return uploadedAt; }
     public void setUploadedAt(LocalDateTime uploadedAt) { this.uploadedAt = uploadedAt; }
+    public String getContent() { return content; }
+    public void setContent(String content) { this.content = content; }
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }
