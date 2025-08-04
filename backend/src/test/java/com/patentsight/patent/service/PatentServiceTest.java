@@ -23,6 +23,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Optional;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -254,6 +255,28 @@ class PatentServiceTest {
         assertTrue(res.isCurrent());
         verify(specVersionRepository).save(any(SpecVersion.class));
         verify(fileRepository).save(file);
+    }
+
+    @Test
+    void getMyPatents_populatesFields() {
+        Patent patent = new Patent();
+        patent.setPatentId(1L);
+        patent.setApplicantId(1L);
+        patent.setTitle("T");
+        patent.setType(PatentType.PATENT);
+        patent.setStatus(PatentStatus.DRAFT);
+        when(patentRepository.findAll()).thenReturn(Collections.singletonList(patent));
+
+        FileAttachment file = new FileAttachment();
+        file.setFileId(10L);
+        file.setPatent(patent);
+        when(fileRepository.findAll()).thenReturn(Collections.singletonList(file));
+
+        List<PatentResponse> list = patentService.getMyPatents(1L);
+        assertEquals(1, list.size());
+        PatentResponse res = list.get(0);
+        assertEquals(PatentType.PATENT, res.getType());
+        assertEquals(List.of(10L), res.getAttachmentIds());
     }
 }
 

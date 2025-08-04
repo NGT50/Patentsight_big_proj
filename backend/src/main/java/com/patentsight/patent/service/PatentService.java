@@ -131,7 +131,26 @@ public class PatentService {
                     r.setPatentId(p.getPatentId());
                     r.setApplicantId(p.getApplicantId());
                     r.setTitle(p.getTitle());
+                    r.setType(p.getType());
                     r.setStatus(p.getStatus());
+                    r.setCpc(p.getCpc());
+                    r.setApplicationNumber(p.getApplicationNumber());
+                    r.setInventor(p.getInventor());
+                    r.setTechnicalField(p.getTechnicalField());
+                    r.setBackgroundTechnology(p.getBackgroundTechnology());
+                    PatentResponse.InventionDetails details = new PatentResponse.InventionDetails();
+                    details.setProblemToSolve(p.getProblemToSolve());
+                    details.setSolution(p.getSolution());
+                    details.setEffect(p.getEffect());
+                    r.setInventionDetails(details);
+                    r.setSummary(p.getSummary());
+                    r.setDrawingDescription(p.getDrawingDescription());
+                    r.setClaims(p.getClaims());
+                    List<Long> attachmentIds = fileRepository.findAll().stream()
+                            .filter(f -> f.getPatent() != null && f.getPatent().getPatentId().equals(p.getPatentId()))
+                            .map(FileAttachment::getFileId)
+                            .collect(Collectors.toList());
+                    r.setAttachmentIds(attachmentIds);
                     return r;
                 })
                 .collect(Collectors.toList());
