@@ -1,5 +1,3 @@
-// src/mocks/patentDetailMock.js
-
 export const patentDetailMockData = {
   '2025-00000': {
     id: '2025-00000',
