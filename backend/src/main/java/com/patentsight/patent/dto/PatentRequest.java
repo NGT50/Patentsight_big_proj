@@ -8,7 +8,6 @@ public class PatentRequest {
     private PatentType type;
     private List<Long> fileIds;
     private String cpc;
-    private String applicationNumber;
     private String inventor;
     private String technicalField;
     private String backgroundTechnology;
@@ -25,8 +24,6 @@ public class PatentRequest {
     public void setFileIds(List<Long> fileIds) { this.fileIds = fileIds; }
     public String getCpc() { return cpc; }
     public void setCpc(String cpc) { this.cpc = cpc; }
-    public String getApplicationNumber() { return applicationNumber; }
-    public void setApplicationNumber(String applicationNumber) { this.applicationNumber = applicationNumber; }
     public String getInventor() { return inventor; }
     public void setInventor(String inventor) { this.inventor = inventor; }
     public String getTechnicalField() { return technicalField; }

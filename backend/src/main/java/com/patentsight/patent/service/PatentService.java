@@ -11,6 +11,7 @@ import com.patentsight.patent.repository.PatentRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -38,7 +39,6 @@ public class PatentService {
         patent.setApplicantId(applicantId);
         patent.setStatus(PatentStatus.DRAFT);
         patent.setCpc(request.getCpc());
-        patent.setApplicationNumber(request.getApplicationNumber());
         patent.setInventor(request.getInventor());
         patent.setTechnicalField(request.getTechnicalField());
         patent.setBackgroundTechnology(request.getBackgroundTechnology());
@@ -134,11 +134,28 @@ public class PatentService {
         if (patent == null) return null;
         patent.setStatus(PatentStatus.SUBMITTED);
         patent.setSubmittedAt(LocalDateTime.now());
+        if (patent.getApplicationNumber() == null) {
+            patent.setApplicationNumber(generateApplicationNumber(patent));
+        }
         patentRepository.save(patent);
         PatentResponse res = new PatentResponse();
         res.setPatentId(patent.getPatentId());
         res.setStatus(patent.getStatus());
+        res.setApplicationNumber(patent.getApplicationNumber());
         return res;
+    }
+
+    private String generateApplicationNumber(Patent patent) {
+        String typeCode;
+        switch (patent.getType()) {
+            case PATENT -> typeCode = "10";
+            case DESIGN -> typeCode = "30";
+            case TRADEMARK -> typeCode = "40";
+            default -> typeCode = "10";
+        }
+        String year = String.valueOf(LocalDate.now().getYear());
+        String serial = String.format("%07d", patent.getPatentId());
+        return typeCode + year + serial;
     }
 
     public PatentResponse updatePatentStatus(Long patentId, PatentStatus status) {
@@ -163,9 +180,6 @@ public class PatentService {
         }
         if (request.getCpc() != null) {
             patent.setCpc(request.getCpc());
-        }
-        if (request.getApplicationNumber() != null) {
-            patent.setApplicationNumber(request.getApplicationNumber());
         }
         if (request.getInventor() != null) {
             patent.setInventor(request.getInventor());

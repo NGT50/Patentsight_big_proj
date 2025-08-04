@@ -50,7 +50,6 @@ class PatentServiceTest {
         request.setType(PatentType.PATENT);
         request.setFileIds(Arrays.asList(10L, 20L));
         request.setCpc("B62H1/00");
-        request.setApplicationNumber("1020240001234");
         request.setInventor("홍길동");
         request.setTechnicalField("자전거 잠금장치 관련 기술");
         request.setBackgroundTechnology("기존 자물쇠 방식은 위치 감지가 어렵고 분실 위험이 있음.");
@@ -86,7 +85,7 @@ class PatentServiceTest {
         assertEquals(PatentType.PATENT, response.getType());
         assertEquals(Arrays.asList(10L, 20L), response.getAttachmentIds());
         assertEquals("B62H1/00", response.getCpc());
-        assertEquals("1020240001234", response.getApplicationNumber());
+        assertNull(response.getApplicationNumber());
         assertEquals("홍길동", response.getInventor());
         assertEquals("자전거 잠금장치 관련 기술", response.getTechnicalField());
         assertEquals("기존 자물쇠 방식은 위치 감지가 어렵고 분실 위험이 있음.", response.getBackgroundTechnology());
@@ -146,6 +145,24 @@ class PatentServiceTest {
         assertEquals("New", res.getTitle());
         assertEquals(PatentType.TRADEMARK, res.getType());
         assertEquals("NEW", res.getCpc());
+    }
+
+    @Test
+    void submitPatent_assignsApplicationNumber() {
+        Patent patent = new Patent();
+        patent.setPatentId(1L);
+        patent.setType(PatentType.PATENT);
+        when(patentRepository.findById(1L)).thenReturn(Optional.of(patent));
+        when(patentRepository.save(any(Patent.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        PatentResponse res = patentService.submitPatent(1L);
+
+        assertNotNull(res);
+        assertEquals(PatentStatus.SUBMITTED, res.getStatus());
+        assertNotNull(res.getApplicationNumber());
+        String expectedPrefix = "10" + java.time.LocalDate.now().getYear();
+        assertTrue(res.getApplicationNumber().startsWith(expectedPrefix));
+        assertEquals(13, res.getApplicationNumber().length());
     }
 
     @Test
