@@ -3,6 +3,7 @@ package com.patentsight.file.dto;
 import java.time.LocalDateTime;
 
 public class FileVersionResponse {
+    private Long patentId;
     private Long versionId;
     private int versionNo;
     private Long authorId;
@@ -22,4 +23,7 @@ public class FileVersionResponse {
     public void setCurrent(boolean current) { isCurrent = current; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    public Long getPatentId() { return patentId; }
+    public void setPatentId(Long patentId) { this.patentId = patentId; }
 }

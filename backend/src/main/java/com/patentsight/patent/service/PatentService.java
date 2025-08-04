@@ -377,6 +377,7 @@ public class PatentService {
 
     private FileVersionResponse toFileVersionResponse(SpecVersion v) {
         FileVersionResponse res = new FileVersionResponse();
+        res.setPatentId(v.getPatent().getPatentId());
         res.setVersionId(v.getVersionId());
         res.setVersionNo(v.getVersionNo());
         res.setAuthorId(v.getAuthorId());

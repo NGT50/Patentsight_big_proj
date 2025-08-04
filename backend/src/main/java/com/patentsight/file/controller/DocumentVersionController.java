@@ -21,13 +21,13 @@ public class DocumentVersionController {
     public ResponseEntity<FileVersionResponse> updateVersionInfo(@PathVariable("id") Long id,
                                                                  @RequestBody FileVersionInfoRequest request) {
         FileVersionResponse res = patentService.updateVersionInfo(id, request);
-        return ResponseEntity.ok(res);
+        return ResponseEntity.ok(res); // response now includes parent patentId
     }
 
     @PostMapping("/document-versions/{id}/restore")
     public ResponseEntity<FileVersionResponse> restoreDocumentVersion(@PathVariable("id") Long id) {
         FileVersionResponse res = patentService.restoreDocumentVersion(id);
-        return ResponseEntity.ok(res);
+        return ResponseEntity.ok(res); // response now includes parent patentId
     }
 
     @DeleteMapping("/document-versions/{id}")
