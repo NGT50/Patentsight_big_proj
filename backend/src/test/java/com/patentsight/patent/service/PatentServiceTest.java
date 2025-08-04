@@ -12,11 +12,11 @@ import com.patentsight.patent.repository.PatentRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Optional;
 
@@ -44,10 +44,18 @@ class PatentServiceTest {
     }
 
     @Test
-    void createPatent_setsDraftStatusAndPersists() {
+    void createPatent_setsFieldsAndAttachments() {
         PatentRequest request = new PatentRequest();
         request.setTitle("My Patent");
         request.setType(PatentType.PATENT);
+        request.setFileIds(Arrays.asList(10L, 20L));
+
+        FileAttachment file1 = new FileAttachment();
+        file1.setFileId(10L);
+        FileAttachment file2 = new FileAttachment();
+        file2.setFileId(20L);
+        when(fileRepository.findAllById(Arrays.asList(10L, 20L))).thenReturn(Arrays.asList(file1, file2));
+        when(fileRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
 
         when(patentRepository.save(any(Patent.class))).thenAnswer(invocation -> {
             Patent p = invocation.getArgument(0);
@@ -59,9 +67,11 @@ class PatentServiceTest {
 
         assertEquals(1L, response.getPatentId());
         assertEquals(PatentStatus.DRAFT, response.getStatus());
-        ArgumentCaptor<Patent> captor = ArgumentCaptor.forClass(Patent.class);
-        verify(patentRepository).save(captor.capture());
-        assertEquals("My Patent", captor.getValue().getTitle());
+        assertEquals("My Patent", response.getTitle());
+        assertEquals(PatentType.PATENT, response.getType());
+        assertEquals(Arrays.asList(10L, 20L), response.getAttachmentIds());
+        assertNotNull(file1.getPatent());
+        assertEquals(1L, file1.getPatent().getPatentId());
     }
 
     @Test

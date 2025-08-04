@@ -39,9 +39,23 @@ public class PatentService {
         patent.setStatus(PatentStatus.DRAFT);
         patentRepository.save(patent);
 
+        List<FileAttachment> attachments = java.util.Collections.emptyList();
+        if (request.getFileIds() != null && !request.getFileIds().isEmpty()) {
+            attachments = fileRepository.findAllById(request.getFileIds());
+            for (FileAttachment attachment : attachments) {
+                attachment.setPatent(patent);
+            }
+            fileRepository.saveAll(attachments);
+        }
+
         PatentResponse response = new PatentResponse();
         response.setPatentId(patent.getPatentId());
+        response.setTitle(patent.getTitle());
+        response.setType(patent.getType());
         response.setStatus(patent.getStatus());
+        response.setAttachmentIds(attachments.stream()
+                .map(FileAttachment::getFileId)
+                .collect(Collectors.toList()));
         return response;
     }
 
