@@ -6,7 +6,7 @@ public class FileVersionResponse {
     private Long patentId;
     private Long versionId;
     private int versionNo;
-    private Long authorId;
+    private Long applicantId;
     private String changeSummary;
     private boolean isCurrent;
     private LocalDateTime createdAt;
@@ -16,8 +16,8 @@ public class FileVersionResponse {
     public void setVersionId(Long versionId) { this.versionId = versionId; }
     public int getVersionNo() { return versionNo; }
     public void setVersionNo(int versionNo) { this.versionNo = versionNo; }
-    public Long getAuthorId() { return authorId; }
-    public void setAuthorId(Long authorId) { this.authorId = authorId; }
+    public Long getApplicantId() { return applicantId; }
+    public void setApplicantId(Long applicantId) { this.applicantId = applicantId; }
     public String getChangeSummary() { return changeSummary; }
     public void setChangeSummary(String changeSummary) { this.changeSummary = changeSummary; }
     public boolean isCurrent() { return isCurrent; }

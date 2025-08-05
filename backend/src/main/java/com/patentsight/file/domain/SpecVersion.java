@@ -17,7 +17,7 @@ public class SpecVersion {
 
     private int versionNo;
 
-    private Long authorId;
+    private Long applicantId;
 
     @Lob
     private String changeSummary;
@@ -38,8 +38,8 @@ public class SpecVersion {
     public void setPatent(Patent patent) { this.patent = patent; }
     public int getVersionNo() { return versionNo; }
     public void setVersionNo(int versionNo) { this.versionNo = versionNo; }
-    public Long getAuthorId() { return authorId; }
-    public void setAuthorId(Long authorId) { this.authorId = authorId; }
+    public Long getApplicantId() { return applicantId; }
+    public void setApplicantId(Long applicantId) { this.applicantId = applicantId; }
     public String getChangeSummary() { return changeSummary; }
     public void setChangeSummary(String changeSummary) { this.changeSummary = changeSummary; }
     public String getDocument() { return document; }

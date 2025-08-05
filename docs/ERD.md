@@ -59,7 +59,7 @@ Table SpecVersion {
   patent_id      int       [not null]  // FK → Patent.patent_id
   version_no     int       [not null]
   document       json                 // document content stored as JSON
-  author_id      int       [not null]  // FK → User.user_id
+  applicant_id      int       [not null]  // FK → User.user_id
   change_summary text
   is_current     boolean   [not null]
   created_at     datetime  [not null]
@@ -149,7 +149,7 @@ Ref: FileAttachment.patent_id > Patent.patent_id
 Ref: FileAttachment.uploader_id > User.user_id
 
 Ref: SpecVersion.patent_id > Patent.patent_id
-Ref: SpecVersion.author_id > User.user_id
+Ref: SpecVersion.applicant_id > User.user_id
 
 Ref: AI_Check.patent_id > Patent.patent_id
 Ref: AI_Check.version_id > SpecVersion.version_id

@@ -96,7 +96,7 @@ public class PatentService {
         try {
             SpecVersion initial = new SpecVersion();
             initial.setPatent(patent);
-            initial.setAuthorId(applicantId);
+            initial.setApplicantId(applicantId);
             initial.setChangeSummary("initial draft");
             initial.setDocument(objectMapper.writeValueAsString(response));
             initial.setVersionNo(1);
@@ -316,7 +316,7 @@ public class PatentService {
             current = new SpecVersion();
             current.setPatent(patent);
             current.setVersionNo(1);
-            current.setAuthorId(patent.getApplicantId());
+            current.setApplicantId(patent.getApplicantId());
             current.setCurrent(true);
             current.setCreatedAt(LocalDateTime.now());
         }
@@ -346,7 +346,7 @@ public class PatentService {
         specVersionRepository.saveAll(existing);
         SpecVersion version = new SpecVersion();
         version.setPatent(patent);
-        version.setAuthorId(request.getAuthorId());
+        version.setApplicantId(request.getApplicantId());
         version.setChangeSummary(request.getChangeSummary());
         try {
             version.setDocument(objectMapper.writeValueAsString(updated));
@@ -393,7 +393,7 @@ public class PatentService {
 
         SpecVersion newVersion = new SpecVersion();
         newVersion.setPatent(patent);
-        newVersion.setAuthorId(source.getAuthorId());
+        newVersion.setApplicantId(source.getApplicantId());
         newVersion.setChangeSummary("Restored from version " + source.getVersionId());
         newVersion.setDocument(source.getDocument());
         int nextNo = versions.isEmpty() ? 1 : versions.get(0).getVersionNo() + 1;
@@ -423,7 +423,7 @@ public class PatentService {
         res.setPatentId(v.getPatent().getPatentId());
         res.setVersionId(v.getVersionId());
         res.setVersionNo(v.getVersionNo());
-        res.setAuthorId(v.getAuthorId());
+        res.setApplicantId(v.getApplicantId());
         res.setChangeSummary(v.getChangeSummary());
         res.setCurrent(v.isCurrent());
         res.setCreatedAt(v.getCreatedAt());

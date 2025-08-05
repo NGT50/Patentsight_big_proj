@@ -8,7 +8,7 @@ import com.patentsight.patent.dto.PatentRequest;
 public class DocumentVersionRequest {
 
     private PatentRequest newDocument;
-    private Long authorId;
+    private Long applicantId;
     private String changeSummary;
 
     public PatentRequest getNewDocument() {
@@ -19,12 +19,12 @@ public class DocumentVersionRequest {
         this.newDocument = newDocument;
     }
 
-    public Long getAuthorId() {
-        return authorId;
+    public Long getApplicantId() {
+        return applicantId;
     }
 
-    public void setAuthorId(Long authorId) {
-        this.authorId = authorId;
+    public void setApplicantId(Long applicantId) {
+        this.applicantId = applicantId;
     }
 
     public String getChangeSummary() {
