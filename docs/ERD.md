@@ -12,13 +12,23 @@ Table User {
 }
 
 Table Patent {
-  patent_id    int       [pk, not null]
-  title        varchar   [not null]
-  type         varchar   [not null]  // PATENT, TRADEMARK, DESIGN
-  applicant_id int       [not null]  // FK → User.user_id
-  status       varchar   [not null]
-  submitted_at datetime  [not null]
-  ipc_code     varchar
+  patent_id          int       [pk, not null]
+  title              varchar   [not null]
+  type               varchar   [not null]  // PATENT, UTILITY_MODEL, DESIGN, TRADEMARK
+  applicant_id       int       [not null]  // FK → User.user_id
+  status             varchar   [not null]
+  submitted_at       datetime
+  cpc                varchar
+  application_number varchar
+  inventor           varchar
+  technical_field    varchar
+  background_technology text
+  problem_to_solve   text
+  solution           text
+  effect             text
+  summary            text
+  drawing_description text
+  claims             json
 }
 
 Table Review {
