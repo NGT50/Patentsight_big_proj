@@ -2,9 +2,12 @@
 
 ### 🧪 로그인 테스트용 더미 데이터 (localStorage)
 
-프론트엔드에서 로그인 기능을 테스트하려면 아래 코드를 브라우저 콘솔에 복사하여 실행
+프론트엔드에서 로그인 기능을 테스트하려면 아래 코드를 브라우저 개발자 도구 열고 콘솔에 복사하여 실행
 
 ```js
+//붙여넣기 허용 코드 먼저 실행
+allow pasting
+
 // 출원인(applicant)과 심사관(examiner) 계정 등록
 localStorage.setItem('registeredUsers', JSON.stringify({
   "applicant1": {
