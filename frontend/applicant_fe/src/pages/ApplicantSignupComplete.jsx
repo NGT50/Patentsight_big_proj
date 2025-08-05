@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 
@@ -39,7 +39,7 @@ const CompleteContainer = styled.div`
 const SuccessIcon = styled.div`
   width: 80px;
   height: 80px;
-  background: #28a745;
+  background: #0066cc;
   border-radius: 50%;
   margin: 0 auto 20px;
   display: flex;
@@ -65,7 +65,7 @@ const SuccessIcon = styled.div`
 `;
 
 const Title = styled.h1`
-  color: #28a745;
+  color: #0066cc;
   margin-bottom: 20px;
   font-size: 24px;
   font-weight: 700;
@@ -218,6 +218,10 @@ function ApplicantSignupComplete() {
   const membershipNumber = 'AP' + Date.now().toString().slice(-8);
   const signupDate = new Date().toLocaleDateString('ko-KR');
 
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+  
   return (
     <PageContainer>
       <CompleteContainer>

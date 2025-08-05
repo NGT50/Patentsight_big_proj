@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 
@@ -224,6 +224,7 @@ const AuthButton = styled.button`
 `;
 
 function ExaminerAuth() {
+
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: '',
@@ -232,6 +233,11 @@ function ExaminerAuth() {
     employeeNumber: '',
     examinerCode: ''
   });
+
+   // 페이지 맨 위로 스크롤
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;

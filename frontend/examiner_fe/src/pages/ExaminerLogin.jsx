@@ -1,6 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
+import axios from 'axios';
+
+const USE_API = false; // true면 실제 API, false면 임시(localStorage/mock)
 
 const PageContainer = styled.div`
   max-width: 500px;
@@ -289,13 +292,18 @@ const SignupLink = styled.div`
   }
 `;
 
-function ExaminerLogin({ onLoginSuccess }) {
+// 로그인 컴포넌트
+function ExaminerLogin({ onLoginSuccess = () => {} }) {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     id: '',
     password: '',
     keepLogin: false
   });
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -305,34 +313,66 @@ function ExaminerLogin({ onLoginSuccess }) {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (formData.id && formData.password) {
-      // 로그인 성공 시 사용자 정보 전달
-      const userData = {
-        name: formData.id,
-        id: formData.id,
-      };
-      
-      onLoginSuccess(userData);
-       navigate('/dashboard');
-    } else {
+
+    if (!formData.id || !formData.password) {
       alert('아이디와 비밀번호를 입력해주세요.');
+      return;
+    }
+
+    try {
+      let userData;
+
+      if (USE_API) {
+        // ✅ 실제 백엔드 로그인 API 호출
+        const response = await axios.post('/api/users/login', {
+          username: formData.id,
+          password: formData.password
+        });
+
+        const { token, user_id, username, role } = response.data;
+
+        // 토큰 및 유저 정보 저장
+        localStorage.setItem('token', token);
+        localStorage.setItem('user', JSON.stringify({ user_id, username, role }));
+
+        userData = { user_id, username, role };
+
+      } else {
+        // ✅ 임시 로컬 테스트 (localStorage에 저장된 유저로 로그인)
+        const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '{}');
+        const user = registeredUsers[formData.id];
+
+        if (!user || user.password !== formData.password) {
+          throw new Error('아이디 또는 비밀번호가 일치하지 않습니다.');
+        }
+
+        userData = {
+          name: user.name,
+          id: user.id,
+          email: user.email,
+          phone: user.phone,
+          address: user.address
+        };
+
+        localStorage.setItem('user', JSON.stringify(userData));
+      }
+
+      // 로그인 성공
+      onLoginSuccess(userData);
+      alert('로그인 성공!');
+      navigate('/dashboard');
+
+    } catch (err) {
+      console.error('로그인 오류:', err);
+      alert(err.message || '로그인에 실패했습니다.');
     }
   };
 
-  const handleFindId = () => {
-    alert('아이디 찾기 기능');
-  };
-
-  const handleFindPassword = () => {
-    alert('비밀번호 찾기 기능');
-  };
-
-  const handleSignup = () => {
-    navigate('/terms');
-  };
+  const handleFindId = () => alert('아이디 찾기 기능 준비 중');
+  const handleFindPassword = () => alert('비밀번호 찾기 기능 준비 중');
+  const handleSignup = () => navigate('/terms');
 
   return (
     <PageContainer>

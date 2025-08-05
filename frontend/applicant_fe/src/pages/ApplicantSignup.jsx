@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 
@@ -347,6 +347,11 @@ function ApplicantSignup() {
     agreeMarketing: false
   });
 
+   useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
+  
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({
@@ -357,12 +362,32 @@ function ApplicantSignup() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    // 회원가입 정보를 localStorage에 저장
+    const userData = {
+      name: formData.name,
+      id: formData.id,
+      password: formData.password,
+      email: formData.email,
+      phone: formData.phone
+    };
+    
+    // 사용자 정보를 localStorage에 저장
+    localStorage.setItem('registeredUsers', JSON.stringify({
+      ...JSON.parse(localStorage.getItem('registeredUsers') || '{}'),
+      [formData.id]: userData
+    }));
+
     navigate('/signup-complete');
+    
   };
 
   const handleEmailAuth = () => {
     alert('이메일 인증');
   };
+
+  
+  
 
   return (
     

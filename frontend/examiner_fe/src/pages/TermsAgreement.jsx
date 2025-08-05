@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 
@@ -329,6 +329,11 @@ function TermsAgreement() {
     termsAgree: false,
     privacyAgree: false
   });
+  
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
 
   const handleAllAgree = (checked) => {
     setAgreements({

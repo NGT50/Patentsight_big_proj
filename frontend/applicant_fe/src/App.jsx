@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import styled from 'styled-components';
 import Navigation from './components/Navigation';
@@ -36,14 +36,44 @@ const MainContent = styled.main`
 `;
 
 function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userInfo, setUserInfo] = useState(null);
+
+  const handleLoginSuccess = (userData) => {
+    setIsLoggedIn(true);
+    setUserInfo(userData);
+  };
+
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    setUserInfo(null);
+    localStorage.removeItem('user');
+  };
+
+  useEffect(() => {
+    const savedUser = localStorage.getItem('user');
+    if (savedUser) {
+      setUserInfo(JSON.parse(savedUser));
+      setIsLoggedIn(true);
+    }
+  }, []);
+
+
   return (
     <Router>
       <AppContainer>
-        <Navigation />
+        <Navigation
+          isLoggedIn={isLoggedIn}
+          onLogout={handleLogout}
+          userInfo={userInfo}
+        />
         <MainContent>
           <Routes>
-            <Route path="/" element={<ApplicantDashboard />} />
-            <Route path="/login" element={<ApplicantLogin />} />
+            <Route
+              path="/login"
+              element={<ApplicantLogin onLoginSuccess={handleLoginSuccess} />}
+            />
+            <Route path="/dashboard" element={<ApplicantDashboard />} />
             <Route path="/terms" element={<TermsAgreement />} />
             <Route path="/signup" element={<ApplicantSignup />} />
             <Route path="/signup-complete" element={<ApplicantSignupComplete />} />

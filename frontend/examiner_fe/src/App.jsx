@@ -72,7 +72,7 @@ function App() {
           <Routes>
             
             {/* 첫 화면을 로그인 페이지로 변경 */}
-            <Route path="/" element={<Navigate to="/login" replace />} />
+            <Route path="/dashboard" element={isLoggedIn ? <ExaminerDashboard userInfo={userInfo} /> : <Navigate to="/login" replace />}/>
             <Route path="/login" element={<ExaminerLogin onLoginSuccess={handleLoginSuccess} />} />
             <Route path="/terms" element={<TermsAgreement />} />
             <Route path="/auth" element={<ExaminerAuth />} />

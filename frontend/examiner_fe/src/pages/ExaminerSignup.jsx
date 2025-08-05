@@ -314,6 +314,8 @@ function ExaminerSignup() {
   });
 
   useEffect(() => {
+    // 페이지 맨 위로 스크롤
+    window.scrollTo(0, 0);
     if (authData) {
       setFormData(prev => ({
         ...prev,

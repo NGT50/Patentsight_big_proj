@@ -571,6 +571,12 @@ const handleSubCategoryClick = (subCategory) => {
   setSelectedSubCategory(subCategory);
 };
 
+  // 사용자 이름의 마지막 글자를 마스킹하는 함수
+  const maskUserName = (name) => {
+    if (!name || name === '사용자') return name;
+    if (name.length <= 1) return '*';
+    return name.slice(0, -1) + '*';
+  };
 
 
   return (
@@ -585,7 +591,7 @@ const handleSubCategoryClick = (subCategory) => {
               {isLoggedIn ? (
                 <>
                   <UserInfo>
-                    <UserName>{userInfo?.name || '사용자'} 심사관</UserName>
+                    <UserName>{maskUserName(userInfo?.name || '사용자')} 심사관님</UserName>
                     <Timer>로그인 시간: {formatTime(timeLeft)}</Timer>
                   </UserInfo>
                   <Button onClick={handleKeepLogin}>로그인 유지</Button>

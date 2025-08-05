@@ -503,7 +503,15 @@ function Navigation({ isLoggedIn, onLoginSuccess, onLogout, userInfo }) { // pro
   useEffect(() => {
     if (timeLeft > 0 && isLoggedIn) {
       const timer = setInterval(() => {
-        setTimeLeft(prev => prev - 1);
+        setTimeLeft(prev => {
+          const next = prev - 1;
+          if (next <= 0) {
+            alert('세션이 만료되어 로그아웃됩니다.');
+            handleLogout(); // ⬅ 자동 로그아웃 처리
+            return 0;
+          }
+          return next;
+        });
       }, 1000);
       return () => clearInterval(timer);
     }
@@ -538,7 +546,7 @@ function Navigation({ isLoggedIn, onLoginSuccess, onLogout, userInfo }) { // pro
 
   const handleLogoClick = () => {
     if (isLoggedIn) {
-      navigate('/');
+      navigate('/dashboard');
     } else {
       navigate('/login');
     }
@@ -571,7 +579,12 @@ const handleSubCategoryClick = (subCategory) => {
   setSelectedSubCategory(subCategory);
 };
 
-
+ // 사용자 이름의 마지막 글자를 마스킹하는 함수
+  const maskUserName = (name) => {
+    if (!name || name === '사용자') return name;
+    if (name.length <= 1) return '*';
+    return name.slice(0, -1) + '*';
+  };
 
   return (
     <>
@@ -585,7 +598,7 @@ const handleSubCategoryClick = (subCategory) => {
               {isLoggedIn ? (
                 <>
                   <UserInfo>
-                    <UserName>{userInfo?.name || '사용자'} 심사관</UserName>
+                    <UserName>{maskUserName(userInfo?.name || '사용자')} 출원인님</UserName>
                     <Timer>로그인 시간: {formatTime(timeLeft)}</Timer>
                   </UserInfo>
                   <Button onClick={handleKeepLogin}>로그인 유지</Button>
