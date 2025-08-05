@@ -7,6 +7,7 @@ import com.patentsight.file.dto.DocumentContentResponse;
 import com.patentsight.file.dto.DocumentVersionRequest;
 import com.patentsight.file.dto.FileVersionInfoRequest;
 import com.patentsight.file.dto.FileVersionResponse;
+import com.patentsight.file.dto.RestoreVersionResponse;
 import com.patentsight.file.repository.FileRepository;
 import com.patentsight.file.repository.SpecVersionRepository;
 import com.patentsight.patent.domain.Patent;
@@ -364,7 +365,7 @@ public class PatentService {
         return toFileVersionResponse(version);
     }
 
-    public FileVersionResponse restoreDocumentVersion(Long versionId) {
+    public RestoreVersionResponse restoreDocumentVersion(Long versionId) {
         SpecVersion source = specVersionRepository.findById(versionId).orElse(null);
         if (source == null) return null;
         Patent patent = source.getPatent();
@@ -373,6 +374,7 @@ public class PatentService {
             v.setCurrent(false);
         }
         specVersionRepository.saveAll(versions);
+
         SpecVersion newVersion = new SpecVersion();
         newVersion.setPatent(patent);
         newVersion.setAuthorId(source.getAuthorId());
@@ -384,7 +386,13 @@ public class PatentService {
         newVersion.setCreatedAt(LocalDateTime.now());
         newVersion.setUpdatedAt(LocalDateTime.now());
         specVersionRepository.save(newVersion);
-        return toFileVersionResponse(newVersion);
+
+        RestoreVersionResponse res = new RestoreVersionResponse();
+        res.setPatentId(patent.getPatentId());
+        res.setVersionId(newVersion.getVersionId());
+        res.setNewVersionNo(newVersion.getVersionNo());
+        res.setRestoredFrom(source.getVersionId());
+        return res;
     }
 
     public boolean deleteDocumentVersion(Long versionId) {
@@ -403,6 +411,7 @@ public class PatentService {
         res.setChangeSummary(v.getChangeSummary());
         res.setCurrent(v.isCurrent());
         res.setCreatedAt(v.getCreatedAt());
+        res.setUpdatedAt(v.getUpdatedAt());
         return res;
     }
 }
