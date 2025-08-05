@@ -1,15 +1,20 @@
 package com.patentsight.review.dto;
 
+import com.patentsight.review.domain.Review;
+import com.patentsight.patent.domain.PatentType;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.Setter;
+
+import java.time.LocalDateTime;
 
 @Getter
-@Setter
 @AllArgsConstructor
 public class ReviewSearchResponse {
     private Long reviewId;
     private String patentTitle;
-    private String applicantName;  // 출원인 이름 (없으면 "미확정 출원")
-    private String status;
+    private String applicantName;
+    private Review.Decision status;
+    private PatentType reviewType;
+    private boolean autoAssigned;
+    private LocalDateTime reviewedAt;
 }
