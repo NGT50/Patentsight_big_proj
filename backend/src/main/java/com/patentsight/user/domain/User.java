@@ -28,8 +28,9 @@ public class User {
     private LocalDate birthDate; // 생년월일
 
     private String email;        // 출원인 전용
+
     @Enumerated(EnumType.STRING)
-    private DepartmentType department;   // 심사관 전용
+    private DepartmentType department;   // 심사관 부서 (PATENT / DESIGN / TRADEMARK)
 
     @Column(nullable = false)
     private String role;  // APPLICANT / EXAMINER / ADMIN
@@ -37,8 +38,13 @@ public class User {
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
+    // 🔹 현재 담당 심사 건수 (자동 배정용)
+    @Column(name = "current_load", nullable = false, columnDefinition = "int default 0")
+    private int currentLoad;
+
     @PrePersist
     public void prePersist() {
         this.createdAt = LocalDateTime.now();
+        this.currentLoad = 0; // 신규 유저는 0건 배정 상태로 시작
     }
 }

@@ -36,7 +36,23 @@ public class Review {
     @Column(name = "reviewed_at")
     private LocalDateTime reviewedAt;
 
+    // 🔹 출원 타입 저장 (PATENT / DESIGN / TRADEMARK)
+    @Column(name = "review_type")
+    private String reviewType;
+
+    // 🔹 자동 배정 여부
+    @Column(name = "auto_assigned")
+    private boolean autoAssigned;
+
     public enum Decision {
         APPROVE, PENDING, REJECT
+    }
+
+    @PrePersist
+    public void prePersist() {
+        // 자동 배정 여부는 Service에서 설정
+        if (this.decision == null) {
+            this.decision = Decision.PENDING;
+        }
     }
 }
