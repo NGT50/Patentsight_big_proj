@@ -2,41 +2,15 @@
 
 ## **1️⃣ Auth (회원가입 / 로그인 / 인증)**
 
-| 변경사항/요청사항 | API 이름 | 설명 | Method | URL | 요청 데이터 | 응답 데이터 | 비고 |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| 회원가입 두개로 나눔 | SignUpApplicant Up | 출원인 회원가입 | POST | /api/users/applicant | {
-"username": "applicant1",
-"password": "1234",
-"name": "홍길동",
-"birthDate": "1995-08-01",
-"email": "[applicant@test.com](mailto:applicant@test.com)"
-} | {
-"user_id": 1,
-"username": "applicant1",
-"role": "APPLICANT"
-} | 기본 role=APPLICANT, email 필수 |
-|  | SignUpExaminer | 심사관 회원가입 | POST | /api/users/examiner | {
-  "username": "examiner1",
-  "password": "1234",
-  "name": "김심사",
-  "birthDate": "1988-03-15",
-  "department": "PATENT"
-} | {
-"user_id": 2,
-"username": "examiner1",
-"role": "EXAMINER"
-} | 기본 role=EXAMINER, department 필수 |
-|  | Login	 | 사용자 로그인 및 토큰 발급 | POST | /api/users/login | {
-"username": "examiner1",
-"password": "1234"
-} | {
-"token": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJlelgYgEpQ",
-"user_id": 2,
-"username": "examiner1",
-"role": "EXAMINER"
-} | JWT 기반 인증 |
-|  | Verify Examiner | 심사관 인증 코드 검증 | POST | /api/users/verify-code | { "auth_code": "123" } | { "verified": true/false } | 🔹 EXAMINER 전용
-🔹 향후 추가 보안 요소 필요 시 2FA, email_verification 등 고려 가능 |
+| 변경사항/요청사항 | API 이름         | 설명                 | Method | URL                    | 요청 데이터                                                                 | 응답 데이터                                                                                   | 비고                                                                                  |
+|------------------|------------------|----------------------|--------|-------------------------|------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------|
+| 회원가입 두개로 나눔 | SignUpApplicant   | 출원인 회원가입        | POST   | /api/users/applicant   | `{ "username": "applicant1", "password": "1234", "name": "홍길동", "birthDate": "1995-08-01", "email": "applicant@test.com" }` | `{ "user_id": 1, "username": "applicant1", "role": "APPLICANT" }`                            | 기본 role=APPLICANT, email 필수                                                      |
+|                  | SignUpExaminer   | 심사관 회원가입        | POST   | /api/users/examiner    | `{ "username": "examiner1", "password": "1234", "name": "김심사", "birthDate": "1988-03-15", "department": "PATENT" }`           | `{ "user_id": 2, "username": "examiner1", "role": "EXAMINER" }`                              | 기본 role=EXAMINER, department 필수                                                 |
+|                  | Login            | 사용자 로그인 및 토큰 발급 | POST   | /api/users/login       | `{ "username": "examiner1", "password": "1234" }`                                           | `{ "token": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJlelgYgEpQ", "user_id": 2, "username": "examiner1", "role": "EXAMINER" }` | JWT 기반 인증                                                                       |
+|                  | Verify Examiner  | 심사관 인증 코드 검증   | POST   | /api/users/verify-code | `{ "auth_code": "123" }`                                                                    | `{ "verified": true/false }`                                                                | 🔹 EXAMINER 전용<br>🔹 향후 추가 보안 요소 필요 시 2FA, email_verification 등 고려 가능 |
+
+> 🔄 이름/ID 등의 중복 확인 필요 → 아이디 변수 추가로 해결
+
 
 - 이름/ ID 등의 중복확인 필요→ 아이디변수 추가로 해결
 
