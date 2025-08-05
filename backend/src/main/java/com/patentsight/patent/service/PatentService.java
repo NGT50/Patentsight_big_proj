@@ -91,6 +91,22 @@ public class PatentService {
         response.setSummary(patent.getSummary());
         response.setDrawingDescription(patent.getDrawingDescription());
         response.setClaims(patent.getClaims());
+
+        // create initial document version so listing endpoint returns data immediately
+        try {
+            SpecVersion initial = new SpecVersion();
+            initial.setPatent(patent);
+            initial.setAuthorId(applicantId);
+            initial.setChangeSummary("initial draft");
+            initial.setDocument(objectMapper.writeValueAsString(response));
+            initial.setVersionNo(1);
+            initial.setCurrent(true);
+            LocalDateTime now = LocalDateTime.now();
+            initial.setCreatedAt(now);
+            initial.setUpdatedAt(now);
+            specVersionRepository.save(initial);
+        } catch (Exception ignored) {
+        }
         return response;
     }
 
