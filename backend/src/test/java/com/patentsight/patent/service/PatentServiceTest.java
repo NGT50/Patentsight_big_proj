@@ -3,6 +3,7 @@ package com.patentsight.patent.service;
 import com.patentsight.file.domain.FileAttachment;
 import com.patentsight.file.repository.FileRepository;
 import com.patentsight.file.repository.SpecVersionRepository;
+import com.patentsight.file.domain.SpecVersion;
 import com.patentsight.patent.domain.Patent;
 import com.patentsight.patent.domain.PatentStatus;
 import com.patentsight.patent.domain.PatentType;
@@ -100,6 +101,7 @@ class PatentServiceTest {
         assertEquals(2, response.getClaims().size());
         assertNotNull(file1.getPatent());
         assertEquals(1L, file1.getPatent().getPatentId());
+        verify(specVersionRepository).save(any(SpecVersion.class));
     }
 
     @Test

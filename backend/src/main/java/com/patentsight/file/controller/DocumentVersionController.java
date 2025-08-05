@@ -2,6 +2,7 @@ package com.patentsight.file.controller;
 
 import com.patentsight.file.dto.FileVersionInfoRequest;
 import com.patentsight.file.dto.FileVersionResponse;
+import com.patentsight.file.dto.RestoreVersionResponse;
 import com.patentsight.patent.service.PatentService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -25,9 +26,9 @@ public class DocumentVersionController {
     }
 
     @PostMapping("/document-versions/{id}/restore")
-    public ResponseEntity<FileVersionResponse> restoreDocumentVersion(@PathVariable("id") Long id) {
-        FileVersionResponse res = patentService.restoreDocumentVersion(id);
-        return ResponseEntity.ok(res); // response now includes parent patentId
+    public ResponseEntity<RestoreVersionResponse> restoreDocumentVersion(@PathVariable("id") Long id) {
+        RestoreVersionResponse res = patentService.restoreDocumentVersion(id);
+        return ResponseEntity.ok(res);
     }
 
     @DeleteMapping("/document-versions/{id}")

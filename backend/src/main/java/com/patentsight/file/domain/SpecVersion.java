@@ -17,13 +17,13 @@ public class SpecVersion {
 
     private int versionNo;
 
-    private Long authorId;
+    private Long applicantId;
 
     @Lob
     private String changeSummary;
 
     @Lob
-    private String content;
+    private String document;
 
     private boolean isCurrent;
 
@@ -38,12 +38,12 @@ public class SpecVersion {
     public void setPatent(Patent patent) { this.patent = patent; }
     public int getVersionNo() { return versionNo; }
     public void setVersionNo(int versionNo) { this.versionNo = versionNo; }
-    public Long getAuthorId() { return authorId; }
-    public void setAuthorId(Long authorId) { this.authorId = authorId; }
+    public Long getApplicantId() { return applicantId; }
+    public void setApplicantId(Long applicantId) { this.applicantId = applicantId; }
     public String getChangeSummary() { return changeSummary; }
     public void setChangeSummary(String changeSummary) { this.changeSummary = changeSummary; }
-    public String getContent() { return content; }
-    public void setContent(String content) { this.content = content; }
+    public String getDocument() { return document; }
+    public void setDocument(String document) { this.document = document; }
     public boolean isCurrent() { return isCurrent; }
     public void setCurrent(boolean current) { isCurrent = current; }
     public LocalDateTime getCreatedAt() { return createdAt; }

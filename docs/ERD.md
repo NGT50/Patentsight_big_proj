@@ -1,5 +1,7 @@
 # Database ERD
 
+Document content for each version is stored as JSON in the `SpecVersion` table.
+
 ```
 Table User {
   user_id     int       [pk, not null]
@@ -12,13 +14,23 @@ Table User {
 }
 
 Table Patent {
-  patent_id    int       [pk, not null]
-  title        varchar   [not null]
-  type         varchar   [not null]  // PATENT, TRADEMARK, DESIGN
-  applicant_id int       [not null]  // FK → User.user_id
-  status       varchar   [not null]
-  submitted_at datetime  [not null]
-  ipc_code     varchar
+  patent_id          int       [pk, not null]
+  title              varchar   [not null]
+  type               varchar   [not null]  // PATENT, UTILITY_MODEL, DESIGN, TRADEMARK
+  applicant_id       int       [not null]  // FK → User.user_id
+  status             varchar   [not null]
+  submitted_at       datetime
+  cpc                varchar
+  application_number varchar
+  inventor           varchar
+  technical_field    varchar
+  background_technology text
+  problem_to_solve   text
+  solution           text
+  effect             text
+  summary            text
+  drawing_description text
+  claims             json
 }
 
 Table Review {
@@ -46,11 +58,12 @@ Table SpecVersion {
   version_id     int       [pk, not null]
   patent_id      int       [not null]  // FK → Patent.patent_id
   version_no     int       [not null]
-  file_id        int       [not null]  // FK → FileAttachment.file_id
-  author_id      int       [not null]  // FK → User.user_id
+  document       json                 // document content stored as JSON
+  applicant_id      int       [not null]  // FK → User.user_id
   change_summary text
   is_current     boolean   [not null]
   created_at     datetime  [not null]
+  updated_at     datetime
 }
 
 Table AI_Check {
@@ -136,8 +149,7 @@ Ref: FileAttachment.patent_id > Patent.patent_id
 Ref: FileAttachment.uploader_id > User.user_id
 
 Ref: SpecVersion.patent_id > Patent.patent_id
-Ref: SpecVersion.file_id > FileAttachment.file_id
-Ref: SpecVersion.author_id > User.user_id
+Ref: SpecVersion.applicant_id > User.user_id
 
 Ref: AI_Check.patent_id > Patent.patent_id
 Ref: AI_Check.version_id > SpecVersion.version_id

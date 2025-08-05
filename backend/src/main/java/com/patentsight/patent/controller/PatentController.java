@@ -1,8 +1,8 @@
 package com.patentsight.patent.controller;
 
-import com.patentsight.file.dto.FileContentRequest;
-import com.patentsight.file.dto.FileContentResponse;
-import com.patentsight.file.dto.FileVersionRequest;
+import com.patentsight.file.dto.DocumentContentRequest;
+import com.patentsight.file.dto.DocumentContentResponse;
+import com.patentsight.file.dto.DocumentVersionRequest;
 import com.patentsight.file.dto.FileVersionResponse;
 import com.patentsight.patent.domain.PatentStatus;
 import com.patentsight.patent.dto.PatentRequest;
@@ -71,21 +71,21 @@ public class PatentController {
     }
 
     @GetMapping("/{id}/document/latest")
-    public ResponseEntity<FileContentResponse> getLatestDocument(@PathVariable("id") Long id) {
-        FileContentResponse res = patentService.getLatestDocument(id);
+    public ResponseEntity<DocumentContentResponse> getLatestDocument(@PathVariable("id") Long id) {
+        DocumentContentResponse res = patentService.getLatestDocument(id);
         return ResponseEntity.ok(res);
     }
 
     @PatchMapping("/{id}/document")
-    public ResponseEntity<FileContentResponse> updateDocumentContent(@PathVariable("id") Long id,
-                                                                     @RequestBody FileContentRequest request) {
-        FileContentResponse res = patentService.updateDocumentContent(id, request.getContent());
+    public ResponseEntity<DocumentContentResponse> updateDocumentContent(@PathVariable("id") Long id,
+                                                                         @RequestBody DocumentContentRequest request) {
+        DocumentContentResponse res = patentService.updateDocument(id, request.getDocument());
         return ResponseEntity.ok(res);
     }
 
     @PostMapping("/{id}/document-versions")
     public ResponseEntity<FileVersionResponse> createDocumentVersion(@PathVariable("id") Long id,
-                                                                     @RequestBody FileVersionRequest request) {
+                                                                     @RequestBody DocumentVersionRequest request) {
         FileVersionResponse res = patentService.createDocumentVersion(id, request);
         return ResponseEntity.ok(res);
     }

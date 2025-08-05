@@ -2,10 +2,12 @@ package com.patentsight.patent.service;
 
 import com.patentsight.file.domain.FileAttachment;
 import com.patentsight.file.domain.SpecVersion;
-import com.patentsight.file.dto.FileContentResponse;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.patentsight.file.dto.DocumentContentResponse;
+import com.patentsight.file.dto.DocumentVersionRequest;
 import com.patentsight.file.dto.FileVersionInfoRequest;
-import com.patentsight.file.dto.FileVersionRequest;
 import com.patentsight.file.dto.FileVersionResponse;
+import com.patentsight.file.dto.RestoreVersionResponse;
 import com.patentsight.file.repository.FileRepository;
 import com.patentsight.file.repository.SpecVersionRepository;
 import com.patentsight.patent.domain.Patent;
@@ -28,6 +30,7 @@ public class PatentService {
     private final PatentRepository patentRepository;
     private final FileRepository fileRepository;
     private final SpecVersionRepository specVersionRepository;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public PatentService(PatentRepository patentRepository,
                          FileRepository fileRepository,
@@ -88,6 +91,22 @@ public class PatentService {
         response.setSummary(patent.getSummary());
         response.setDrawingDescription(patent.getDrawingDescription());
         response.setClaims(patent.getClaims());
+
+        // create initial document version so listing endpoint returns data immediately
+        try {
+            SpecVersion initial = new SpecVersion();
+            initial.setPatent(patent);
+            initial.setApplicantId(applicantId);
+            initial.setChangeSummary("initial draft");
+            initial.setDocument(objectMapper.writeValueAsString(response));
+            initial.setVersionNo(1);
+            initial.setCurrent(true);
+            LocalDateTime now = LocalDateTime.now();
+            initial.setCreatedAt(now);
+            initial.setUpdatedAt(now);
+            specVersionRepository.save(initial);
+        } catch (Exception ignored) {
+        }
         return response;
     }
 
@@ -272,17 +291,24 @@ public class PatentService {
     }
 
     @Transactional(readOnly = true)
-    public FileContentResponse getLatestDocument(Long patentId) {
+    public DocumentContentResponse getLatestDocument(Long patentId) {
         SpecVersion latest = specVersionRepository.findFirstByPatent_PatentIdAndIsCurrentTrue(patentId);
         if (latest == null) return null;
-        FileContentResponse res = new FileContentResponse();
+        DocumentContentResponse res = new DocumentContentResponse();
         res.setVersionNo(latest.getVersionNo());
-        res.setContent(latest.getContent());
+        try {
+            PatentResponse doc = objectMapper.readValue(latest.getDocument(), PatentResponse.class);
+            res.setDocument(doc);
+        } catch (Exception e) {
+            res.setDocument(null);
+        }
         res.setUpdatedAt(latest.getUpdatedAt());
         return res;
     }
 
-    public FileContentResponse updateDocumentContent(Long patentId, String content) {
+    public DocumentContentResponse updateDocument(Long patentId, PatentRequest document) {
+        PatentResponse updated = updatePatent(patentId, document);
+        if (updated == null) return null;
         Patent patent = patentRepository.findById(patentId).orElse(null);
         if (patent == null) return null;
         SpecVersion current = specVersionRepository.findFirstByPatent_PatentIdAndIsCurrentTrue(patentId);
@@ -290,21 +316,27 @@ public class PatentService {
             current = new SpecVersion();
             current.setPatent(patent);
             current.setVersionNo(1);
-            current.setAuthorId(patent.getApplicantId());
+            current.setApplicantId(patent.getApplicantId());
             current.setCurrent(true);
             current.setCreatedAt(LocalDateTime.now());
         }
-        current.setContent(content);
+        try {
+            current.setDocument(objectMapper.writeValueAsString(updated));
+        } catch (Exception e) {
+            current.setDocument(null);
+        }
         current.setUpdatedAt(LocalDateTime.now());
         specVersionRepository.save(current);
-        FileContentResponse res = new FileContentResponse();
+        DocumentContentResponse res = new DocumentContentResponse();
         res.setVersionNo(current.getVersionNo());
-        res.setContent(current.getContent());
+        res.setDocument(updated);
         res.setUpdatedAt(current.getUpdatedAt());
         return res;
     }
 
-    public FileVersionResponse createDocumentVersion(Long patentId, FileVersionRequest request) {
+    public FileVersionResponse createDocumentVersion(Long patentId, DocumentVersionRequest request) {
+        PatentResponse updated = updatePatent(patentId, request.getNewDocument());
+        if (updated == null) return null;
         Patent patent = patentRepository.findById(patentId).orElse(null);
         if (patent == null) return null;
         List<SpecVersion> existing = specVersionRepository.findByPatent_PatentIdOrderByVersionNoDesc(patentId);
@@ -314,9 +346,13 @@ public class PatentService {
         specVersionRepository.saveAll(existing);
         SpecVersion version = new SpecVersion();
         version.setPatent(patent);
-        version.setAuthorId(request.getAuthorId());
+        version.setApplicantId(request.getApplicantId());
         version.setChangeSummary(request.getChangeSummary());
-        version.setContent(request.getNewContent());
+        try {
+            version.setDocument(objectMapper.writeValueAsString(updated));
+        } catch (Exception e) {
+            version.setDocument(null);
+        }
         int nextNo = existing.isEmpty() ? 1 : existing.get(0).getVersionNo() + 1;
         version.setVersionNo(nextNo);
         version.setCurrent(true);
@@ -345,7 +381,7 @@ public class PatentService {
         return toFileVersionResponse(version);
     }
 
-    public FileVersionResponse restoreDocumentVersion(Long versionId) {
+    public RestoreVersionResponse restoreDocumentVersion(Long versionId) {
         SpecVersion source = specVersionRepository.findById(versionId).orElse(null);
         if (source == null) return null;
         Patent patent = source.getPatent();
@@ -354,18 +390,25 @@ public class PatentService {
             v.setCurrent(false);
         }
         specVersionRepository.saveAll(versions);
+
         SpecVersion newVersion = new SpecVersion();
         newVersion.setPatent(patent);
-        newVersion.setAuthorId(source.getAuthorId());
+        newVersion.setApplicantId(source.getApplicantId());
         newVersion.setChangeSummary("Restored from version " + source.getVersionId());
-        newVersion.setContent(source.getContent());
+        newVersion.setDocument(source.getDocument());
         int nextNo = versions.isEmpty() ? 1 : versions.get(0).getVersionNo() + 1;
         newVersion.setVersionNo(nextNo);
         newVersion.setCurrent(true);
         newVersion.setCreatedAt(LocalDateTime.now());
         newVersion.setUpdatedAt(LocalDateTime.now());
         specVersionRepository.save(newVersion);
-        return toFileVersionResponse(newVersion);
+
+        RestoreVersionResponse res = new RestoreVersionResponse();
+        res.setPatentId(patent.getPatentId());
+        res.setVersionId(newVersion.getVersionId());
+        res.setNewVersionNo(newVersion.getVersionNo());
+        res.setRestoredFrom(source.getVersionId());
+        return res;
     }
 
     public boolean deleteDocumentVersion(Long versionId) {
@@ -380,10 +423,11 @@ public class PatentService {
         res.setPatentId(v.getPatent().getPatentId());
         res.setVersionId(v.getVersionId());
         res.setVersionNo(v.getVersionNo());
-        res.setAuthorId(v.getAuthorId());
+        res.setApplicantId(v.getApplicantId());
         res.setChangeSummary(v.getChangeSummary());
         res.setCurrent(v.isCurrent());
         res.setCreatedAt(v.getCreatedAt());
+        res.setUpdatedAt(v.getUpdatedAt());
         return res;
     }
 }
