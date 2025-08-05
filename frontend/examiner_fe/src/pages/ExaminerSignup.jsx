@@ -358,8 +358,99 @@ function ExaminerSignup() {
   navigate('/login');
 };
 
+const ProgressContainer = styled.div`
+  margin-bottom: 30px;
+  
+  @media (max-width: 768px) {
+    margin-bottom: 25px;
+  }
+`;
+
+const ProgressBar = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  
+  @media (max-width: 768px) {
+    margin-bottom: 15px;
+  }
+`;
+
+const ProgressStep = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  
+  @media (max-width: 768px) {
+    gap: 6px;
+  }
+`;
+
+const StepCircle = styled.div`
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 14px;
+  background: ${props => props.active ? '#0066cc' : '#e9ecef'};
+  color: ${props => props.active ? 'white' : '#666'};
+  
+  @media (max-width: 768px) {
+    width: 32px;
+    height: 32px;
+    font-size: 12px;
+  }
+`;
+
+const StepLabel = styled.span`
+  font-size: 12px;
+  color: ${props => props.active ? '#0066cc' : '#666'};
+  font-weight: ${props => props.active ? '600' : '400'};
+  text-align: center;
+  
+  @media (max-width: 768px) {
+    font-size: 11px;
+  }
+`;
+
+const ProgressLine = styled.div`
+  flex: 1;
+  height: 2px;
+  background: #e9ecef;
+  margin: 0 10px;
+  
+  @media (max-width: 768px) {
+    margin: 0 5px;
+  }
+`;
+
+
   return (
     <PageContainer>
+      <ProgressContainer>
+        <ProgressBar>
+          <ProgressStep>
+            <StepCircle active={false}>✓</StepCircle>
+            <StepLabel active={false}>약관동의</StepLabel>
+          </ProgressStep>
+          <ProgressLine />
+          <ProgressStep>
+            <StepCircle active={true}>2</StepCircle>
+            <StepLabel active={true}>기본정보 입력</StepLabel>
+          </ProgressStep>
+          <ProgressLine />
+          <ProgressStep>
+            <StepCircle active={false}>3</StepCircle>
+            <StepLabel active={false}>가입완료</StepLabel>
+          </ProgressStep>
+        </ProgressBar>
+      </ProgressContainer>
+
       <SignupContainer>
         <Title>심사관 회원가입</Title>
         <Description>

@@ -331,7 +331,7 @@ function ExaminerLogin({ onLoginSuccess }) {
   };
 
   const handleSignup = () => {
-    navigate('/auth');
+    navigate('/terms');
   };
 
   return (
