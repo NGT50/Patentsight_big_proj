@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import styled from 'styled-components';
 
 const DashboardContainer = styled.div`
@@ -213,6 +213,15 @@ const ActionDesc = styled.div`
 `;
 
 function ExaminerDashboard() {
+
+  useEffect(() => {
+    window.scrollTo({
+      top: 0,
+      left: 0,
+      behavior: 'smooth' // 부드러운 스크롤
+    });
+  }, []);
+
   return (
     <DashboardContainer>
       <Title>심사관 대시보드</Title>

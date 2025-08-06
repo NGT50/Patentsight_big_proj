@@ -9,6 +9,7 @@ import ApplicantLogin from './pages/ApplicantLogin';
 import ApplicantDashboard from './pages/ApplicantDashboard';
 import ApplicantAdmin from './pages/ApplicantAdmin';
 import TermsAgreement from './pages/TermsAgreement';
+import PrivacyPolicy from './pages/PrivacyPolicy';
 
 const AppContainer = styled.div`
   min-height: 100vh;
@@ -73,11 +74,14 @@ function App() {
               path="/login"
               element={<ApplicantLogin onLoginSuccess={handleLoginSuccess} />}
             />
+             {/* 기본 경로로 접속하면 로그인 페이지로 리디렉트 */}
+            <Route path="/" element={<ApplicantLogin />} />
             <Route path="/dashboard" element={<ApplicantDashboard />} />
             <Route path="/terms" element={<TermsAgreement />} />
             <Route path="/signup" element={<ApplicantSignup />} />
             <Route path="/signup-complete" element={<ApplicantSignupComplete />} />
             <Route path="/admin" element={<ApplicantAdmin />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           </Routes>
         </MainContent>
         <Footer />

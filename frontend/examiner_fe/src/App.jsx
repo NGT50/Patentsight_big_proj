@@ -9,7 +9,7 @@ import ExaminerSignup from './pages/ExaminerSignup';
 import ExaminerDashboard from './pages/ExaminerDashboard';
 import ExaminerMyPage from './pages/ExaminerMyPage';
 import TermsAgreement from './pages/TermsAgreement';
-
+import PrivacyPolicy from './pages/PrivacyPolicy';
 
 const AppContainer = styled.div`
   min-height: 100vh;
@@ -70,7 +70,8 @@ function App() {
         />
         <MainContent>
           <Routes>
-            
+            {/* 기본 경로로 접속하면 로그인 페이지로 리디렉트 */}
+            <Route path="/" element={<ExaminerLogin />} />
             {/* 첫 화면을 로그인 페이지로 변경 */}
             <Route path="/dashboard" element={isLoggedIn ? <ExaminerDashboard userInfo={userInfo} /> : <Navigate to="/login" replace />}/>
             <Route path="/login" element={<ExaminerLogin onLoginSuccess={handleLoginSuccess} />} />
@@ -78,6 +79,7 @@ function App() {
             <Route path="/auth" element={<ExaminerAuth />} />
             <Route path="/signup" element={<ExaminerSignup />} />
             <Route path="/mypage" element={<ExaminerMyPage userInfo={userInfo} onUpdateUserInfo={setUserInfo} />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           </Routes>
         </MainContent>
         <Footer />

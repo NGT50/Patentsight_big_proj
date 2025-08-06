@@ -314,8 +314,12 @@ function ExaminerSignup() {
   });
 
   useEffect(() => {
-    // 페이지 맨 위로 스크롤
-    window.scrollTo(0, 0);
+     window.scrollTo({
+    top: 0,
+    left: 0,
+    behavior: 'smooth' // 부드러운 스크롤
+  });
+
     if (authData) {
       setFormData(prev => ({
         ...prev,
@@ -640,13 +644,18 @@ const ProgressLine = styled.div`
             </CheckboxItem>
           </CheckboxGroup>
 
-          <ButtonGroup>
-            <Button type="button" className="secondary" onClick={() => navigate('/auth')}>
-              취소
-            </Button>
             <Button type="submit" className="primary">
               회원가입
             </Button>
+
+          <ButtonGroup>
+            <Button type="button" className="secondary" onClick={() => navigate('/auth')}>
+              이전
+            </Button>
+            <Button type="button" className="secondary" onClick={() => navigate('/auth')}>
+              취소
+            </Button>
+           
           </ButtonGroup>
         </Form>
       </SignupContainer>

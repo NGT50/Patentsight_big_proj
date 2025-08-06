@@ -234,9 +234,12 @@ function ExaminerAuth() {
     examinerCode: ''
   });
 
-   // 페이지 맨 위로 스크롤
   useEffect(() => {
-    window.scrollTo(0, 0);
+    window.scrollTo({
+      top: 0,
+      left: 0,
+      behavior: 'smooth' // 부드러운 스크롤
+    });
   }, []);
 
   const handleInputChange = (e) => {
