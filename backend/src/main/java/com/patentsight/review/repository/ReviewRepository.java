@@ -10,6 +10,7 @@ import java.util.List;
 
 public interface ReviewRepository extends JpaRepository<Review, Long> {
 
+    // 🔹 기존 검색용 쿼리
     @Query("""
         SELECT new com.patentsight.review.dto.ReviewSearchResponse(
             r.reviewId, 
@@ -33,4 +34,11 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
             @Param("title") String title,
             @Param("applicantId") Long applicantId
     );
+
+    // 상태 필터 없이
+    List<Review> findByExaminer_UserId(Long userId);
+
+    // 상태 필터 적용
+    List<Review> findByExaminer_UserIdAndDecision(Long userId, Review.Decision decision);
+
 }
