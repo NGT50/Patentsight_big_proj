@@ -198,7 +198,7 @@ const Button = styled.button`
 `;
 
 const AuthButton = styled.button`
-  background: #28a745;
+  background: #0066cc;
   color: white;
   padding: 12px 30px;
   border: none;
@@ -209,7 +209,7 @@ const AuthButton = styled.button`
   transition: all 0.3s ease;
   
   &:hover {
-    background: #218838;
+    background: #0052a3;
   }
   
   @media (max-width: 768px) {

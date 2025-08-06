@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 
 const PageContainer = styled.div`
-  max-width: 600px;
+  max-width: 800px;
   margin: 0 auto;
   padding: 20px;
   background: white;
@@ -247,28 +247,27 @@ const RadioItem = styled.label`
   align-items: center;
   gap: 10px;
   font-size: 14px;
-  cursor: default; // 기본 커서로 변경
-  pointer-events: none; // 라벨 전체에서 클릭 이벤트 비활성화
+  cursor: default;
+  pointer-events: none;
   
   input[type="radio"] {
     width: 18px;
     height: 18px;
     accent-color: #0066cc;
     cursor: pointer;
-     pointer-events: auto; // 라디오 버튼에서만 클릭 이벤트 활성화
+    pointer-events: auto;
   
-    /* 브라우저 호환성을 위한 추가 스타일 */
     &:checked {
       background-color: #0066cc;
       border-color: #0066cc;
+    }
   }
-}
 
   span {
-    cursor: pointer; // 텍스트에만 포인터 커서
+    cursor: pointer;
     user-select: none;
-    padding: 2px 0; // 텍스트 주변에만 클릭 영역 생성
-    pointer-events: auto; // 텍스트에서만 클릭 이벤트 활성화
+    padding: 2px 0;
+    pointer-events: auto;
   }
   
   @media (max-width: 768px) {
@@ -293,76 +292,58 @@ const PasswordHint = styled.div`
   }
 `;
 
-function ExaminerSignup() {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const authData = location.state?.authData;
-
-  const [formData, setFormData] = useState({
-    id: '',
-    password: '',
-    confirmPassword: '',
-    email: '',
-    phone: '',
-    name: authData?.name || '',
-    department: authData?.department || '',
-    position: authData?.position || '',
-    employeeNumber: authData?.employeeNumber || '',
-    examinerField: 'patent',
-    agreeTerms: false,
-    agreePrivacy: false
-  });
-
-  useEffect(() => {
-     window.scrollTo({
-    top: 0,
-    left: 0,
-    behavior: 'smooth' // 부드러운 스크롤
-  });
-
-    if (authData) {
-      setFormData(prev => ({
-        ...prev,
-        name: authData.name,
-        department: authData.department,
-        position: authData.position,
-        employeeNumber: authData.employeeNumber
-      }));
-    }
-  }, [authData]);
-
-  const handleInputChange = (e) => {
-    const { name, value, type, checked } = e.target;
-     setFormData(prev => ({
-    ...prev,
-    [name]: type === 'checkbox' ? checked : value
-  }));
-};
-
-  const handleSubmit = (e) => {
-  e.preventDefault();
+const PasswordStatus = styled.div`
+  font-size: 12px;
+  margin-top: 4px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  text-align: center;
   
-  // 회원가입 정보를 localStorage에 저장
-  const userData = {
-    name: formData.name,
-    id: formData.id,
-    email: formData.email,
-    phone: formData.phone,
-    department: formData.department,
-    position: formData.position,
-    employeeNumber: formData.employeeNumber,
-    examinerField: formData.examinerField
-  };
+  &.valid {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+  }
   
-  // 사용자 정보를 localStorage에 저장
-  localStorage.setItem('registeredUsers', JSON.stringify({
-    ...JSON.parse(localStorage.getItem('registeredUsers') || '{}'),
-    [formData.id]: userData
-  }));
+  &.invalid {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+  }
+`;
+
+const ConfirmPasswordInput = styled.div`
+  position: relative;
+  width: 100%;
+`;
+
+const ConfirmPasswordIcon = styled.span`
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 16px;
+  font-weight: bold;
+  pointer-events: none;
   
-  alert('회원가입이 완료되었습니다. 로그인해주세요.');
-  navigate('/login');
-};
+  &.valid {
+    color: #28a745;
+  }
+  
+  &.invalid {
+    color: #dc3545;
+  }
+  
+  @media (max-width: 768px) {
+    right: 10px;
+    font-size: 14px;
+  }
+  
+  @media (max-width: 480px) {
+    right: 8px;
+    font-size: 12px;
+  }
+`;
 
 const ProgressContainer = styled.div`
   margin-bottom: 30px;
@@ -435,6 +416,164 @@ const ProgressLine = styled.div`
   }
 `;
 
+function ExaminerSignup() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const authData = location.state?.authData;
+
+  const [formData, setFormData] = useState({
+    id: '',
+    password: '',
+    confirmPassword: '',
+    email: '',
+    phone: '',
+    name: authData?.name || '',
+    department: authData?.department || '',
+    position: authData?.position || '',
+    employeeNumber: authData?.employeeNumber || '',
+    examinerField: 'patent',
+    agreeTerms: false,
+    agreePrivacy: false
+  });
+
+  const [passwordStatus, setPasswordStatus] = useState(''); // '', valid, invalid
+  const [confirmPasswordStatus, setConfirmPasswordStatus] = useState(''); // '', valid, invalid
+
+  useEffect(() => {
+     window.scrollTo({
+    top: 0,
+    left: 0,
+    behavior: 'smooth' // 부드러운 스크롤
+  });
+
+    if (authData) {
+      setFormData(prev => ({
+        ...prev,
+        name: authData.name,
+        department: authData.department,
+        position: authData.position,
+        employeeNumber: authData.employeeNumber
+      }));
+    }
+  }, [authData]);
+
+  const handleInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    
+    // 연락처 자동 포맷팅
+    if (name === 'phone') {
+      // 숫자만 추출
+      const numbers = value.replace(/[^0-9]/g, '');
+      
+      // 11자리까지만 허용
+      if (numbers.length <= 11) {
+        let formatted = '';
+        if (numbers.length <= 3) {
+          formatted = numbers;
+        } else if (numbers.length <= 7) {
+          formatted = `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
+        } else {
+          formatted = `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7)}`;
+        }
+        
+        setFormData(prev => ({
+          ...prev,
+          [name]: formatted
+        }));
+        return;
+      }
+    }
+    
+    // 비밀번호 검증
+    if (name === 'password') {
+      const password = value;
+      
+      // 비밀번호 규칙 검증
+      const hasLength = password.length >= 8 && password.length <= 16;
+      const hasLetter = /[a-zA-Z]/.test(password);
+      const hasNumber = /[0-9]/.test(password);
+      const hasSpecial = /[!@$%^*~#_\-+=?{}\[\]]/.test(password);
+      
+      if (password.length === 0) {
+        setPasswordStatus('');
+      } else if (hasLength && hasLetter && hasNumber && hasSpecial) {
+        setPasswordStatus('valid');
+      } else {
+        setPasswordStatus('invalid');
+      }
+      
+      // 비밀번호 확인 상태도 업데이트
+      if (formData.confirmPassword) {
+        if (password === formData.confirmPassword) {
+          setConfirmPasswordStatus('valid');
+        } else {
+          setConfirmPasswordStatus('invalid');
+        }
+      }
+    }
+    
+    // 비밀번호 확인 검증
+    if (name === 'confirmPassword') {
+      const confirmPassword = value;
+      
+      if (confirmPassword.length === 0) {
+        setConfirmPasswordStatus('');
+      } else if (confirmPassword === formData.password) {
+        setConfirmPasswordStatus('valid');
+      } else {
+        setConfirmPasswordStatus('invalid');
+      }
+    }
+    
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    
+    // 비밀번호 확인 검증
+    if (formData.password !== formData.confirmPassword) {
+      alert('비밀번호가 일치하지 않습니다.');
+      return;
+    }
+    
+    // 비밀번호 규칙 검증
+    if (passwordStatus !== 'valid') {
+      alert('비밀번호가 조건을 만족하지 않습니다.');
+      return;
+    }
+    
+    // 비밀번호 확인 상태 검증
+    if (confirmPasswordStatus !== 'valid') {
+      alert('비밀번호 확인이 일치하지 않습니다.');
+      return;
+    }
+    
+    // 회원가입 정보를 localStorage에 저장
+    const userData = {
+      name: formData.name,
+      id: formData.id,
+      password: formData.password,
+      email: formData.email,
+      phone: formData.phone,
+      department: formData.department,
+      position: formData.position,
+      employeeNumber: formData.employeeNumber,
+      examinerField: formData.examinerField
+    };
+    
+    // 사용자 정보를 localStorage에 저장
+    localStorage.setItem('registeredUsers', JSON.stringify({
+      ...JSON.parse(localStorage.getItem('registeredUsers') || '{}'),
+      [formData.id]: userData
+    }));
+    
+    alert('회원가입이 완료되었습니다. 로그인해주세요.');
+    navigate('/login');
+  };
 
   return (
     <PageContainer>
@@ -486,19 +625,31 @@ const ProgressLine = styled.div`
                 required
               />
               <PasswordHint>
-                비밀번호는 8~16자리 영문, 숫자, 특수문자 (!@$%^*~#_-+=?{}[]) 조합으로 입력하십시오.<br/>
-            
+                비밀번호는 8~16자리 영문, 숫자, 특수문자 (!@$%^*~#_-+=?{}[]) 조합으로 입력하십시오.
               </PasswordHint>
+              {passwordStatus && (
+                <PasswordStatus className={passwordStatus}>
+                  {passwordStatus === 'valid' ? '올바른 비밀번호 입니다.' : 
+                   passwordStatus === 'invalid' ? '올바르지 않은 비밀번호 입니다.' : ''}
+                </PasswordStatus>
+              )}
             </FormGroup>
             <FormGroup>
               <Label>비밀번호 확인 *</Label>
-              <Input
-                type="password"
-                name="confirmPassword"
-                value={formData.confirmPassword}
-                onChange={handleInputChange}
-                required
-              />
+              <ConfirmPasswordInput>
+                <Input
+                  type="password"
+                  name="confirmPassword"
+                  value={formData.confirmPassword}
+                  onChange={handleInputChange}
+                  required
+                />
+                {confirmPasswordStatus && (
+                  <ConfirmPasswordIcon className={confirmPasswordStatus}>
+                    {confirmPasswordStatus === 'valid' ? '✓' : '✗'}
+                  </ConfirmPasswordIcon>
+                )}
+              </ConfirmPasswordInput>
             </FormGroup>
           </Row>
 
@@ -520,6 +671,8 @@ const ProgressLine = styled.div`
                 name="phone"
                 value={formData.phone}
                 onChange={handleInputChange}
+                placeholder="010-1234-5678"
+                maxLength="13"
                 required
               />
             </FormGroup>
@@ -643,10 +796,10 @@ const ProgressLine = styled.div`
               <span>개인정보처리방침에 동의합니다 *</span>
             </CheckboxItem>
           </CheckboxGroup>
-
-            <Button type="submit" className="primary">
+          
+          <Button type="submit" className="primary">
               회원가입
-            </Button>
+          </Button>
 
           <ButtonGroup>
             <Button type="button" className="secondary" onClick={() => navigate('/auth')}>
@@ -655,7 +808,7 @@ const ProgressLine = styled.div`
             <Button type="button" className="secondary" onClick={() => navigate('/auth')}>
               취소
             </Button>
-           
+            
           </ButtonGroup>
         </Form>
       </SignupContainer>
