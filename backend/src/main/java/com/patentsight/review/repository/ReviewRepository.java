@@ -7,9 +7,23 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface ReviewRepository extends JpaRepository<Review, Long> {
 
+    // 🔹 특정 특허의 Review 조회
+    Optional<Review> findByPatent_PatentId(Long patentId);
+
+    // 🔹 상태별 Review 개수
+    long countByDecision(Review.Decision decision);
+
+    // 🔹 심사관별 Review 목록 조회
+    List<Review> findByExaminer_UserId(Long userId);
+
+    // 🔹 상태 + 심사관 필터링
+    List<Review> findByExaminer_UserIdAndDecision(Long userId, Review.Decision decision);
+
+    // 🔹 심사 검색 쿼리 (기존 코드)
     @Query("""
         SELECT new com.patentsight.review.dto.ReviewSearchResponse(
             r.reviewId, 

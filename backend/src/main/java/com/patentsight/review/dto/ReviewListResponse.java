@@ -1,15 +1,14 @@
 package com.patentsight.review.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
-@Getter
-@Setter
-@AllArgsConstructor
+@Getter @Setter
+@NoArgsConstructor @AllArgsConstructor
+@Builder
 public class ReviewListResponse {
     private Long reviewId;
     private String patentTitle;
+    private String applicantName;
+    private String examinerName;
     private String status;
 }
-
