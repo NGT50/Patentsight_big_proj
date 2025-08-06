@@ -277,7 +277,7 @@ export default function DesignDashboard() {
                           }}
                           className="px-4 py-2 bg-gradient-to-r from-gray-400 to-gray-500 text-white rounded-lg hover:from-gray-500 hover:to-gray-600 transition-all flex items-center gap-2 text-sm font-medium"
                         >
-                          <Eye className="w-4 h-4" />
+                          <Eye className="w-4 h-4" /> 
                           상세보기
                         </button>
                         {expandedCard === item.id ? (
