@@ -6,10 +6,14 @@ import Footer from './components/Footer';
 import ExaminerLogin from './pages/ExaminerLogin';
 import ExaminerAuth from './pages/ExaminerAuth';
 import ExaminerSignup from './pages/ExaminerSignup';
-import ExaminerDashboard from './pages/ExaminerDashboard';
+
 import ExaminerMyPage from './pages/ExaminerMyPage';
 import TermsAgreement from './pages/TermsAgreement';
 import PrivacyPolicy from './pages/PrivacyPolicy';
+import PatentReview from './pages/PatentReview';
+import DesignReview from './pages/DesignReview';
+import PatentDashboard from './pages/PatentDashboard';
+import DesignDashboard from './pages/DesignDashboard';
 
 const AppContainer = styled.div`
   min-height: 100vh;
@@ -72,14 +76,17 @@ function App() {
           <Routes>
             {/* 기본 경로로 접속하면 로그인 페이지로 리디렉트 */}
             <Route path="/" element={<ExaminerLogin />} />
-            {/* 첫 화면을 로그인 페이지로 변경 */}
-            <Route path="/dashboard" element={isLoggedIn ? <ExaminerDashboard userInfo={userInfo} /> : <Navigate to="/login" replace />}/>
+            
             <Route path="/login" element={<ExaminerLogin onLoginSuccess={handleLoginSuccess} />} />
             <Route path="/terms" element={<TermsAgreement />} />
             <Route path="/auth" element={<ExaminerAuth />} />
             <Route path="/signup" element={<ExaminerSignup />} />
             <Route path="/mypage" element={<ExaminerMyPage userInfo={userInfo} onUpdateUserInfo={setUserInfo} />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/patentreview/:id" element={<PatentReview />} />
+            <Route path="/designreview/:id" element={<DesignReview />} />
+            <Route path="/patentdashboard" element={<PatentDashboard />} />
+            <Route path="/designdashboard" element={<DesignDashboard />} />
           </Routes>
         </MainContent>
         <Footer />
