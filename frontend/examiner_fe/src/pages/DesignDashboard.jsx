@@ -124,7 +124,7 @@ export default function DesignDashboard() {
                 <option value="approved">심사완료</option>
                 <option value="onhold">보류</option>
               </select>
-              <button className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all flex items-center gap-2 font-medium">
+              <button className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all flex items-center gap-2 font-medium border-0">
                 <Filter className="w-4 h-4" />
                 필터 적용
               </button>
@@ -275,7 +275,7 @@ export default function DesignDashboard() {
                             e.stopPropagation();
                             handleDetailView(item.id);
                           }}
-                          className="px-4 py-2 bg-gradient-to-r from-gray-400 to-gray-500 text-white rounded-lg hover:from-gray-500 hover:to-gray-600 transition-all flex items-center gap-2 text-sm font-medium"
+                          className="px-4 py-2 bg-gradient-to-r from-gray-400 to-gray-500 text-white rounded-lg hover:from-gray-500 hover:to-gray-600 transition-all flex items-center gap-2 text-sm font-medium border-0"
                         >
                           <Eye className="w-4 h-4" /> 
                           상세보기

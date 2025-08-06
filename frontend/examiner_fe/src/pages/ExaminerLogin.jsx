@@ -463,7 +463,7 @@ function ExaminerLogin({ onLoginSuccess = () => {} }) {
 
       // 로그인 성공
       onLoginSuccess(userData);
-      alert('로그인 성공!');
+      alert('로그인 되었습니다. 서비스를 이용하실 수 있습니다.');
       
       // 심사유형에 따라 다른 대시보드로 이동
       if (formData.patentType === 'patent') {

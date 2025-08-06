@@ -544,9 +544,12 @@ function Navigation({ isLoggedIn, onLoginSuccess, onLogout, userInfo }) { // pro
 
   const handleLogoClick = () => {
     if (isLoggedIn) {
-      navigate('/');
-    } else {
-      navigate('/login');
+      const user = JSON.parse(localStorage.getItem('user'));
+      if (user?.patentType === 'design') {
+        navigate('/DesignDashboard');
+      } else {
+        navigate('/PatentDashboard');
+      }
     }
   };
 

@@ -128,8 +128,8 @@ export default function DesignReview() {
   }
 
   return (
-    <div className="bg-gradient-to-br from-slate-50 via-pink-50 to-indigo-50 min-h-screen relative">
-      <Header />
+    <div className="bg-gradient-to-br from-slate-50 via-gray-50 to-gray-50 min-h-screen relative">
+      
       <div className="bg-white shadow-sm border-b">
         <div className="px-8 py-4 flex justify-between items-center">
           <h2 className="text-2xl font-bold flex items-center gap-2 text-gray-800">
