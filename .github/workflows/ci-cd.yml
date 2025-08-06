@@ -34,8 +34,14 @@ jobs:
           node-version: '20'
 
       # 5. 프론트엔드(React) 빌드
-      - name: Build React
+      - name: Build React (Applicant)
         run: |
           cd frontend/applicant_fe
+          npm install
+          npm run build
+
+      - name: Build React (Examiner)
+        run: |
+          cd frontend/examiner_fe
           npm install
           npm run build
