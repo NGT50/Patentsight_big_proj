@@ -4,7 +4,7 @@ import {
   Calendar, User, Eye, ChevronDown, ChevronUp, FlaskConical, Search, Filter, Clock,
   FileText, CheckCircle, Hash, Building2, AlertCircle, Zap, Copy // Copy 아이콘 추가
 } from 'lucide-react';
-import Header from '../components/Header';
+// import Header from '../components/Header';
 import { patentDetailMockData } from '../mocks/patentDetailMock'; // 특허 목 데이터 임포트
 
 // 특허 등록 단계를 위한 아이콘 (가정) - Lucide에 적합한 아이콘이 없다면 직접 정의하거나 다른 아이콘으로 대체
@@ -109,7 +109,7 @@ export default function PatentDashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50"> {/* 배경 색상 변경 */}
-      <Header />
+      
 
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* 검색 및 필터 섹션 */}

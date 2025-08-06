@@ -110,6 +110,91 @@ const Input = styled.input`
   }
 `;
 
+const PatentTypeGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  
+  @media (max-width: 768px) {
+    gap: 10px;
+  }
+`;
+
+const PatentTypeLabel = styled.label`
+  font-weight: 500;
+  color: #333;
+  font-size: 14px;
+  margin-bottom: 8px;
+  
+  @media (max-width: 480px) {
+    font-size: 13px;
+  }
+`;
+
+const PatentTypeOptions = styled.div`
+  display: flex;
+  gap: 15px;
+  
+  @media (max-width: 768px) {
+    gap: 12px;
+  }
+  
+  @media (max-width: 480px) {
+    flex-direction: column;
+    gap: 8px;
+  }
+`;
+
+const PatentTypeOption = styled.label`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 15px;
+  border: 2px solid #ddd;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  flex: 1;
+  
+  &:hover {
+    border-color: #0066cc;
+    background-color: #f8f9ff;
+  }
+  
+  input[type="radio"] {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+  }
+  
+  span {
+    font-size: 14px;
+    font-weight: 500;
+    color: #333;
+  }
+  
+  &:has(input:checked) {
+    border-color: #0066cc;
+    background-color: #e6f3ff;
+  }
+  
+  @media (max-width: 768px) {
+    padding: 8px 12px;
+    
+    span {
+      font-size: 13px;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    padding: 10px 12px;
+    
+    span {
+      font-size: 12px;
+    }
+  }
+`;
+
 const CheckboxGroup = styled.div`
   display: flex;
   flex-direction: column;
@@ -156,6 +241,11 @@ const LoginButton = styled.button`
   
   &:hover {
     background: #0052a3;
+  }
+  
+  &:disabled {
+    background: #ccc;
+    cursor: not-allowed;
   }
   
   @media (max-width: 768px) {
@@ -298,6 +388,7 @@ function ExaminerLogin({ onLoginSuccess = () => {} }) {
   const [formData, setFormData] = useState({
     id: '',
     password: '',
+    patentType: '', // 'patent' 또는 'design'
     keepLogin: false
   });
 
@@ -325,6 +416,11 @@ function ExaminerLogin({ onLoginSuccess = () => {} }) {
       return;
     }
 
+    if (!formData.patentType) {
+      alert('심사유형을 선택해주세요.');
+      return;
+    }
+
     try {
       let userData;
 
@@ -332,16 +428,17 @@ function ExaminerLogin({ onLoginSuccess = () => {} }) {
         // ✅ 실제 백엔드 로그인 API 호출
         const response = await axios.post('/api/users/login', {
           username: formData.id,
-          password: formData.password
+          password: formData.password,
+          patentType: formData.patentType
         });
 
         const { token, user_id, username, role } = response.data;
 
         // 토큰 및 유저 정보 저장
         localStorage.setItem('token', token);
-        localStorage.setItem('user', JSON.stringify({ user_id, username, role }));
+        localStorage.setItem('user', JSON.stringify({ user_id, username, role, patentType: formData.patentType }));
 
-        userData = { user_id, username, role };
+        userData = { user_id, username, role, patentType: formData.patentType };
 
       } else {
         // ✅ 임시 로컬 테스트 (localStorage에 저장된 유저로 로그인)
@@ -357,7 +454,8 @@ function ExaminerLogin({ onLoginSuccess = () => {} }) {
           id: user.id,
           email: user.email,
           phone: user.phone,
-          address: user.address
+          address: user.address,
+          patentType: formData.patentType
         };
 
         localStorage.setItem('user', JSON.stringify(userData));
@@ -366,7 +464,13 @@ function ExaminerLogin({ onLoginSuccess = () => {} }) {
       // 로그인 성공
       onLoginSuccess(userData);
       alert('로그인 성공!');
-      navigate('/dashboard');
+      
+      // 심사유형에 따라 다른 대시보드로 이동
+      if (formData.patentType === 'patent') {
+        navigate('/PatentDashboard');
+      } else if (formData.patentType === 'design') {
+        navigate('/DesignDashboard');
+      } 
 
     } catch (err) {
       console.error('로그인 오류:', err);
@@ -405,6 +509,34 @@ function ExaminerLogin({ onLoginSuccess = () => {} }) {
               required
             />
           </FormGroup>
+
+          <PatentTypeGroup>
+            <PatentTypeLabel>심사유형 *</PatentTypeLabel>
+            <PatentTypeOptions>
+              <PatentTypeOption>
+                <input
+                  type="radio"
+                  name="patentType"
+                  value="patent"
+                  checked={formData.patentType === 'patent'}
+                  onChange={handleInputChange}
+                  required
+                />
+                <span>특허·실용신안</span>
+              </PatentTypeOption>
+              <PatentTypeOption>
+                <input
+                  type="radio"
+                  name="patentType"
+                  value="design"
+                  checked={formData.patentType === 'design'}
+                  onChange={handleInputChange}
+                  required
+                />
+                <span>디자인·상표</span>
+              </PatentTypeOption>
+            </PatentTypeOptions>
+          </PatentTypeGroup>
 
           <CheckboxGroup>
             <CheckboxItem>

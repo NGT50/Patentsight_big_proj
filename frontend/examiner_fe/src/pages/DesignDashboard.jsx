@@ -4,7 +4,7 @@ import {
   Calendar, User, Eye, ChevronDown, ChevronUp, Palette, Search, Filter, Clock,
   FileText, CheckCircle, Hash, Building2, AlertCircle, Zap
 } from 'lucide-react';
-import Header from '../components/Header';
+
 import { designDetailMockData } from '../mocks/designDetailMock';
 
 // 특허 대시보드의 Certificate와 유사하게, 디자인 등록 단계를 위한 아이콘 (가정)
@@ -96,7 +96,7 @@ export default function DesignDashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-pink-50 to-indigo-50">
-      <Header />
+      
 
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Search and Filter Section */}

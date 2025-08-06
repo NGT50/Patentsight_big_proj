@@ -511,13 +511,19 @@ function Navigation({ isLoggedIn, onLoginSuccess, onLogout, userInfo }) { // pro
 
   // 로그인 상태가 변경될 때 타이머 리셋
   useEffect(() => {
-    if (isLoggedIn) {
-      navigate('/dashboard');
-      setTimeLeft(30 * 60); // 로그인 시 타이머를 30분으로 리셋
+  if (isLoggedIn) {
+    const user = JSON.parse(localStorage.getItem('user'));
+    if (user?.patentType === 'design') {
+      navigate('/DesignDashboard');
     } else {
-      setTimeLeft(0); // 로그아웃 시 타이머를 0으로 리셋
+      navigate('/PatentDashboard');
     }
-  }, [isLoggedIn]);
+
+    setTimeLeft(30 * 60);
+  } else {
+    setTimeLeft(0);
+  }
+}, [isLoggedIn]);
 
 
   const formatTime = (seconds) => {

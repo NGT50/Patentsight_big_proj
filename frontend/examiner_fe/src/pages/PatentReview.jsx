@@ -5,7 +5,7 @@ import {
   Info, FileText, Image, MessageSquare, Copy, FlaskConical, 
   CheckCircle, XCircle, Send, Bot, Maximize2, Minimize2, Lightbulb, GanttChart, Scale, X 
 } from 'lucide-react'; 
-import Header from '../components/Header';
+// import Header from '../components/Header';
 import { patentDetailMockData } from '../mocks/patentDetailMock';
 import ThreeDModelViewer from '../components/ThreeDModelViewer';
 
