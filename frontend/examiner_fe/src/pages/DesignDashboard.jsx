@@ -95,7 +95,7 @@ export default function DesignDashboard() {
   const averageReviewTime = '22.5일'; // 이 값은 여전히 하드코딩된 플레이스홀더입니다.
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-pink-50 to-indigo-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-gray-50">
       
 
       <div className="max-w-7xl mx-auto px-4 py-8">
@@ -124,7 +124,7 @@ export default function DesignDashboard() {
                 <option value="approved">심사완료</option>
                 <option value="onhold">보류</option>
               </select>
-              <button className="px-6 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-lg hover:from-indigo-600 hover:to-purple-700 transition-all flex items-center gap-2 font-medium">
+              <button className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all flex items-center gap-2 font-medium">
                 <Filter className="w-4 h-4" />
                 필터 적용
               </button>
@@ -275,7 +275,7 @@ export default function DesignDashboard() {
                             e.stopPropagation();
                             handleDetailView(item.id);
                           }}
-                          className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all flex items-center gap-2 text-sm font-medium"
+                          className="px-4 py-2 bg-gradient-to-r from-gray-400 to-gray-500 text-white rounded-lg hover:from-gray-500 hover:to-gray-600 transition-all flex items-center gap-2 text-sm font-medium"
                         >
                           <Eye className="w-4 h-4" />
                           상세보기
