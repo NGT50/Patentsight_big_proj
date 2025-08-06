@@ -119,11 +119,6 @@ export default function PatentReview() {
   };
 
   const handleFinalApproval = () => {
-    if (approvalComment.trim() === '' && rejectionComment.trim() === '') {
-      alert('의견서 또는 거절사유서 중 하나는 작성되어야 합니다.');
-      return;
-    }
-    
     console.log('최종 출원 승인 처리');
     alert('출원이 최종 승인되었습니다!');
     setStatus('등록결정');

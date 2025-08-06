@@ -109,18 +109,14 @@ export default function DesignReview() {
     }
 
     const newStatus = reviewType === 'approval' ? '등록결정' : '거절';
-    console.log(`디자인 ${id}에 대한 ${reviewType === 'approval' ? '승인 의견' : '보류/거절 사유'} 제출:`, currentComment);
+    console.log(`디자인 ${id}에 대한 ${reviewType === 'approval' ? '승인 의견' : '거절 사유'} 제출:`, currentComment);
     console.log(`새로운 상태:`, newStatus);
-    alert(`${reviewType === 'approval' ? '의견서' : '보류/거절사유서'}가 제출되었습니다!`);
+    alert(`${reviewType === 'approval' ? '의견서' : '거절사유서'}가 제출되었습니다!`);
     
     setStatus(newStatus);
   };
 
   const handleFinalApproval = () => {
-    if (approvalComment.trim() === '' && rejectionComment.trim() === '') {
-      alert('의견서 또는 보류/거절사유서 중 하나는 작성되어야 합니다.');
-      return;
-    }
     
     console.log('최종 출원 승인 처리');
     alert('출원이 최종 승인되었습니다!');
