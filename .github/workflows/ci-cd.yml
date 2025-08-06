@@ -36,6 +36,6 @@ jobs:
       # 5. 프론트엔드(React) 빌드
       - name: Build React
         run: |
-          cd frontend
+          cd frontend/applicant_fe
           npm install
           npm run build
