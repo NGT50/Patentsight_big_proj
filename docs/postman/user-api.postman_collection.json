@@ -1,0 +1,52 @@
+{
+  "info": {
+    "name": "User API",
+    "_postman_id": "22222222-3333-4444-5555-666666666666",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" }
+  ],
+  "item": [
+    {
+      "name": "Sign up applicant",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": "{{baseUrl}}/api/users/applicant",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"tester\",\n  \"password\": \"pass1234\",\n  \"name\": \"Tester\",\n  \"birthDate\": \"1990-01-01\",\n  \"email\": \"tester@example.com\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Login",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": "{{baseUrl}}/api/users/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"tester\",\n  \"password\": \"pass1234\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const json = pm.response.json();",
+              "pm.environment.set('token', json.token);"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
