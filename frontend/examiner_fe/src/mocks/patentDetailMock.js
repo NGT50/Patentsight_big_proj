@@ -116,3 +116,34 @@ export const patentDetailMockData = {
     relatedPatents: []
   }
 };
+
+export const recentActivitiesMock = [
+  {
+    activityId: 101,
+    reviewId: "P-2024-001",
+    patentTitle: "지능형 스마트 잠금장치 시스템",
+    activityType: "심사 결과 등록 (등록결정)",
+    activityDate: "2025-08-05T14:30:00Z"
+  },
+  {
+    activityId: 102,
+    reviewId: "P-2024-005",
+    patentTitle: "자율주행 차량용 센서 모듈",
+    activityType: "의견서 작성",
+    activityDate: "2025-08-04T10:15:00Z"
+  },
+  {
+    activityId: 103,
+    reviewId: "P-2024-003",
+    patentTitle: "사용자 맞춤형 건강 관리 시스템",
+    activityType: "심사 결과 등록 (거절)",
+    activityDate: "2025-08-03T18:00:00Z"
+  },
+  {
+    activityId: 104,
+    reviewId: "P-2024-001",
+    patentTitle: "지능형 스마트 잠금장치 시스템",
+    activityType: "심사 진행 상황 업데이트",
+    activityDate: "2025-08-02T09:45:00Z"
+  }
+];

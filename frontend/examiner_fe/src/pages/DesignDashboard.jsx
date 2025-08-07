@@ -1,16 +1,17 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Calendar, User, Eye, ChevronDown, ChevronUp, Palette, Search, Filter, Clock,
   FileText, CheckCircle, Hash, Building2, AlertCircle, Zap
 } from 'lucide-react';
 import Header from '../components/Header';
-import { designDetailMockData } from '../mocks/designDetailMock';
+// import { designDetailMockData } from '../mocks/designDetailMock'; // ❌ 목 데이터는 더 이상 사용하지 않으므로 제거합니다.
 
 // 특허 대시보드의 Certificate와 유사하게, 디자인 등록 단계를 위한 아이콘 (가정)
 // Lucide에 적합한 아이콘이 없다면 직접 정의하거나 다른 아이콘으로 대체
 function DesignCertificate(props) {
   return (
+    // ✅ props를 SVG 엘리먼트에 직접 전달하여 유연성 확보
     <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M14.5 8H2.5L2 11.5V22H19V11.5L14.5 8Z"/>
       <path d="M8.5 11.5V17.5" />
@@ -27,8 +28,6 @@ function DesignCertificate(props) {
 // 디자인 진행 단계 정의 (특허 대시보드와 유사하게)
 // 각 단계의 completed와 current는 렌더링 시 item.status에 따라 동적으로 결정됩니다.
 const designStages = [
-  // colorClass 추가: 각 단계별 고유한 색상 클래스 정의
-  // bg-색상-100 (아이콘 배경), border-색상-500 (아이콘 테두리), text-색상-600 (아이콘 및 텍스트)
   { id: 'reception', name: '접수', icon: FileText, statusMatch: ['심사대기', '심사중', '심사완료', '보류'], colorClass: { bg: 'bg-blue-600', border: 'border-blue-600', text: 'text-blue-700' } },
   { id: 'waiting', name: '심사대기', icon: Clock, statusMatch: ['심사대기', '심사중', '심사완료', '보류'], colorClass: { bg: 'bg-purple-600', border: 'border-purple-600', text: 'text-purple-700' } },
   { id: 'examination', name: '심사중', icon: Search, statusMatch: ['심사중', '심사완료', '보류'], colorClass: { bg: 'bg-yellow-600', border: 'border-yellow-600', text: 'text-yellow-700' } },
@@ -36,43 +35,129 @@ const designStages = [
   { id: 'registration', name: '등록', icon: DesignCertificate, statusMatch: ['심사완료'], colorClass: { bg: 'bg-green-600', border: 'border-green-600', text: 'text-green-700' } }
 ];
 
-const designData = Object.values(designDetailMockData).map((item) => ({
-  ...item,
-  // Assign statusColor based on actual status from mock data
-  statusColor: item.status === '심사중'
-    ? 'bg-yellow-100 text-yellow-800'
-    : item.status === '심사완료'
-      ? 'bg-green-100 text-green-700'
-      : item.status === '심사대기'
-        ? 'bg-blue-100 text-blue-800'
-        : item.status === '보류'
-          ? 'bg-red-100 text-red-700'
-          : 'bg-gray-100 text-gray-800', // 기타 상태를 위한 기본값
-  priority: item.id === 'D-2025-00002' ? 'high' : 'medium', // Example: AI 스피커를 우선심사로
-  estimatedDays: Math.floor(Math.random() * 20) + 7, // 이 부분은 목 데이터에 estimatedDays가 없다면 랜덤으로 유지하거나, 목 데이터에 추가
-}));
-
 export default function DesignDashboard() {
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedCard, setExpandedCard] = useState(null);
   const [selectedFilter, setSelectedFilter] = useState('all');
 
+  // 🚀 API 데이터를 위한 새로운 상태들
+  const [designData, setDesignData] = useState([]); // 심사 목록 데이터
+  const [dashboardSummary, setDashboardSummary] = useState({}); // 대시보드 요약 데이터
+  const [loading, setLoading] = useState(true); // 로딩 상태
+  const [error, setError] = useState(null); // 에러 상태
+
   const navigate = useNavigate();
 
+  // 🚨 현재 로그인한 사용자의 ID. 실제 애플리케이션에서는 인증 시스템에서 가져와야 합니다.
+  const loggedInUser = JSON.parse(localStorage.getItem('user'));
+  const currentUserId = loggedInUser ? loggedInUser.id : null;
+  const currentUserRole = loggedInUser ? loggedInUser.role : null;
+
+  // 필터링 상태(영어)를 백엔드에서 사용하는 한글 상태로 변환하는 함수
+  const getStatusText = (filter) => {
+    switch(filter) {
+      case 'waiting': return '심사대기';
+      case 'pending': return '심사중';
+      case 'approved': return '심사완료';
+      case 'onhold': return '보류';
+      default: return ''; // 'all'일 경우 빈 문자열 반환
+    }
+  };
+
+  // 🚀 백엔드 API 호출 함수
+  const fetchDashboardData = async () => {
+    setLoading(true); // 데이터 로딩 시작
+    setError(null); // 이전 에러 초기화
+
+    try {
+      // 1. 대시보드 요약 정보 API 호출
+      // ✅ reviewType=DESIGN 쿼리 파라미터 추가
+      const summaryResponse = await fetch(`http://localhost:8080/api/reviews/dashboard/${currentUserId}?reviewType=DESIGN`);
+      if (!summaryResponse.ok) {
+        throw new Error(`대시보드 요약 정보를 불러오는 데 실패했습니다: ${summaryResponse.status}`);
+      }
+      const summaryData = await summaryResponse.json();
+      setDashboardSummary(summaryData);
+
+      // 2. 심사 목록 API 호출 (필터링 적용)
+      const listUrl = new URL(`http://localhost:8080/api/reviews/list/${currentUserId}`);
+      const statusParam = getStatusText(selectedFilter);
+      if (statusParam) {
+          listUrl.searchParams.append('status', statusParam);
+      }
+      // ✅ reviewType=DESIGN 쿼리 파라미터 추가
+      listUrl.searchParams.append('reviewType', 'DESIGN'); 
+
+      const listResponse = await fetch(listUrl);
+      if (!listResponse.ok) {
+        throw new Error(`심사 목록을 불러오는 데 실패했습니다: ${listResponse.status}`);
+      }
+      const listData = await listResponse.json();
+
+      // 🚀 백엔드 응답 데이터 구조에 맞춰 프론트엔드에서 사용할 데이터로 가공
+      // 백엔드 ReviewListResponse 필드: reviewId, title, applicant, status, receptionDate, field, reviewProgress, examiner, description, applicationNumber
+      const processedData = listData.map(item => ({
+        id: item.reviewId, // 백엔드의 reviewId를 프론트엔드의 id로 매핑
+        title: item.patentTitle, 
+        applicant: item.applicantName, 
+        status: item.status,
+        receptionDate: item.receptionDate, 
+        field: item.field,
+        examiner: item.examinerName, 
+        description: item.description,
+        reviewProgress: item.reviewProgress, 
+        applicationNumber: item.applicationNumber, // ✅ applicationNumber 매핑
+        // statusColor는 프론트엔드에서 상태에 따라 동적으로 생성
+        statusColor: item.status === 'REVIEWING' 
+          ? 'bg-yellow-100 text-yellow-800'
+          : item.status === 'APPROVED' 
+            ? 'bg-green-100 text-green-700'
+            : item.status === 'PENDING' 
+              ? 'bg-blue-100 text-blue-800'
+              : item.status === 'REJECTED' 
+                ? 'bg-red-100 text-red-700'
+                : 'bg-gray-100 text-gray-800',
+        priority: item.id === 'D-2025-00002' ? 'high' : 'medium', 
+        estimatedDays: Math.floor(Math.random() * 20) + 7, 
+      }));
+
+      setDesignData(processedData);
+
+    } catch (err) {
+      setError(err.message);
+      console.error("API 호출 중 오류 발생:", err);
+    } finally {
+      setLoading(false); // 데이터 로딩 완료 (성공/실패 무관)
+    }
+  };
+
+  // 🚀 컴포넌트가 처음 렌더링되거나 currentUserId, selectedFilter가 변경될 때마다 API 호출
+  useEffect(() => {
+    console.log('Current User ID:', currentUserId, 'Current User Role:', currentUserRole); 
+    if (currentUserId && currentUserRole === 'design') {
+      fetchDashboardData();
+    } else if (!currentUserId) {
+      setError("로그인이 필요합니다.");
+      setLoading(false);
+    } else {
+      setError("디자인 심사관만 접근할 수 있습니다.");
+      setDesignData([]);
+      setDashboardSummary({});
+      setLoading(false);
+    }
+  }, [currentUserId, currentUserRole, selectedFilter]);
+
+
+  // 검색어와 필터링은 이제 API에서 가져온 designData를 기반으로 합니다.
   const filteredData = designData.filter(item => {
+    // ✅ item.id (reviewId), item.title (patentTitle), item.applicant (applicantName), item.applicationNumber로 검색
     const matchesSearch =
-      item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.applicant.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.id.toLowerCase().includes(searchTerm.toLowerCase());
-
-    const matchesFilter =
-      selectedFilter === 'all' ||
-      (selectedFilter === 'pending' && item.status === '심사중') ||
-      (selectedFilter === 'approved' && item.status === '심사완료') ||
-      (selectedFilter === 'waiting' && item.status === '심사대기') ||
-      (selectedFilter === 'onhold' && item.status === '보류');
-
-    return matchesSearch && matchesFilter;
+      (item.title && item.title.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (item.applicant && item.applicant.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (item.id && String(item.id).toLowerCase().includes(searchTerm.toLowerCase())) || // reviewId
+      (item.applicationNumber && item.applicationNumber.toLowerCase().includes(searchTerm.toLowerCase())); // ✅ applicationNumber 검색 추가
+    
+    return matchesSearch;
   });
 
   const handleCardExpand = (id) => {
@@ -83,16 +168,24 @@ export default function DesignDashboard() {
     navigate(`/designreview/${id}`);
   };
 
-  // Calculate stats
-  const totalDesigns = designData.length;
-  const pendingDesigns = designData.filter(d => d.status === '심사중').length;
-  const thisMonthReception = designData.filter(d => {
+  // 🚀 통계 계산: dashboardSummary 상태 사용
+  const totalDesigns = dashboardSummary.totalReviews || 0;
+  const pendingDesigns = dashboardSummary.pendingReviews || 0;
+  const thisMonthReception = dashboardSummary.thisMonthReceptions || 0; 
+  
+  // '7일 이상 심사대기'는 백엔드에서 직접 계산하여 제공하는 것이 가장 좋지만,
+  // 백엔드에 해당 필드가 없다면 프론트에서 designData를 기반으로 계산합니다.
+  const sevenDaysOverWaiting = designData.filter(d => {
     const receptionDate = new Date(d.receptionDate);
-    const currentMonth = new Date().getMonth();
-    const currentYear = new Date().getFullYear();
-    return receptionDate.getMonth() === currentMonth && receptionDate.getFullYear() === currentYear;
+    if (isNaN(receptionDate.getTime())) { 
+      return false;
+    }
+    const today = new Date();
+    const diffTime = Math.abs(today.getTime() - receptionDate.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return (d.status === 'PENDING' || d.status === 'REVIEWING') && diffDays >= 7; 
   }).length;
-  const averageReviewTime = '22.5일'; // 이 값은 여전히 하드코딩된 플레이스홀더입니다.
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-pink-50 to-indigo-50">
@@ -133,56 +226,67 @@ export default function DesignDashboard() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">전체 디자인</p>
-                <p className="text-2xl font-bold text-gray-900">{totalDesigns}</p>
+        {loading ? (
+          <div className="text-center py-10 text-gray-500">대시보드 요약 정보를 불러오는 중...</div>
+        ) : error ? (
+          <div className="text-center py-10 text-red-500">오류: {error}</div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">전체 디자인</p>
+                  <p className="text-2xl font-bold text-gray-900">{totalDesigns}</p>
+                </div>
+                <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center">
+                  <Palette className="w-6 h-6 text-indigo-600" />
+                </div>
               </div>
-              <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center">
-                <Palette className="w-6 h-6 text-indigo-600" />
+            </div>
+            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">심사중</p>
+                  <p className="text-2xl font-bold text-yellow-600">{pendingDesigns}</p>
+                </div>
+                <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+                  <Clock className="w-6 h-6 text-yellow-600" />
+                </div>
+              </div>
+            </div>
+            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">이번 달 접수</p>
+                  <p className="text-2xl font-bold text-green-600">{thisMonthReception}</p>
+                </div>
+                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                  <Calendar className="w-6 h-6 text-green-600" />
+                </div>
+              </div>
+            </div>
+            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">7일 이상 심사대기</p>
+                  <p className="text-2xl font-bold text-red-600">{sevenDaysOverWaiting}</p>
+                </div>
+                <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                  <AlertCircle className="w-6 h-6 text-red-600" />
+                  {/* 경고를 나타내는 아이콘으로 변경 */}
+                </div>
               </div>
             </div>
           </div>
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">심사중</p>
-                <p className="text-2xl font-bold text-yellow-600">{pendingDesigns}</p>
-              </div>
-              <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
-                <Clock className="w-6 h-6 text-yellow-600" />
-              </div>
-            </div>
-          </div>
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">이번 달 접수</p>
-                <p className="text-2xl font-bold text-green-600">{thisMonthReception}</p>
-              </div>
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                <Calendar className="w-6 h-6 text-green-600" />
-              </div>
-            </div>
-          </div>
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">평균 심사기간</p>
-                <p className="text-2xl font-bold text-purple-600">{averageReviewTime}</p>
-              </div>
-              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                <User className="w-6 h-6 text-purple-600" />
-              </div>
-            </div>
-          </div>
-        </div>
+        )}
 
         {/* Design Cards */}
         <div className="space-y-4">
-          {filteredData.length > 0 ? (
+          {loading ? (
+            <div className="text-center py-10 text-gray-500">디자인 목록을 불러오는 중...</div>
+          ) : error ? (
+            <div className="text-center py-10 text-red-500">오류: {error}</div>
+          ) : filteredData.length > 0 ? (
             filteredData.map((item) => {
               // 현재 아이템의 상태를 기반으로 진행 단계 completed 및 current 상태 업데이트
               const updatedDesignStages = designStages.map(stage => {
@@ -191,38 +295,28 @@ export default function DesignDashboard() {
 
                 switch (stage.id) {
                   case 'reception':
-                    // 접수는 접수일이 있으면 완료
                     stageCompleted = !!item.receptionDate;
-                    // '접수'는 접수가 완료되면 더 이상 '현재' 단계가 아님
-                    // '현재' 단계는 '심사대기'부터 시작
                     stageCurrent = false;
                     break;
                   case 'waiting':
-                    // 심사대기는 '심사중' 이상 상태면 완료
-                    stageCompleted = ['심사중', '심사완료', '보류'].includes(item.status);
-                    // 현재 상태가 '심사대기'면 current
-                    stageCurrent = item.status === '심사대기';
+                    // ✅ 백엔드 상태값 'PENDING'에 맞춰 수정
+                    stageCompleted = ['REVIEWING', 'APPROVED', 'REJECTED'].includes(item.status);
+                    stageCurrent = item.status === 'PENDING';
                     break;
                   case 'examination':
-                    // 심사중은 '심사완료'나 '보류' 상태면 완료
-                    stageCompleted = ['심사완료', '보류'].includes(item.status);
-                    // 현재 상태가 '심사중'이면 current
-                    stageCurrent = item.status === '심사중';
+                    // ✅ 백엔드 상태값 'APPROVED', 'REJECTED'에 맞춰 수정
+                    stageCompleted = ['APPROVED', 'REJECTED'].includes(item.status);
+                    stageCurrent = item.status === 'REVIEWING';
                     break;
                   case 'decision':
-                    // 심결은 '심사완료' 상태면 완료
-                    stageCompleted = item.status === '심사완료';
-                    // 심사완료 상태일 때 심결 단계가 깜빡이도록 설정
-                    stageCurrent = item.status === '심사완료';
+                    // ✅ 백엔드 상태값 'APPROVED', 'REJECTED'에 맞춰 수정
+                    stageCompleted = ['APPROVED', 'REJECTED'].includes(item.status);
+                    stageCurrent = item.status === 'APPROVED' || item.status === 'REJECTED'; // 심결은 완료 또는 거절
                     break;
                   case 'registration':
-                    // 등록은 '심사완료' 상태면 완료 (심결까지 완료되어야 등록 가능)
-                    // stageCompleted = item.status === '심사완료'; // 기존: 심사완료 시 등록까지 켜짐
-                    // 등록은 별도의 '등록완료' 상태가 있어야 완료되는 것으로 간주하여, 현재는 심사완료 시 completed 되지 않도록 함.
-                    // 만약 '등록완료' 상태가 있다면, 아래와 같이 변경할 수 있음: stageCompleted = item.status === '등록완료';
-                    stageCompleted = false; // 심사완료 상태에서는 등록 단계를 completed로 켜지 않음
-                    // 등록 단계는 심사완료 후 최종 완료를 나타내므로, 심사완료 상태에서는 current로 깜빡이지 않도록 함
-                    stageCurrent = false;
+                    // ✅ 백엔드 상태값 'APPROVED'에 맞춰 수정
+                    stageCompleted = item.status === 'APPROVED';
+                    stageCurrent = false; // 등록은 별도 단계로 간주
                     break;
                   default:
                     break;
@@ -235,8 +329,8 @@ export default function DesignDashboard() {
                 };
               });
 
-              // 진행률 계산 (목 데이터의 reviewProgress 사용)
-              const progressPercentage = item.reviewProgress || 0; // reviewProgress가 없으면 0으로
+              // 진행률 계산 (백엔드 데이터의 reviewProgress 사용)
+              const progressPercentage = item.reviewProgress || 0;
 
               return (
                 <div key={item.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-all">
@@ -249,7 +343,7 @@ export default function DesignDashboard() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-3 mb-3">
                           <span className="text-sm font-mono text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
-                            {item.id}
+                            {item.applicationNumber}
                           </span>
                           <span className={`text-xs px-3 py-1 rounded-full font-medium ${item.statusColor}`}>
                             {item.status}
@@ -301,11 +395,10 @@ export default function DesignDashboard() {
                         <div className="flex items-center justify-between bg-white rounded-lg p-4 shadow-sm">
                           {updatedDesignStages.map((stage, index) => (
                             <div key={stage.id} className="flex items-center">
-                              <div className="flex flex-col items-center flex-shrink-0"> {/* flex-shrink-0 추가 */}
+                              <div className="flex flex-col items-center flex-shrink-0">
                                 <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all ${
-                                  // 깜빡이는 효과를 위해 'current'를 먼저 확인하고, 그 다음 'completed'를 확인합니다.
                                   stage.current
-                                    ? `${stage.colorClass.bg} ${stage.colorClass.border} text-white animate-pulse` // 현재 단계에서 깜빡임
+                                    ? `${stage.colorClass.bg} ${stage.colorClass.border} text-white animate-pulse`
                                     : stage.completed
                                       ? `${stage.colorClass.bg} ${stage.colorClass.border} text-white`
                                       : 'bg-gray-100 border-gray-300 text-gray-400'
@@ -313,7 +406,6 @@ export default function DesignDashboard() {
                                   <stage.icon className="w-5 h-5" width="20" height="20" />
                                 </div>
                                 <span className={`text-xs mt-2 font-medium text-center ${
-                                  // 여기도 마찬가지로 'current'를 먼저 확인합니다.
                                   stage.current
                                     ? stage.colorClass.text
                                     : stage.completed
@@ -354,6 +446,11 @@ export default function DesignDashboard() {
                               <span className="font-medium ml-auto">{item.id}</span>
                             </div>
                             <div className="flex items-center gap-2">
+                              <FileText className="w-4 h-4 text-gray-400" /> {/* ✅ 아이콘 변경 */}
+                              <span className="text-gray-600">출원번호:</span> {/* ✅ 텍스트 변경 */}
+                              <span className="font-medium ml-auto">{item.applicationNumber}</span> {/* ✅ 출원번호 표시 */}
+                            </div>
+                            <div className="flex items-center gap-2">
                               <Calendar className="w-4 h-4 text-gray-400" />
                               <span className="text-gray-600">접수일:</span>
                               <span className="font-medium ml-auto">{item.receptionDate}</span>
@@ -376,8 +473,9 @@ export default function DesignDashboard() {
                             <div className="flex items-center gap-2">
                               <Building2 className="w-4 h-4 text-gray-400" />
                               <span className="text-gray-600">출원인:</span>
+                              <span className="ml-6 font-medium ml-auto text-gray-900">{item.applicant}</span>
                             </div>
-                            <div className="ml-6 font-medium text-gray-900">{item.applicant}</div>
+                             {/* ✅ 출원인 이름 표시 */}
                             <div className="flex items-center gap-2 mt-3">
                               <User className="w-4 h-4 text-gray-400" />
                               <span className="text-gray-600">담당 심사관:</span>

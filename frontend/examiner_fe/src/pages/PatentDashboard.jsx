@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Calendar, User, Eye, ChevronDown, ChevronUp, FlaskConical, Search, Filter, Clock,
@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import Header from '../components/Header';
 import { patentDetailMockData } from '../mocks/patentDetailMock'; // 특허 목 데이터 임포트
+import { getDashboardSummary, getReviewList, getRecentActivities  } from '../services/api';
 
 // 특허 등록 단계를 위한 아이콘 (가정) - Lucide에 적합한 아이콘이 없다면 직접 정의하거나 다른 아이콘으로 대체
 function PatentCertificate(props) {
@@ -52,19 +53,82 @@ export default function PatentDashboard() {
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedCard, setExpandedCard] = useState(null);
   const [selectedFilter, setSelectedFilter] = useState('all');
+  const [reviewList, setReviewList] = useState([]); // API로 가져온 데이터 저장
+  const [loading, setLoading] = useState(true); // 로딩 상태
+  const [dashboardSummary, setDashboardSummary] = useState({
+    total: 0,
+    reviewing: 0,
+    approved: 0,
+    rejected: 0,
+    thisMonthReception: 0, 
+    overdueForReview: 0,
+  });
+  const [recentActivities, setRecentActivities] = useState([]);
+
+    // API 호출 함수
+  const fetchReviewList = async () => {
+    try {
+      setLoading(true);
+      const response = await getReviewList(); // API 호출
+      setReviewList(response.data); // 응답 데이터로 상태 업데이트 
+    } catch (error) {
+      console.error('Failed to fetch review list:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        // 특허 목록 API 호출
+        const reviewListResponse = await getReviewList();
+        setReviewList(reviewListResponse.data);
+
+        // 대시보드 요약 API 호출
+        const summaryResponse = await getDashboardSummary();
+        setDashboardSummary(summaryResponse.data);
+        
+        // ✅ 최근 활동 로그 API 호출 수정 (인자 제거)
+        const activitiesResponse = await getRecentActivities(); // 인자 없이 호출
+        setRecentActivities(activitiesResponse.data);
+      } catch (error) {
+        console.error('Failed to fetch data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
 
   const navigate = useNavigate();
 
-  // 목 데이터를 가공하여 상태 색상 및 우선순위 추가
+  // // 목 데이터를 가공하여 상태 색상 및 우선순위 추가
+  // const processedPatentData = useMemo(() => {
+  //   return Object.values(patentDetailMockData).map((item) => ({
+  //     ...item,
+  //     statusColor: getStatusColorClass(item.status),
+  //     // 목 데이터에 priority가 없다면 랜덤으로 할당 (예시: 특정 ID에 대해 우선순위 'high' 부여)
+  //     priority: item.id === 'P-2024-001' ? 'high' : (item.priority || 'medium'), 
+  //     estimatedDays: item.estimatedDays || (Math.floor(Math.random() * 30) + 15), // 특허 심사는 디자인보다 길 수 있으므로 범위 조정
+  //   }));
+  // }, [patentDetailMockData]);
+
+    // API 데이터 가공
   const processedPatentData = useMemo(() => {
-    return Object.values(patentDetailMockData).map((item) => ({
+    // API 데이터가 없을 경우 빈 배열 반환
+    if (!reviewList) return [];
+
+    return reviewList.map((item) => ({
       ...item,
       statusColor: getStatusColorClass(item.status),
-      // 목 데이터에 priority가 없다면 랜덤으로 할당 (예시: 특정 ID에 대해 우선순위 'high' 부여)
-      priority: item.id === 'P-2024-001' ? 'high' : (item.priority || 'medium'), 
-      estimatedDays: item.estimatedDays || (Math.floor(Math.random() * 30) + 15), // 특허 심사는 디자인보다 길 수 있으므로 범위 조정
+      priority: item.id === 'P-2024-001' ? 'high' : (item.priority || 'medium'),
+      estimatedDays: item.estimatedDays || (Math.floor(Math.random() * 30) + 15),
     }));
-  }, [patentDetailMockData]);
+  }, [reviewList]);
 
   // 검색어 및 필터에 따라 데이터 필터링
   const filteredData = useMemo(() => {
@@ -181,17 +245,48 @@ export default function PatentDashboard() {
               </div>
             </div>
           </div>
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">평균 심사기간</p>
-                <p className="text-2xl font-bold text-purple-600">{averageReviewTime}</p>
-              </div>
-              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                <User className="w-6 h-6 text-purple-600" />
+            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">7일 경과 심사 대기</p> {/* ✅ 텍스트 변경 */}
+                  {/* ✅ dashboardSummary의 새로운 속성 사용 */}
+                  <p className="text-2xl font-bold text-red-600">{dashboardSummary.overdueForReview}건</p> 
+                </div>
+                <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center"> {/* ✅ 아이콘 배경색 변경 */}
+                  <AlertCircle className="w-6 h-6 text-red-600" /> {/* ✅ 경고 관련 아이콘으로 변경 */}
+                </div>
               </div>
             </div>
           </div>
+
+                {/* ✅ 최근 활동 로그 섹션 추가 */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+          <h3 className="text-xl font-bold text-gray-900 mb-4">최근 활동</h3>
+          <ul className="space-y-4">
+            {recentActivities.length > 0 ? (
+              recentActivities.map(activity => (
+                <li
+                  key={activity.activityId}
+                  className="flex items-center space-x-3 bg-gray-50 p-4 rounded-lg hover:bg-gray-100 transition cursor-pointer"
+                  onClick={() => handleDetailView(activity.reviewId)}
+                >
+                  <div className="flex-shrink-0">
+                    <Clock className="w-5 h-5 text-blue-500" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-700 truncate">
+                      <span className="font-semibold">{activity.activityType}</span>: {activity.patentTitle}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {new Date(activity.activityDate).toLocaleString()}
+                    </p>
+                  </div>
+                </li>
+              ))
+            ) : (
+              <p className="text-gray-500 text-center">최근 활동 기록이 없습니다.</p>
+            )}
+          </ul>
         </div>
 
         {/* 특허 카드 목록 */}
@@ -376,8 +471,8 @@ export default function PatentDashboard() {
                             <div className="flex items-center gap-2">
                               <Building2 className="w-4 h-4 text-gray-400" />
                               <span className="text-gray-600">출원인:</span>
+                              <span className="ml-6 font-medium ml-auto text-gray-900">{item.applicant}</span>
                             </div>
-                            <div className="ml-6 font-medium text-gray-900">{item.applicant}</div>
                             <div className="flex items-center gap-2 mt-3">
                               <User className="w-4 h-4 text-gray-400" />
                               <span className="text-gray-600">담당 심사관:</span>
@@ -443,29 +538,6 @@ export default function PatentDashboard() {
                           </ul>
                         </div>
                       )}
-
-                       {/* 유사 특허 검색 결과 */}
-                      <div className="border border-gray-200 p-6 rounded-xl bg-white shadow-sm mt-4">
-                        <h3 className="font-semibold text-xl mb-4 text-gray-800 flex items-center gap-2">
-                          <Copy className="w-5 h-5 text-blue-500" /> {/* 아이콘 색상 변경 */}
-                          유사 특허 검색 결과
-                        </h3>
-                        <div className="flex gap-4 overflow-x-auto pb-2 -mx-2 px-2">
-                          {item.relatedPatents && item.relatedPatents.length > 0 ? (
-                            item.relatedPatents.map((similar, index) => (
-                              <div key={index} className="min-w-[200px] w-full max-w-[250px] border border-gray-200 rounded-lg overflow-hidden bg-gray-50 shadow-sm flex-shrink-0">
-                                <img src={similar.image} alt={similar.title} className="w-full h-32 object-cover bg-gray-200" />
-                                <div className="p-3">
-                                  <p className="text-sm font-medium text-gray-800">특허번호: {similar.id}</p>
-                                  <p className="text-xs text-gray-600 mt-1 line-clamp-2">{similar.description}</p> {/* 'comment' 대신 'description' 사용 */}
-                                </div>
-                              </div>
-                            ))
-                          ) : (
-                            <p className="text-gray-600">유사 특허 검색 결과가 없습니다.</p>
-                          )}
-                        </div>
-                      </div>
                     </div>
                   )}
                 </div>

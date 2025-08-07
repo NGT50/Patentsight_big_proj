@@ -1,33 +1,52 @@
 import { useState } from 'react';
 import { User, Lock, Shield, ChevronRight, Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 export default function Login() {
   const navigate = useNavigate();
 
   const [userId, setUserId] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('patent');
+  const [role, setRole] = useState('patent'); // 'patent' 또는 'design'
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
 
-  const handleLogin = (e) => {
-    e.preventDefault(); // 폼 기본 동작(새로고침) 방지
+  const handleLogin = async (e) => {
+    e.preventDefault();
 
-    if (userId === 'admin' && password === '1234') {
+    try {
+      const response = await axios.post('http://localhost:8080/api/users/login', {
+        username: userId,
+        password: password,
+      });
+
+      const userData = response.data;
+      
+      // ✅ 사용자가 선택한 'role' 상태를 그대로 사용하여 저장하고 리디렉션
+      const selectedRole = role; 
+      
       localStorage.setItem(
         'user',
         JSON.stringify({
-          id: userId,
-          name: '홍길동',
+          id: userData.userId,
+          name: userData.name,
           loginTime: Date.now(),
-          role,
+          role: selectedRole, // ✅ 사용자가 선택한 역할(role 상태)을 그대로 저장
         })
       );
+      
+      console.log('로그인 성공:', userData);
+      
+      // ✅ 저장된 selectedRole에 따라 페이지 이동
+      if (selectedRole === 'patent') {
+        navigate('/patentdashboard');
+      } else if (selectedRole === 'design') {
+        navigate('/designdashboard');
+      }
 
-      if (role === 'patent') navigate('/patentdashboard');
-      else if (role === 'design') navigate('/designdashboard');
-    } else {
+    } catch (error) {
+      console.error('로그인 실패:', error);
       alert('아이디 또는 비밀번호가 잘못되었습니다.');
     }
   };
@@ -97,7 +116,7 @@ export default function Login() {
             </div>
 
             {/* 폼 내용 */}
-            <form onSubmit={handleLogin} className="p-8 space-y-6"> {/* <form> 태그를 여기에 추가 */}
+            <form onSubmit={handleLogin} className="p-8 space-y-6">
               {/* 담당 업무 선택 */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-3">담당 업무</label>
@@ -189,7 +208,7 @@ export default function Login() {
                 </div>
               </div>
 
-              {/* 아이디 저장 (로그인 유지에서 아이디 저장으로 텍스트 변경) */}
+              {/* 아이디 저장 */}
               <div className="flex items-center">
                 <div
                   onClick={() => setRememberMe(!rememberMe)}
@@ -210,16 +229,16 @@ export default function Login() {
                 </div>
               </div>
 
-              {/* 로그인 버튼 - 더 부드러운 색상 */}
+              {/* 로그인 버튼 */}
               <button
-                type="submit" // 폼 안에 있으므로 type="submit"으로 충분
+                type="submit"
                 className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white py-4 rounded-xl font-semibold text-lg transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
               >
                 로그인
                 <ChevronRight className="w-5 h-5" />
               </button>
 
-              {/* 추가 링크 - flex-nowrap 추가 및 gap 조정 */}
+              {/* 추가 링크 */}
               <div className="text-center pt-4 border-t border-gray-100">
                 <div className="flex justify-center items-center gap-4 text-sm flex-nowrap">
                   <button
@@ -247,7 +266,7 @@ export default function Login() {
                   </button>
                 </div>
               </div>
-            </form> {/* </form> 태그 끝 */}
+            </form>
           </div>
 
           {/* 하단 정보 */}
