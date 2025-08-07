@@ -1,0 +1,17 @@
+{
+  "patents": [
+    { "id": 101, "patentId": 101, "title": "첫 번째 테스트 특허", "status": "DRAFT", "inventor": "홍길동" },
+    { "id": 102, "patentId": 102, "title": "두 번째 테스트 특허", "status": "DRAFT", "inventor": "김철수" }
+  ],
+  "document-latest": {
+    "document": {
+        "title": "테스트용 스마트 잠금장치 (from json-server)",
+        "claims": ["json-server에서 보낸 청구항 1입니다."]
+    }
+  },
+  "validations": {
+      "formatErrors": ["json-server: 형식 오류입니다."],
+      "missingSections": ["json-server: 필수 항목 누락입니다."],
+      "contextualErrors": [{"claim": "청구항 1", "analysis": "json-server: 문맥 오류 분석 결과입니다."}]
+  }
+}

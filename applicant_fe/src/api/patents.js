@@ -4,17 +4,13 @@ import { AxiosError } from 'axios';
 import axios from './axiosInstance';
 
 // 각 함수를 async/await와 try...catch로 감싸 에러 핸들링을 추가합니다.
-export const createPatent = async ({ title, type, file_ids = [] }) => {
+export const createPatent = async (patentData) => {
   try {
-    const res = await axios.post('/api/patents', {
-      title,
-      type,
-      file_ids,
-    });
-    return res.data;
+    const res = await axios.post('/api/patents', patentData);
+    return res.data; // { patentId, ... } 를 반환
   } catch (error) {
     console.error('출원 생성 실패:', error);
-    throw error; // 에러를 다시 throw하여 React-Query가 인지할 수 있도록 합니다.
+    throw error;
   }
 };
 
@@ -100,15 +96,17 @@ export const generateRejectionDraft = async (patentId) => {
   }
 }
 
-export const validatePatentDocument = async (patentId) => {
+// 수정 후
+export const validatePatentDocument = async (documentData) => {
   try {
-    const res = await axios.post('/api/ai/validations', { patent_id: patentId });
+    // documentData 객체 전체를 요청 body에 담아 보냅니다.
+    const res = await axios.post('/api/ai/validations', documentData);
     return res.data;
   } catch (error) {
     console.error('문서 유효성 검증 실패:', error);
     throw error;
   }
-}
+};
 
 export const startChatSession = async (patentId) => {
   try {

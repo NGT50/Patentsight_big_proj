@@ -14,6 +14,14 @@ const PatentCard = ({ data, onClick }) => {
     summary: data.summary || '요약 정보가 없습니다.'
   };
 
+  // 상태에 따라 다른 스타일을 적용하기 위한 객체
+  const statusStyles = {
+    DRAFT: 'text-yellow-600 bg-yellow-100',
+    SUBMITTED: 'text-blue-600 bg-blue-100',
+    APPROVED: 'text-green-600 bg-green-100',
+    REJECTED: 'text-red-600 bg-red-100',
+  };
+
   return (
     // 인라인 스타일을 모두 Tailwind 클래스로 교체
     <div
@@ -30,7 +38,11 @@ const PatentCard = ({ data, onClick }) => {
           <strong>출원번호:</strong> {patent.number} | <strong>출원일:</strong> {patent.date}
         </p>
         <p className="text-sm text-gray-700">
-          <strong>출원인:</strong> {patent.applicant} | <strong className="font-semibold text-blue-600">{patent.status}</strong>
+          <strong>출원인:</strong> {patent.applicant} | <strong>상태:</strong> 
+          {/* 상태에 따라 동적으로 스타일이 적용되는 span 태그 */}
+          <span className={`px-2 py-1 ml-1 text-xs font-semibold rounded-full ${statusStyles[patent.status] || 'text-gray-600 bg-gray-100'}`}>
+            {patent.status}
+          </span>
         </p>
         <p className="mt-2 text-sm text-gray-600">📌 <em>{patent.summary}</em></p>
       </div>

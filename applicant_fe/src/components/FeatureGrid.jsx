@@ -24,7 +24,7 @@ const FeatureGrid = () => {
       <FeatureButton title="특허, 실용신안 점검" onClick={() => alert("특허 점검 이동")} />
       <FeatureButton title="디자인, 상표 점검" onClick={() => alert("디자인 점검 이동")} />
       <FeatureButton title="특허 보관함" sub="총 출원수: 3건\n보완요청: 1건" onClick={() => alert("보관함 이동")} />
-      <FeatureButton title="출원서 등록" onClick={handleCreatePatent} />
+      <FeatureButton title="출원서 등록" onClick={() => navigate('/patents/new')} />
     </div>
   );
 };

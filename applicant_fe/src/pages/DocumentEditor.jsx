@@ -1,24 +1,25 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getLatestDocument, updateDocument, validatePatentDocument } from '../api/patents';
 
 // ADDED: DocumentEditor 테스트를 위한 가짜 문서 데이터
-const mockPatentDocument = {
-  document: {
-    title: '테스트용 스마트 잠금장치',
-    technicalField: '본 발명은 스마트폰과 연동되는 잠금장치에 관한 것이다.',
-    backgroundTechnology: '기존의 기계식 잠금장치는 분실 위험이 크고 원격 제어가 불가능했다.',
-    inventionDetails: {
-      problemToSolve: '원격으로 제어하고 상태를 확인할 수 있는 스마트 잠금장치의 부재.',
-      solution: 'BLE 통신 모듈과 GPS를 탑재하여 스마트폰 앱으로 제어한다.',
-      effect: '도난 방지 및 사용자 편의성 증대.',
-    },
-    summary: 'BLE와 GPS를 이용한 스마트폰 연동형 잠금장치.',
-    drawingDescription: '도 1은 본 발명의 전체 구성도이다.',
-    claims: ['BLE 통신 모듈을 포함하는 스마트 잠금장치.', '상기 잠금장치는 GPS 모듈을 더 포함하는 것을 특징으로 하는 스마트 잠금장치.'],
-  }
-};
+// const mockPatentDocument = {
+//   document: {
+//     title: '테스트용 스마트 잠금장치',
+//     technicalField: '본 발명은 스마트폰과 연동되는 잠금장치에 관한 것이다.',
+//     backgroundTechnology: '기존의 기계식 잠금장치는 분실 위험이 크고 원격 제어가 불가능했다.',
+//     inventionDetails: {
+//       problemToSolve: '원격으로 제어하고 상태를 확인할 수 있는 스마트 잠금장치의 부재.',
+//       solution: 'BLE 통신 모듈과 GPS를 탑재하여 스마트폰 앱으로 제어한다.',
+//       effect: '도난 방지 및 사용자 편의성 증대.',
+//     },
+//     summary: 'BLE와 GPS를 이용한 스마트폰 연동형 잠금장치.',
+//     drawingDescription: '도 1은 본 발명의 전체 구성도이다.',
+//     claims: ['BLE 통신 모듈을 포함하는 스마트 잠금장치.', '상기 잠금장치는 GPS 모듈을 더 포함하는 것을 특징으로 하는 스마트 잠금장치.'],
+//   }
+// };
+
 // 문서 데이터의 초기 구조 정의
 const initialDocumentState = {
   title: '',
@@ -35,30 +36,30 @@ const initialDocumentState = {
 };
 
 // 테스트용 AI 분석 결과 Mock 데이터 (각 오류에 고유 id와 연관 field 추가)
-const mockAiResults = {
-  formatErrors: [
-    { id: 'err_fe_1', message: "❗ 청구항 번호가 중복되어 있습니다.", field: 'claims' }
-  ],
-  missingSections: [
-    { id: 'err_ms_1', message: "배경기술", field: 'backgroundTechnology' }
-  ],
-  contextualErrors: [
-    { 
-      id: 'err_ce_1', 
-      claim: "청구항 1",
-      claimIndex: 0, // 수정할 청구항의 인덱스 (0부터 시작)
-      analysis: "- 발견된 문제: '고정부'와 '결합부'의 관계가 불명확합니다...",
-      suggestion: "'상기 고정부는 상기 결합부와 일체로 형성되는 것을 특징으로 하는 스마트 잠금장치.'" // AI가 제안하는 수정 텍스트
-    },
-    {
-      id: 'err_ce_2',
-      claim: "청구항 3",
-      claimIndex: 2,
-      analysis: "✅ 논리적 비약이나 문맥상 오류가 발견되지 않았습니다. 잘 작성되었습니다."
-      // 수정 제안이 없으므로 suggestion 필드도 없음
-    }
-  ],
-};
+// const mockAiResults = {
+//   formatErrors: [
+//     { id: 'err_fe_1', message: "❗ 청구항 번호가 중복되어 있습니다.", field: 'claims' }
+//   ],
+//   missingSections: [
+//     { id: 'err_ms_1', message: "배경기술", field: 'backgroundTechnology' }
+//   ],
+//   contextualErrors: [
+//     { 
+//       id: 'err_ce_1', 
+//       claim: "청구항 1",
+//       claimIndex: 0, // 수정할 청구항의 인덱스 (0부터 시작)
+//       analysis: "- 발견된 문제: '고정부'와 '결합부'의 관계가 불명확합니다...",
+//       suggestion: "'상기 고정부는 상기 결합부와 일체로 형성되는 것을 특징으로 하는 스마트 잠금장치.'" // AI가 제안하는 수정 텍스트
+//     },
+//     {
+//       id: 'err_ce_2',
+//       claim: "청구항 3",
+//       claimIndex: 2,
+//       analysis: "✅ 논리적 비약이나 문맥상 오류가 발견되지 않았습니다. 잘 작성되었습니다."
+//       // 수정 제안이 없으므로 suggestion 필드도 없음
+//     }
+//   ],
+// };
 
 const DocumentEditor = () => {
   const fieldRefs = useRef({});
@@ -68,15 +69,26 @@ const DocumentEditor = () => {
   const [document, setDocument] = useState(initialDocumentState);
   const [aiResults, setAiResults] = useState(null);
   const queryClient = useQueryClient();
+  const [drawingFiles, setDrawingFiles] = useState([]); // 도면 파일 목록을 관리할 state
+  const location = useLocation(); // location 훅 사용
+  
+  const handleDrawingUpload = (event) => {
+    const files = Array.from(event.target.files);
+    const newFiles = files.map(file => ({
+      file,
+      preview: URL.createObjectURL(file), // 미리보기를 위한 URL 생성
+    }));
+    setDrawingFiles(prev => [...prev, ...newFiles]);
+  };
 
+
+  // useQuery가 실제 API를 호출하도록 복원
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['patentDocument', patentId],
-    queryFn: async () => {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        return { document: mockPatentDocument.document }; // Mock data for testing
-    },
-    enabled: !!patentId,
+    queryFn: () => getLatestDocument(patentId),
+    enabled: !!patentId && patentId !== 'new-from-pdf', // PDF로 새로 만들 때는 API 호출 안함
   });
+
     // ADDED: AI 제안을 적용하는 함수
     const applyAiSuggestion = (claimIndex, suggestionText) => {
         console.log('수정 함수 호출됨!', { claimIndex, suggestionText });
@@ -90,7 +102,14 @@ const DocumentEditor = () => {
 
 
   useEffect(() => {
-    if (data?.document) {
+    console.log("Location State:", location.state);
+    const preloadedData = location.state?.parsedData;
+    if (preloadedData) {
+      // PDF로부터 파싱된 데이터가 있으면, 폼 상태를 이 데이터로 설정
+      const initialState = { ...initialDocumentState, ...preloadedData };
+      setDocument(initialState);
+    } else if (data?.document) {
+      // 기존처럼 API로부터 받은 데이터로 설정
       const docFromServer = data.document;
       const initialState = {
         ...initialDocumentState, ...docFromServer,
@@ -99,7 +118,7 @@ const DocumentEditor = () => {
       };
       setDocument(initialState);
     }
-  }, [data]);
+  }, [data, location.state]);
 
   const handleInputChange = (e) => setDocument(prev => ({ ...prev, [e.target.name]: e.target.value }));
   const handleNestedInputChange = (e) => setDocument(prev => ({ ...prev, inventionDetails: { ...prev.inventionDetails, [e.target.name]: e.target.value } }));
@@ -124,15 +143,14 @@ const DocumentEditor = () => {
   });
   const handleSaveDraft = () => saveMutation.mutate({ patentId, documentData: document });
 
+  // aiCheckMutation이 실제 API를 호출하도록 복원
   const aiCheckMutation = useMutation({
-    mutationFn: async (id) => {
-      await new Promise(res => setTimeout(res, 2000));
-      return mockAiResults;
-    },
+    mutationFn: validatePatentDocument,
     onSuccess: (results) => setAiResults(results),
     onError: (err) => alert(`AI 검토 중 오류가 발생했습니다: ${err.message}`),
   });
-  const handleAiCheck = () => aiCheckMutation.mutate(patentId);
+
+  const handleAiCheck = () => aiCheckMutation.mutate(document);
 
   const scrollToField = (fieldName) => {
     const fieldToTabMap = {
@@ -158,6 +176,7 @@ const DocumentEditor = () => {
         <button onClick={() => setActiveTab('details')} className={`px-1 py-4 text-sm font-medium border-b-2 ${activeTab === 'details' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>발명의 상세한 설명</button>
         <button onClick={() => setActiveTab('claims')} className={`px-1 py-4 text-sm font-medium border-b-2 ${activeTab === 'claims' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>청구범위</button>
         <button onClick={() => setActiveTab('summary')} className={`px-1 py-4 text-sm font-medium border-b-2 ${activeTab === 'summary' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>요약 및 기타</button>
+        <button onClick={() => setActiveTab('drawings')} className={`...`}>도면</button>
       </nav>
     </div>
   );
@@ -170,7 +189,13 @@ const DocumentEditor = () => {
           <div className="flex items-center gap-2">
             <button onClick={handleSaveDraft} disabled={saveMutation.isPending} className="px-4 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 disabled:bg-gray-200 disabled:cursor-not-allowed">{saveMutation.isPending ? '저장 중...' : '임시저장'}</button>
             <button onClick={() => alert('다운로드 기능 구현 예정')} className="px-4 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50">다운로드</button>
-            <button onClick={() => navigate(`/submit/${patentId}`)} className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-md shadow-sm hover:bg-blue-700">최종 제출</button>
+            <button 
+          // onClick을 수정하여 navigate 함수의 두 번째 인자로 state를 전달합니다.
+          onClick={() => navigate(`/submit/${patentId}`, { state: { documentToSubmit: document } })}
+          className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-md shadow-sm hover:bg-blue-700"
+        >
+          최종 제출
+        </button>
           </div>
         </header>
         <main className="p-8">
@@ -195,6 +220,19 @@ const DocumentEditor = () => {
                   <div ref={el => fieldRefs.current['summary'] = el} className="p-6 bg-white rounded-md shadow"><label className="block text-lg font-semibold text-gray-700">요약</label><textarea name="summary" value={document.summary} onChange={handleInputChange} rows="5" className="w-full px-3 py-2 mt-2 border border-gray-300 rounded-md"/></div>
                   <div ref={el => fieldRefs.current['drawingDescription'] = el} className="p-6 bg-white rounded-md shadow"><label className="block text-lg font-semibold text-gray-700">도면의 간단한 설명</label><textarea name="drawingDescription" value={document.drawingDescription} onChange={handleInputChange} rows="5" className="w-full px-3 py-2 mt-2 border border-gray-300 rounded-md"/></div>
                </div>
+            )}
+            {activeTab === 'drawings' && (
+              <div className="p-6 bg-white rounded-md shadow">
+                <label className="block text-lg font-semibold text-gray-700">도면 업로드</label>
+                <input type="file" multiple accept="image/png, image/jpeg" onChange={handleDrawingUpload} className="mt-2" />
+                <div className="grid grid-cols-3 gap-4 mt-4">
+                  {drawingFiles.map((f, index) => (
+                    <div key={index} className="border rounded">
+                      <img src={f.preview} alt={`도면 미리보기 ${index + 1}`} className="w-full h-auto" />
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
         </main>

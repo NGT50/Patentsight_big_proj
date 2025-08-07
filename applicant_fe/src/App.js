@@ -11,6 +11,8 @@ import SignupSuccessPage from './pages/SignupSuccess';
 import PrivateRoute from './components/PrivateRoute'; // PrivateRoute 컴포넌트 import
 import DocumentEditor from './pages/DocumentEditor';
 import FinalSubmitPage from './pages/FinalSubmit'; 
+import NewPatentChoicePage from './pages/NewPatentChoice';
+
 // (QueryClient import 등 나머지 코드는 동일)
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
@@ -49,6 +51,10 @@ function App() {
           <Route 
             path="/submit/:id" 
             element={<FinalSubmitPage />} 
+          />
+          <Route 
+            path="/patents/new" 
+            element={<NewPatentChoicePage />} 
           />
         </Routes>
       </Router>
