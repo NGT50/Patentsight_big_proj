@@ -21,9 +21,10 @@ public class FileController {
 
     @PostMapping
     public ResponseEntity<FileResponse> upload(@RequestParam("file") MultipartFile file,
+                                               @RequestParam Long patentId,
                                                @RequestHeader("Authorization") String authorization) {
         Long userId = jwtTokenProvider.getUserIdFromHeader(authorization);
-        FileResponse res = fileService.create(file, userId);
+        FileResponse res = fileService.create(file, userId, patentId);
         return ResponseEntity.ok(res);
     }
 

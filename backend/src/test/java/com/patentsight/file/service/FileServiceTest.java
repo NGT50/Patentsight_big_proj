@@ -4,6 +4,8 @@ import com.patentsight.file.domain.FileAttachment;
 import com.patentsight.file.dto.FileResponse;
 import com.patentsight.file.repository.FileRepository;
 import com.patentsight.global.util.FileUtil;
+import com.patentsight.patent.domain.Patent;
+import com.patentsight.patent.repository.PatentRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,9 +27,12 @@ class FileServiceTest {
     @InjectMocks
     private FileService fileService;
 
+    @Mock
+    private PatentRepository patentRepository;
+
     @BeforeEach
     void setup() {
-        fileService = new FileService(fileRepository);
+        fileService = new FileService(fileRepository, patentRepository);
     }
 
     @Test
@@ -41,11 +46,16 @@ class FileServiceTest {
             return att;
         });
 
-        FileResponse res = fileService.create(multipartFile, 99L);
+        Patent patent = new Patent();
+        patent.setPatentId(10L);
+        when(patentRepository.findById(10L)).thenReturn(java.util.Optional.of(patent));
+
+        FileResponse res = fileService.create(multipartFile, 99L, 10L);
 
         assertNotNull(res);
         assertEquals(1L, res.getFileId());
         assertEquals(99L, res.getUploaderId());
+        assertEquals(10L, res.getPatentId());
         assertEquals("hello.txt", res.getFileName());
         assertNotNull(res.getFileUrl());
         verify(fileRepository).save(any(FileAttachment.class));
