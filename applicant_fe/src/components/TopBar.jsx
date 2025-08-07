@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import './TopBar.css';
+
+// import './TopBar.css'; // 삭제
 
 const TopBar = () => {
-  const [timeLeft, setTimeLeft] = useState(3600); // 1시간(3600초)
+  const [timeLeft, setTimeLeft] = useState(3600);
   const [showAlert, setShowAlert] = useState(false);
 
   useEffect(() => {
@@ -11,7 +12,7 @@ const TopBar = () => {
         if (prev <= 1) {
           clearInterval(timer);
           alert("세션이 만료되어 로그아웃됩니다.");
-          // 로그아웃 처리 로직 (예: localStorage 제거 등)
+          // 추후 로그아웃 로직 연동
         }
         return prev - 1;
       });
@@ -26,15 +27,28 @@ const TopBar = () => {
   };
 
   return (
-    <div className="topbar">
-      <span>남은 시간: {formatTime(timeLeft)}</span>
-      <button onClick={() => alert("세션 연장!")}>로그인 유지</button>
-      <button onClick={() => alert("로그아웃!")}>로그아웃</button>
-      <button onClick={() => setShowAlert(!showAlert)}>🔔 2</button>
+    // topbar div를 Tailwind 클래스로 교체
+    <div className="relative flex items-center justify-end gap-4 p-3 bg-white border-b border-gray-200">
+      <span className="text-sm text-gray-600">남은 시간: {formatTime(timeLeft)}</span>
+      
+      {/* 버튼들도 기본 스타일링 추가 */}
+      <button className="px-3 py-1 text-sm text-white bg-blue-500 rounded hover:bg-blue-600">
+        로그인 유지
+      </button>
+      <button className="px-3 py-1 text-sm text-gray-700 bg-gray-200 rounded hover:bg-gray-300">
+        로그아웃
+      </button>
+
+      <button onClick={() => setShowAlert(!showAlert)} className="relative">
+        <span className="text-xl">🔔</span>
+        <span className="absolute top-0 right-0 flex items-center justify-center w-4 h-4 text-xs text-white bg-red-500 rounded-full">2</span>
+      </button>
+      
+      {/* alert-popup div를 Tailwind 클래스로 교체 */}
       {showAlert && (
-        <div className="alert-popup">
-          <p>심사관으로부터 보완 요청이 왔습니다.</p>
-          <p>8/3 특허 최종 심사 완료되었습니다.</p>
+        <div className="absolute top-14 right-5 w-64 p-3 bg-white border border-gray-300 rounded-md shadow-lg z-10">
+          <p className="pb-2 mb-2 text-sm border-b border-gray-200">심사관으로부터 보완 요청이 왔습니다.</p>
+          <p className="text-sm">8/3 특허 최종 심사 완료되었습니다.</p>
         </div>
       )}
     </div>
