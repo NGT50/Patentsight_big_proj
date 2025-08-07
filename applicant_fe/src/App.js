@@ -12,6 +12,8 @@ import PrivateRoute from './components/PrivateRoute'; // PrivateRoute 컴포넌�
 import DocumentEditor from './pages/DocumentEditor';
 import FinalSubmitPage from './pages/FinalSubmit'; 
 import NewPatentChoicePage from './pages/NewPatentChoice';
+import PatentCheckListPage from './pages/PatentCheckListPage';
+import DesignCheckListPage from './pages/DesignCheckListPage';
 
 // (QueryClient import 등 나머지 코드는 동일)
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -56,6 +58,8 @@ function App() {
             path="/patents/new" 
             element={<NewPatentChoicePage />} 
           />
+          <Route path="/check/patents" element={<PatentCheckListPage />} />
+          <Route path="/check/designs" element={<DesignCheckListPage />} />
         </Routes>
       </Router>
       <ReactQueryDevtools initialIsOpen={false} />

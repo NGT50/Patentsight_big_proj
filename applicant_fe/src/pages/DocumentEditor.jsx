@@ -71,7 +71,10 @@ const DocumentEditor = () => {
   const queryClient = useQueryClient();
   const [drawingFiles, setDrawingFiles] = useState([]); // 도면 파일 목록을 관리할 state
   const location = useLocation(); // location 훅 사용
-  
+  // 1. 첨부된 원본 PDF 파일 정보를 저장할 state 추가
+  const [attachedPdf, setAttachedPdf] = useState(null);
+
+
   const handleDrawingUpload = (event) => {
     const files = Array.from(event.target.files);
     const newFiles = files.map(file => ({
@@ -104,6 +107,13 @@ const DocumentEditor = () => {
   useEffect(() => {
     console.log("Location State:", location.state);
     const preloadedData = location.state?.parsedData;
+
+    const originalFile = location.state?.originalFile; // 파일 정보 가져오기
+
+    if (originalFile) {
+      setAttachedPdf(originalFile);
+    }
+
     if (preloadedData) {
       // PDF로부터 파싱된 데이터가 있으면, 폼 상태를 이 데이터로 설정
       const initialState = { ...initialDocumentState, ...preloadedData };
@@ -187,8 +197,17 @@ const DocumentEditor = () => {
         <header className="sticky top-0 z-10 flex items-center justify-between p-4 bg-white border-b border-gray-200">
           <h1 className="text-xl font-bold text-gray-800 truncate">{document.title || "제목 없는 출원서"}</h1>
           <div className="flex items-center gap-2">
+            {/* 2. attachedPdf state에 정보가 있을 때만 파일 정보와 다운로드 버튼 표시 */}
+            {attachedPdf && (
+              <div className="flex items-center p-2 text-sm text-gray-600 bg-gray-100 border rounded-md">
+                <span>📄 {attachedPdf.name}</span>
+                <button onClick={() => alert('다운로드 기능은 백엔드 연동이 필요합니다.')} className="ml-2 text-blue-500 hover:underline">
+                  (다운로드)
+                </button>
+              </div>
+            )}
             <button onClick={handleSaveDraft} disabled={saveMutation.isPending} className="px-4 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 disabled:bg-gray-200 disabled:cursor-not-allowed">{saveMutation.isPending ? '저장 중...' : '임시저장'}</button>
-            <button onClick={() => alert('다운로드 기능 구현 예정')} className="px-4 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50">다운로드</button>
+          
             <button 
           // onClick을 수정하여 navigate 함수의 두 번째 인자로 state를 전달합니다.
           onClick={() => navigate(`/submit/${patentId}`, { state: { documentToSubmit: document } })}

@@ -44,9 +44,11 @@ export const submitPatent = async (patentId) => {
   }
 };
 
-export const getMyPatents = async () => {
+// getMyPatents 함수를 아래와 같이 수정합니다.
+export const getMyPatents = async (params = {}) => {
   try {
-    const res = await axios.get('/api/patents/my');
+    // params 객체를 쿼리 스트링으로 전달합니다 (예: { type: 'PATENT' } -> ?type=PATENT)
+    const res = await axios.get('/api/patents/my', { params });
     return res.data;
   } catch (error) {
     console.error('내 출원 목록 조회 실패:', error);

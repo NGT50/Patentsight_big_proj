@@ -1,21 +1,12 @@
 import React, { useEffect, useState } from 'react';
 
-// import './TopBar.css'; // 삭제
-
-const TopBar = () => {
+const TopBar = ({ onNotificationClick }) => {
   const [timeLeft, setTimeLeft] = useState(3600);
-  const [showAlert, setShowAlert] = useState(false);
+  // TopBar 내부의 자체적인 팝업 상태(showAlert)는 이제 필요 없으므로 삭제합니다.
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          alert("세션이 만료되어 로그아웃됩니다.");
-          // 추후 로그아웃 로직 연동
-        }
-        return prev - 1;
-      });
+      setTimeLeft(prev => prev > 0 ? prev - 1 : 0);
     }, 1000);
     return () => clearInterval(timer);
   }, []);
@@ -39,18 +30,11 @@ const TopBar = () => {
         로그아웃
       </button>
 
-      <button onClick={() => setShowAlert(!showAlert)} className="relative">
+      <button onClick={onNotificationClick} className="relative">
         <span className="text-xl">🔔</span>
         <span className="absolute top-0 right-0 flex items-center justify-center w-4 h-4 text-xs text-white bg-red-500 rounded-full">2</span>
       </button>
-      
-      {/* alert-popup div를 Tailwind 클래스로 교체 */}
-      {showAlert && (
-        <div className="absolute top-14 right-5 w-64 p-3 bg-white border border-gray-300 rounded-md shadow-lg z-10">
-          <p className="pb-2 mb-2 text-sm border-b border-gray-200">심사관으로부터 보완 요청이 왔습니다.</p>
-          <p className="text-sm">8/3 특허 최종 심사 완료되었습니다.</p>
-        </div>
-      )}
+    
     </div>
   );
 };
