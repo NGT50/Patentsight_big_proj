@@ -373,7 +373,11 @@ function ApplicantLogin({ onLoginSuccess = () => {} }) {
   const handleFindId = () => alert('아이디 찾기 기능 준비 중');
   const handleFindPassword = () => alert('비밀번호 찾기 기능 준비 중');
   const handleSignup = () => navigate('/terms');
-
+  // 로그인 성공 시 실행되는 함수 예시
+  const handleLoginSuccess = (userInfo) => {
+    setIsLoggedIn(true); // <-- 반드시 이거 들어가야 됨
+    setUserInfo(userInfo);
+  };
   return (
     <PageContainer>
       <LoginContainer>
