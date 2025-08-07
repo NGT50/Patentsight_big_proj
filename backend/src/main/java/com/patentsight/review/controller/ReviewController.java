@@ -1,5 +1,6 @@
 package com.patentsight.review.controller;
 
+import com.patentsight.patent.domain.PatentType; // PatentType import 추가
 import com.patentsight.review.domain.Review;
 import com.patentsight.review.dto.*;
 import com.patentsight.review.service.OpinionNoticeService;
@@ -33,9 +34,10 @@ public class ReviewController {
     @GetMapping("/list/{userId}")
     public List<ReviewListResponse> getReviewList(
             @PathVariable Long userId,
-            @RequestParam(required = false) String status
+            @RequestParam(required = false) String status,
+            @RequestParam("reviewType") PatentType reviewType // 🚀 reviewType 파라미터 추가
     ) {
-        return reviewService.getReviewList(userId, status);
+        return reviewService.getReviewList(userId, status, reviewType); // 🚀 reviewType 전달
     }
 
     // 4️⃣ 심사 상세 조회
@@ -67,8 +69,11 @@ public class ReviewController {
 
     // 8️⃣ 심사관별 대시보드 요약
     @GetMapping("/dashboard/{userId}")
-    public DashboardResponse getDashboard(@PathVariable Long userId) {
-        return reviewService.getDashboard(userId);
+    public DashboardResponse getDashboard(
+            @PathVariable Long userId,
+            @RequestParam("reviewType") PatentType reviewType // 🚀 reviewType 파라미터 추가
+    ) {
+        return reviewService.getDashboard(userId, reviewType); // 🚀 reviewType 전달
     }
 
     // 9️⃣ 최근 활동

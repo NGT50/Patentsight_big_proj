@@ -40,6 +40,15 @@ dependencies {
 
 }
 
+bootJar {
+    mainClass = 'com.patentsight.PatentProjectApplication' // 또는 'com.patentsight.backend.BackendApplication'
+}
+
+bootRun {
+    mainClass = 'com.patentsight.PatentProjectApplication' // 🚨 이 부분을 추가하세요.
+    // 또는 'com.patentsight.backend.BackendApplication'
+}
+
 tasks.named('test') {
 	useJUnitPlatform()
 }

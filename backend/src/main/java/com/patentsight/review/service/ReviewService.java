@@ -1,5 +1,6 @@
 package com.patentsight.review.service;
 
+import com.patentsight.patent.domain.PatentType; // PatentType import 추가
 import com.patentsight.review.domain.Review;
 import com.patentsight.review.dto.*;
 
@@ -14,7 +15,8 @@ public interface ReviewService {
     List<Review> autoAssign(String type);
 
     // 3️⃣ 심사 목록 조회 (status 필터링 가능)
-    List<ReviewListResponse> getReviewList(Long userId, String status);
+    // 🚀 reviewType 파라미터 추가
+    List<ReviewListResponse> getReviewList(Long userId, String status, PatentType reviewType);
 
     // 4️⃣ 심사 상세 조회
     ReviewDetailResponse getReviewDetail(Long reviewId);
@@ -23,7 +25,8 @@ public interface ReviewService {
     Review submitReview(SubmitReviewRequest request);
 
     // 6️⃣ 심사관별 대시보드 요약
-    DashboardResponse getDashboard(Long userId);
+    // 🚀 reviewType 파라미터 추가
+    DashboardResponse getDashboard(Long userId, PatentType reviewType);
 
     // 7️⃣ 최근 활동
     List<RecentActivityResponse> getRecentActivities();
