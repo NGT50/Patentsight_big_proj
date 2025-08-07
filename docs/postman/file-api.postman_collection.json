@@ -1,28 +1,119 @@
 {
   "info": {
-    "name": "FileAttachment API",
-    "_postman_id": "11111111-2222-3333-4444-555555555555",
+    "name": "FileAttachment CRUD (upload 2 files, delete first)",
+    "_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    { "key": "baseUrl", "value": "http://localhost:8080" },
-    { "key": "token", "value": "" },
-    { "key": "patentId", "value": "" }
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    }
   ],
   "item": [
     {
-      "name": "Upload file",
+      "name": "1. Sign up applicant",
       "request": {
         "method": "POST",
         "header": [
-          { "key": "Authorization", "value": "Bearer {{token}}" }
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/users/applicant",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"tester\",\n  \"password\": \"pass1234\",\n  \"name\": \"Tester\",\n  \"birthDate\": \"1990-01-01\",\n  \"email\": \"tester@example.com\"\n}"
+        }
+      }
+    },
+    {
+      "name": "2. Login",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/users/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"tester\",\n  \"password\": \"pass1234\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const json = pm.response.json();",
+              "pm.environment.set('token', json.token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Create patent",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/patents",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Sample Patent\",\n  \"type\": \"PATENT\",\n  \"fileIds\": [],\n  \"cpc\": \"A01B\",\n  \"inventor\": \"Tester\",\n  \"technicalField\": \"Testing\",\n  \"backgroundTechnology\": \"Background\",\n  \"inventionDetails\": {\n    \"problemToSolve\": \"Problem\",\n    \"solution\": \"Solution\",\n    \"effect\": \"Effect\"\n  },\n  \"summary\": \"Summary\",\n  \"drawingDescription\": \"Drawing\",\n  \"claims\": [\"Claim 1\"]\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const json = pm.response.json();",
+              "pm.environment.set('patentId', json.patentId);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Upload file #1",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
         ],
         "url": "{{baseUrl}}/api/files",
         "body": {
           "mode": "formdata",
           "formdata": [
-            { "key": "file", "type": "file", "src": "/path/to/file.jpg" },
-            { "key": "patentId", "type": "text", "value": "{{patentId}}" }
+            {
+              "key": "file",
+              "type": "file",
+              "src": "C:/Users/User/Postman/files/file1.jpg"
+            },
+            {
+              "key": "patentId",
+              "type": "text",
+              "value": "{{patentId}}"
+            }
           ]
         }
       },
@@ -33,47 +124,91 @@
             "type": "text/javascript",
             "exec": [
               "const json = pm.response.json();",
-              "pm.environment.set('fileId', json.fileId);"
+              "pm.environment.set('fileId1', json.fileId);"
             ]
           }
         }
       ]
     },
     {
-      "name": "Update file",
+      "name": "5. Upload file #2",
       "request": {
-        "method": "PUT",
+        "method": "POST",
         "header": [
-          { "key": "Authorization", "value": "Bearer {{token}}" }
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
         ],
-        "url": "{{baseUrl}}/api/files/{{fileId}}",
+        "url": "{{baseUrl}}/api/files",
         "body": {
           "mode": "formdata",
           "formdata": [
-            { "key": "file", "type": "file", "src": "/path/to/newfile.jpg" }
+            {
+              "key": "file",
+              "type": "file",
+              "src": "C:/Users/User/Postman/files/file2.jpg"
+            },
+            {
+              "key": "patentId",
+              "type": "text",
+              "value": "{{patentId}}"
+            }
           ]
         }
-      }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const json = pm.response.json();",
+              "pm.environment.set('fileId2', json.fileId);"
+            ]
+          }
+        }
+      ]
     },
     {
-      "name": "Get file metadata",
-      "request": {
-        "method": "GET",
-        "header": [
-          { "key": "Authorization", "value": "Bearer {{token}}" }
-        ],
-        "url": "{{baseUrl}}/api/files/{{fileId}}"
-      }
-    },
-    {
-      "name": "Delete file",
+      "name": "6. Delete first file",
       "request": {
         "method": "DELETE",
         "header": [
-          { "key": "Authorization", "value": "Bearer {{token}}" }
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
         ],
-        "url": "{{baseUrl}}/api/files/{{fileId}}"
+        "url": "{{baseUrl}}/api/files/{{fileId1}}"
       }
+    },
+    {
+      "name": "7. \ub0a8\uc740 \ud30c\uc77c \ud655\uc778",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/patents/{{patentId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const json = pm.response.json();",
+              "pm.test('\ub450 \ubc88\uc9f8 \ud30c\uc77c\ub9cc \ub0a8\uc544 \uc788\uc74c', function () {",
+              "  pm.expect(json.attachmentIds).to.eql([Number(pm.environment.get('fileId2'))]);",
+              "});"
+            ]
+          }
+        }
+      ]
     }
   ]
 }
