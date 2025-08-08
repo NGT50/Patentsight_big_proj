@@ -64,8 +64,11 @@ jobs:
           key: ${{ secrets.KEY }}
           script: |
             set -e
-            LATEST_JAR=$(ls -t $EC2_APP_DIR/releases/*.jar | head -n 1)
+            APP_DIR="/home/ubuntu/app"   # EC2에서 앱이 설치된 절대경로
+            LATEST_JAR=$(ls -t "$APP_DIR"/releases/*.jar | head -n 1)
             echo "Latest jar: $LATEST_JAR"
-            $EC2_APP_DIR/deploy.sh "$LATEST_JAR"
+            "$APP_DIR"/deploy.sh "$LATEST_JAR"
             sleep 2
+            curl -fsS "http://127.0.0.1:${APP_PORT:-8080}/actuator/health" || curl -fsS "http://127.0.0.1:${APP_PORT:-8080}" || true
+
             curl -fsS "http://127.0.0.1:${APP_PORT:-8080}/actuator/health" || curl -fsS "http://127.0.0.1:${APP_PORT:-8080}" || true
