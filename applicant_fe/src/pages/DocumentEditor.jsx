@@ -184,7 +184,7 @@ const DocumentEditor = () => {
     <div className="border-b border-gray-200">
       <nav className="flex -mb-px space-x-8" aria-label="Tabs">
         <button onClick={() => setActiveTab('details')} className={`px-1 py-4 text-sm font-medium border-b-2 ${activeTab === 'details' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>발명의 상세한 설명</button>
-        <button onClick={() => setActiveTab('claims')} className={`px-1 py-4 text-sm font-medium border-b-2 ${activeTab === 'claims' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>청구범위</button>
+        <button onClick={() => setActiveTab('claims')} className={`px-1 py-4 text-sm font-medium border-b-2 ${activeTab === 'claims' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>청구항</button>
         <button onClick={() => setActiveTab('summary')} className={`px-1 py-4 text-sm font-medium border-b-2 ${activeTab === 'summary' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>요약 및 기타</button>
         <button onClick={() => setActiveTab('drawings')} className={`...`}>도면</button>
       </nav>
@@ -230,7 +230,7 @@ const DocumentEditor = () => {
             )}
             {activeTab === 'claims' && (
               <div ref={el => fieldRefs.current['claims'] = el} className="p-6 bg-white rounded-md shadow">
-                <div className="flex items-center justify-between"><label className="block text-lg font-semibold text-gray-700">청구범위</label><button onClick={addClaim} className="px-3 py-1 text-sm font-semibold text-white bg-blue-500 rounded-md hover:bg-blue-600">청구항 추가</button></div>
+                <div className="flex items-center justify-between"><label className="block text-lg font-semibold text-gray-700">청구항</label><button onClick={addClaim} className="px-3 py-1 text-sm font-semibold text-white bg-blue-500 rounded-md hover:bg-blue-600">청구항 추가</button></div>
                 {document.claims.map((claim, index) => (<div key={index} className="relative pt-2 mt-2 border-t"><label className="block text-sm font-medium text-gray-600">청구항 {index + 1}</label><textarea value={claim} onChange={(e) => handleClaimChange(index, e.target.value)} rows="4" className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md"/>{document.claims.length > 1 && (<button onClick={() => removeClaim(index)} className="absolute top-2 right-0 px-2 py-1 text-xs text-red-500 hover:bg-red-100 rounded-full">삭제</button>)}</div>))}
               </div>
             )}
