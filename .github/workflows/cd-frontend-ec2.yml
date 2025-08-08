@@ -1,0 +1,49 @@
+name: CD frontends → EC2
+on:
+  push:
+    branches: ["CICD"]        # 원하는 배포 브랜치
+    paths:
+      - "frontend/**"
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        fe: [applicant_fe, examiner_fe]
+    defaults:
+      run:
+        working-directory: frontend/${{ matrix.fe }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+          cache-dependency-path: frontend/${{ matrix.fe }}/package-lock.json
+
+      - run: npm ci
+      - run: npm run build            # dev 대신 build 후 dist 사용
+
+      - name: Upload to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.KEY }}
+          source: "frontend/${{ matrix.fe }}/dist/*"
+          target: "/home/${{ secrets.USERNAME }}/fe/${{ matrix.fe }}/"
+          strip_components: 3
+          overwrite: true
+
+      - name: Restart pm2
+        uses: appleboy/ssh-action@v1.1.0
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.KEY }}
+          script: |
+            pm2 reload ${{ matrix.fe }} \
+              || pm2 serve /home/${{ secrets.USERNAME }}/fe/${{ matrix.fe }}/ 3000 --spa --name ${{ matrix.fe }}
