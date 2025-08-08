@@ -14,9 +14,13 @@ import com.patentsight.patent.domain.Patent;
 import com.patentsight.patent.domain.PatentStatus;
 import com.patentsight.patent.dto.PatentRequest;
 import com.patentsight.patent.dto.PatentResponse;
+import com.patentsight.patent.dto.SubmitPatentResponse; // 새로 추가된 DTO
+import com.patentsight.ai.dto.PredictRequest; // 추가
+import com.patentsight.ai.dto.PredictResponse; // 추가
 import com.patentsight.patent.repository.PatentRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate; // RestTemplate 추가
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -31,13 +35,17 @@ public class PatentService {
     private final FileRepository fileRepository;
     private final SpecVersionRepository specVersionRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final RestTemplate restTemplate; // RestTemplate 필드 추가
+    private final String fastApiIpcUrl = "http://127.0.0.1:5000/predict"; // AI 모델 IPC 엔드포인트
 
     public PatentService(PatentRepository patentRepository,
                          FileRepository fileRepository,
-                         SpecVersionRepository specVersionRepository) {
+                         SpecVersionRepository specVersionRepository,
+                         RestTemplate restTemplate) {
         this.patentRepository = patentRepository;
         this.fileRepository = fileRepository;
         this.specVersionRepository = specVersionRepository;
+        this.restTemplate = restTemplate;
     }
 
     public PatentResponse createPatent(PatentRequest request, Long applicantId) {
@@ -92,7 +100,6 @@ public class PatentService {
         response.setDrawingDescription(patent.getDrawingDescription());
         response.setClaims(patent.getClaims());
 
-        // create initial document version so listing endpoint returns data immediately
         try {
             SpecVersion initial = new SpecVersion();
             initial.setPatent(patent);
@@ -175,21 +182,45 @@ public class PatentService {
                 .collect(Collectors.toList());
     }
 
-    public PatentResponse submitPatent(Long patentId) {
+    public SubmitPatentResponse submitPatent(Long patentId) {
         Patent patent = patentRepository.findById(patentId).orElse(null);
         if (patent == null) return null;
+
+        // 1. FastAPI에 보낼 요청 본문 생성
+        // 특허의 청구항(claims)을 가져와 JSON 객체로 만듭니다.
+        // 여기서는 첫 번째 청구항만 예시로 사용하겠습니다.
+        String firstClaim = patent.getClaims() != null && !patent.getClaims().isEmpty() ? patent.getClaims().get(0) : "";
+        PredictRequest requestBody = new PredictRequest(firstClaim);
+
+        // 2. RestTemplate을 사용해 FastAPI 호출
+        // PredictRequest 객체를 전송하고 PredictResponse 객체로 응답을 받습니다.
+        PredictResponse predictResponse = restTemplate.postForObject(fastApiIpcUrl, requestBody, PredictResponse.class);
+
+        // 3. AI 모델로부터 받은 IPC 코드를 추출하여 사용
+        String ipcCode = "N/A";
+        if (predictResponse != null && !predictResponse.getTopIpcResults().isEmpty()) {
+            ipcCode = predictResponse.getTopIpcResults().get(0).getMaingroup();
+        }
+
+        // 4. 특허 정보 업데이트
         patent.setStatus(PatentStatus.SUBMITTED);
         patent.setSubmittedAt(LocalDateTime.now());
         if (patent.getApplicationNumber() == null) {
             patent.setApplicationNumber(generateApplicationNumber(patent));
         }
+        patent.setIpc(ipcCode); // 엔티티에 IPC 코드 저장
+
+        // 5. 변경 사항 DB에 저장
         patentRepository.save(patent);
-        PatentResponse res = new PatentResponse();
-        res.setPatentId(patent.getPatentId());
-        res.setApplicantId(patent.getApplicantId());
-        res.setStatus(patent.getStatus());
-        res.setApplicationNumber(patent.getApplicationNumber());
-        return res;
+
+        // 6. 응답 DTO에 필요한 정보와 IPC 코드를 담아 반환
+        return new SubmitPatentResponse(
+                patent.getPatentId(),
+                patent.getApplicantId(),
+                patent.getStatus(),
+                patent.getApplicationNumber(),
+                patent.getIpc()
+        );
     }
 
     private String generateApplicationNumber(Patent patent) {

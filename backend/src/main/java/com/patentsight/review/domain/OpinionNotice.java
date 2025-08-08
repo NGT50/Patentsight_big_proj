@@ -36,4 +36,9 @@ public class OpinionNotice {
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "type")
+    private OpinionType type;
+
 }

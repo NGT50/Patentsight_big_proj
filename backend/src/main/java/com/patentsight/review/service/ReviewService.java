@@ -1,84 +1,33 @@
 package com.patentsight.review.service;
 
-import com.patentsight.patent.domain.Patent;
-import com.patentsight.patent.domain.PatentStatus;
-import com.patentsight.patent.domain.PatentType;
-import com.patentsight.patent.repository.PatentRepository;
 import com.patentsight.review.domain.Review;
-import com.patentsight.review.dto.AssignRequest;
-import com.patentsight.review.repository.ReviewRepository;
-import com.patentsight.user.domain.User;
-import com.patentsight.user.repository.UserRepository;
-import jakarta.transaction.Transactional;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
+import com.patentsight.review.dto.*;
 
-import java.util.ArrayList;
 import java.util.List;
 
-@Service
-@RequiredArgsConstructor
-public class ReviewService {
+public interface ReviewService {
 
-    private final ReviewRepository reviewRepository;
-    private final PatentRepository patentRepository;
-    private final UserRepository userRepository;
+    // 1️⃣ 수동 배정
+    Review assignReviewer(AssignRequest request);
 
-    /** 1️⃣ 수동 배정 */
-    @Transactional
-    public Review assignReviewer(AssignRequest request) {
-        Patent patent = patentRepository.findByApplicationNumber(request.getApplicationNumber())
-                .orElseThrow(() -> new RuntimeException("Patent not found: " + request.getApplicationNumber()));
+    // 2️⃣ 자동 배정
+    List<Review> autoAssign(String type);
 
-        User examiner = userRepository.findById(request.getExaminerId())
-                .orElseThrow(() -> new RuntimeException("Examiner not found: " + request.getExaminerId()));
+    // 3️⃣ 심사 목록 조회 (status 필터링 가능)
+    List<ReviewListResponse> getReviewList(Long userId, String status);
 
-        Review review = new Review();
-        review.setPatent(patent);
-        review.setExaminer(examiner);
-        review.setDecision(Review.Decision.PENDING);
-        review.setReviewType(patent.getType());
-        review.setAutoAssigned(false);
+    // 4️⃣ 심사 상세 조회
+    ReviewDetailResponse getReviewDetail(Long reviewId);
 
-        patent.setStatus(PatentStatus.REVIEWING);
-        patentRepository.save(patent);
+    // 5️⃣ 심사 결과 제출
+    Review submitReview(SubmitReviewRequest request);
 
-        examiner.setCurrentLoad(examiner.getCurrentLoad() + 1);
-        userRepository.save(examiner);
+    // 6️⃣ 심사관별 대시보드 요약
+    DashboardResponse getDashboard(Long userId);
 
-        return reviewRepository.save(review);
-    }
+    // 7️⃣ 최근 활동
+    List<RecentActivityResponse> getRecentActivities();
 
-    /** 2️⃣ 전체 출원 단위 자동 배정 */
-    @Transactional
-    public List<Review> autoAssign(String type) {
-        // 🔹 applicantId 없이 모든 미배정 출원 조회
-        List<Patent> unassigned = patentRepository.findAllUnassignedByType(
-                PatentType.valueOf(type),
-                PatentStatus.SUBMITTED
-        );
-
-        List<Review> assigned = new ArrayList<>();
-        for (Patent patent : unassigned) {
-            User examiner = userRepository.findTopByRoleOrderByCurrentLoadAsc("EXAMINER")
-                    .orElseThrow(() -> new RuntimeException("No examiner found"));
-
-            Review review = new Review();
-            review.setPatent(patent);
-            review.setExaminer(examiner);
-            review.setDecision(Review.Decision.PENDING);
-            review.setReviewType(patent.getType());
-            review.setAutoAssigned(true);
-
-            patent.setStatus(PatentStatus.REVIEWING);
-            patentRepository.save(patent);
-
-            examiner.setCurrentLoad(examiner.getCurrentLoad() + 1);
-            userRepository.save(examiner);
-
-            assigned.add(reviewRepository.save(review));
-        }
-
-        return assigned;
-    }
+    // 8️⃣ 심사 목록 검색 (고급 검색)
+    List<ReviewSearchResponse> searchReviews(Long examinerId, String status, String title, Long applicantId);
 }

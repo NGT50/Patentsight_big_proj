@@ -25,6 +25,8 @@ public class Patent {
 
     private String cpc;
 
+    private String ipc;
+
     private String applicationNumber;
 
     private String inventor;
@@ -55,6 +57,8 @@ public class Patent {
     private List<String> claims;
 
     // getters and setters
+    public String getIpc() { return ipc; }
+    public void setIpc(String ipc) { this.ipc = ipc; }
     public Long getPatentId() { return patentId; }
     public void setPatentId(Long patentId) { this.patentId = patentId; }
     public String getTitle() { return title; }
