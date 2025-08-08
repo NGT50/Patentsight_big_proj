@@ -1,0 +1,51 @@
+{
+  "info": {
+    "name": "Patent API",
+    "_postman_id": "33333333-4444-5555-6666-777777777777",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "token", "value": "" },
+    { "key": "patentId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Create patent",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": "{{baseUrl}}/api/patents",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Sample Patent\",\n  \"type\": \"PATENT\",\n  \"fileIds\": [],\n  \"cpc\": \"A01B\",\n  \"inventor\": \"Tester\",\n  \"technicalField\": \"Testing\",\n  \"backgroundTechnology\": \"Background\",\n  \"inventionDetails\": {\n    \"problemToSolve\": \"Problem\",\n    \"solution\": \"Solution\",\n    \"effect\": \"Effect\"\n  },\n  \"summary\": \"Summary\",\n  \"drawingDescription\": \"Drawing\",\n  \"claims\": [\"Claim 1\"]\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const json = pm.response.json();",
+              "pm.environment.set('patentId', json.patentId);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Get patent",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": "{{baseUrl}}/api/patents/{{patentId}}"
+      }
+    }
+  ]
+}

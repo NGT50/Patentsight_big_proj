@@ -2,9 +2,15 @@
 
 ## **1️⃣ Auth (회원가입 / 로그인 / 인증)**
 
-[제목 없음](https://www.notion.so/242abad4cf24807b89a6ed7d4714a128?pvs=21)
+| 변경사항/요청사항 | API 이름 | 설명 | Method | URL | 요청 데이터 | 응답 데이터 | 비고 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 회원가입 두개로 나눔 | SignUpApplicant Up | 출원인 회원가입 | POST | /api/users/applicant | `{"username":"applicant1","password":"1234","name":"홍길동","birthDate":"1995-08-01","email":"applicant@test.com"}` | `{"user_id":1,"username":"applicant1","role":"APPLICANT"}` | 기본 role=APPLICANT, email 필수 |
+|  | SignUpExaminer | 심사관 회원가입 | POST | /api/users/examiner | `{"username":"examiner1","password":"1234","name":"김심사","birthDate":"1988-03-15","department":"PATENT"}` | `{"user_id":2,"username":"examiner1","role":"EXAMINER"}` | 기본 role=EXAMINER, department 필수 |
+|  | Login | 사용자 로그인 및 토큰 발급 | POST | /api/users/login | `{"username":"examiner1","password":"1234"}` | `{"token":"eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJlelgYgEpQ","user_id":2,"username":"examiner1","role":"EXAMINER"}` | JWT 기반 인증 |
+|  | Verify Examiner | 심사관 인증 코드 검증 | POST | /api/users/verify-code | `{"auth_code":"123"}` | `{"verified":true/false}` | 🔹 EXAMINER 전용<br>🔹 향후 추가 보안 요소 필요 시 2FA, email_verification 등 고려 가능 |
 
 - 이름/ ID 등의 중복확인 필요→ 아이디변수 추가로 해결
+- 심사관 인증 코드 추가 내용있음
 
 ---
 
@@ -80,5 +86,7 @@
 
 | API 이름 | 설명 | Method | URL | 요청 데이터 | 응답 데이터 | 비고 |
 | --- | --- | --- | --- | --- | --- | --- |
-| **UploadFile** | 파일 업로드 | POST | /api/files | `patentId=1, file=@lock.png` | `{"fileId":101,"fileName":"lock.png","fileHash":"abc123"}` | 파일은 multipart/form-data로 업로드, DB에 fileHash로 중복 체크 |
-| **GetFileDetail** | 파일 상세 조회 | GET | /api/files/{fileId} | - | `{"fileId":101,"fileName":"lock.png","uploaderId":1,"mimeType":"image/png","fileHash":"abc123"}` | 파일 메타데이터만 제공, 실제 파일 다운로드 시 별도 URL 활용 |
+| **UploadFile** | 파일 업로드 | POST | /api/files | `file=@lock.png&patentId=1` | `{"fileId":101,"patentId":1,"fileName":"lock.png","fileUrl":"/uploads/lock.png","uploaderId":1,"updatedAt":"2024-01-01T10:00:00"}` | Authorization 헤더 필요, multipart/form-data로 업로드 |
+| **GetFileDetail** | 파일 메타데이터 조회 | GET | /api/files/{fileId} | - | `{"fileId":101,"patentId":1,"fileName":"lock.png","fileUrl":"/uploads/lock.png","uploaderId":1,"content":null,"updatedAt":"2024-01-01T10:00:00"}` | 실제 파일 다운로드는 fileUrl 사용 |
+| **UpdateFile** | 파일 교체 업로드 | PUT | /api/files/{fileId} | `file=@lock_v2.png` | `{"fileId":101,"patentId":1,"fileName":"lock_v2.png","fileUrl":"/uploads/lock_v2.png","uploaderId":1,"updatedAt":"2024-01-02T09:00:00"}` | 기존 파일 삭제 후 새로 저장 |
+| **DeleteFile** | 파일 삭제 | DELETE | /api/files/{fileId} | - | `204 No Content` | 존재하지 않는 경우 404 반환 |

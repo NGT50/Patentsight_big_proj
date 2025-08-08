@@ -10,6 +10,7 @@ import com.patentsight.patent.dto.PatentResponse;
 import com.patentsight.patent.dto.SubmitPatentRequest;
 import com.patentsight.patent.dto.SubmitPatentResponse; // 새로 추가된 DTO
 import com.patentsight.patent.service.PatentService;
+import com.patentsight.config.JwtTokenProvider;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,15 +21,18 @@ import java.util.List;
 public class PatentController {
 
     private final PatentService patentService;
+    private final JwtTokenProvider jwtTokenProvider;
 
-    public PatentController(PatentService patentService) {
+    public PatentController(PatentService patentService, JwtTokenProvider jwtTokenProvider) {
         this.patentService = patentService;
+        this.jwtTokenProvider = jwtTokenProvider;
     }
 
     @PostMapping
-    public ResponseEntity<PatentResponse> createPatent(@RequestBody PatentRequest request) {
-        // applicantId should come from auth context; using dummy 1L for example
-        PatentResponse response = patentService.createPatent(request, 1L);
+    public ResponseEntity<PatentResponse> createPatent(@RequestBody PatentRequest request,
+                                                       @RequestHeader("Authorization") String authorization) {
+        Long userId = jwtTokenProvider.getUserIdFromHeader(authorization);
+        PatentResponse response = patentService.createPatent(request, userId);
         return ResponseEntity.ok(response);
     }
 
@@ -39,8 +43,9 @@ public class PatentController {
     }
 
     @GetMapping("/my")
-    public ResponseEntity<List<PatentResponse>> getMyPatents() {
-        List<PatentResponse> list = patentService.getMyPatents(1L);
+    public ResponseEntity<List<PatentResponse>> getMyPatents(@RequestHeader("Authorization") String authorization) {
+        Long userId = jwtTokenProvider.getUserIdFromHeader(authorization);
+        List<PatentResponse> list = patentService.getMyPatents(userId);
         return ResponseEntity.ok(list);
     }
 
@@ -86,7 +91,10 @@ public class PatentController {
 
     @PostMapping("/{id}/document-versions")
     public ResponseEntity<FileVersionResponse> createDocumentVersion(@PathVariable("id") Long id,
-                                                                     @RequestBody DocumentVersionRequest request) {
+                                                                     @RequestBody DocumentVersionRequest request,
+                                                                     @RequestHeader("Authorization") String authorization) {
+        Long userId = jwtTokenProvider.getUserIdFromHeader(authorization);
+        request.setApplicantId(userId);
         FileVersionResponse res = patentService.createDocumentVersion(id, request);
         return ResponseEntity.ok(res);
     }

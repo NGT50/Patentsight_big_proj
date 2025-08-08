@@ -26,4 +26,20 @@ public class JwtTokenProvider {
                 .signWith(key)
                 .compact();
     }
+
+    /**
+     * Extract userId from Authorization header value ("Bearer <token>").
+     */
+    public Long getUserIdFromHeader(String authorizationHeader) {
+        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
+            return null;
+        }
+        String token = authorizationHeader.substring(7);
+        return Jwts.parserBuilder()
+                .setSigningKey(key)
+                .build()
+                .parseClaimsJws(token)
+                .getBody()
+                .get("userId", Long.class);
+    }
 }
