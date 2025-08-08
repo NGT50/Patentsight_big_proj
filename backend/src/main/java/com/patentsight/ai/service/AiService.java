@@ -1,4 +1,7 @@
 package com.patentsight.ai.service;
 
-public class AiService {
+import com.patentsight.ai.dto.DraftDetailResponse;
+
+public interface AiService {
+    DraftDetailResponse generateRejectionDraft(Long patentId, Long fileId);
 }
