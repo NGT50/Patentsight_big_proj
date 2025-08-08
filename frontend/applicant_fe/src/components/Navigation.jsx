@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useNavigate, useLocation } from 'react-router-dom';
 import logo from '../assets/logo.png';
+import useAuthStore from '../stores/authStore';
 
 const NavContainer = styled.nav`
   width: 100%;
@@ -446,7 +447,7 @@ const Overlay = styled.div`
   transition: all 0.3s ease;
 `;
 
-function Navigation({ isLoggedIn, onLoginSuccess, onLogout, userInfo }) { // props 추가
+function Navigation({ onLoginSuccess, onNotificationClick }) { // props 추가
   const navigate = useNavigate();
   const location = useLocation();
   const [timeLeft, setTimeLeft] = useState(30 * 60);
@@ -454,7 +455,7 @@ function Navigation({ isLoggedIn, onLoginSuccess, onLogout, userInfo }) { // pro
   const [selectedMainCategory, setSelectedMainCategory] = useState('My특허로');
   const [selectedSubCategory, setSelectedSubCategory] = useState('나의할일');
   const [hoveredSubCategory, setHoveredSubCategory] = useState(null);
-
+  const { isLoggedIn, user, logout } = useAuthStore();
   // 현재 경로에 따라 페이지 제목 설정
   const getCurrentPageTitle = () => {
     const path = location.pathname;
@@ -478,20 +479,18 @@ function Navigation({ isLoggedIn, onLoginSuccess, onLogout, userInfo }) { // pro
 
   const currentPage = getCurrentPageTitle();
 
-  // 메뉴 데이터 구조
+  // [FIXED] 메뉴 데이터를 우리 프로젝트의 실제 페이지 경로에 맞게 재구성
   const menuData = {
     'My특허로': {
-      '나의할일': ['할일목록', '완료된할일'],
-      '통지서/등록료안내': ['통지서수신함', '등록료안내수신함'],
-      '제출결과조회': ['제출현황', '결과확인']
+      '마이페이지': [{ name: '대시보드 보기', path: '/mypage' }],
     },
     '신청/제출': {
-      '국내출원': ['명세서/서식 작성', '온라인제출'],
-      '국제출원': ['국제상표출원', '국제디자인출원']
+      '새 출원서 등록': [{ name: '등록 시작하기', path: '/patents/new' }],
+      '특허 점검': [{ name: '임시저장 목록', path: '/check/patents' }],
+      '디자인 점검': [{ name: '임시저장 목록', path: '/check/designs' }]
     },
     '조회/발급': {
-      '특허보관함': ['보관함목록', '보관함관리'],
-      '검색/확인': ['심사처리상황', '공보발간일 예고', '권리소멸예고', '존속기간연장', '인터넷공보']
+      '유사 특허 검색': [{ name: '대화형 검색', path: '/search' }]
     }
   };
 
@@ -500,30 +499,26 @@ function Navigation({ isLoggedIn, onLoginSuccess, onLogout, userInfo }) { // pro
     return location.pathname === menuPath;
   };
 
+  // 타이머 로직
   useEffect(() => {
-    if (timeLeft > 0 && isLoggedIn) {
-      const timer = setInterval(() => {
-        setTimeLeft(prev => {
-          const next = prev - 1;
-          if (next <= 0) {
-            alert('세션이 만료되어 로그아웃됩니다.');
-            handleLogout(); // ⬅ 자동 로그아웃 처리
-            return 0;
-          }
-          return next;
-        });
+    let timer;
+    if (isLoggedIn && timeLeft > 0) {
+      timer = setInterval(() => {
+        setTimeLeft(prev => prev - 1);
       }, 1000);
-      return () => clearInterval(timer);
+    } else if (isLoggedIn && timeLeft <= 0) {
+      alert('세션이 만료되어 로그아웃됩니다.');
+      handleLogout();
     }
-  }, [timeLeft, isLoggedIn]);
+    return () => clearInterval(timer);
+  }, [isLoggedIn, timeLeft]);
 
-  // 로그인 상태가 변경될 때 타이머 리셋
+  // 로그인/로그아웃 시 타이머 상태 초기화
   useEffect(() => {
     if (isLoggedIn) {
-      navigate('/dashboard');
-      setTimeLeft(30 * 60); // 로그인 시 타이머를 30분으로 리셋
+      setTimeLeft(30 * 60);
     } else {
-      setTimeLeft(0); // 로그아웃 시 타이머를 0으로 리셋
+      setTimeLeft(0);
     }
   }, [isLoggedIn]);
 
@@ -539,18 +534,11 @@ function Navigation({ isLoggedIn, onLoginSuccess, onLogout, userInfo }) { // pro
   };
 
   const handleLogout = () => {
-    onLogout(); // 부모 컴포넌트의 로그아웃 함수 호출
-    setTimeLeft(0);
+    logout(); // Zustand의 logout 함수 사용
     navigate('/login');
   };
 
-  const handleLogoClick = () => {
-    if (isLoggedIn) {
-      navigate('/dashboard');
-    } else {
-      navigate('/login');
-    }
-  };
+  const handleLogoClick = () => navigate(isLoggedIn ? '/mypage' : '/login');
 
   const toggleSideMenu = () => {
     setIsSideMenuOpen(!isSideMenuOpen);
@@ -603,7 +591,7 @@ const handleSubCategoryClick = (subCategory) => {
                   </UserInfo>
                   <Button onClick={handleKeepLogin}>로그인 유지</Button>
                   <LogoutButton onClick={handleLogout}>로그아웃</LogoutButton>
-                  <NotificationButton>🔔</NotificationButton>
+                  <NotificationButton onClick={onNotificationClick}>🔔</NotificationButton>
                 
                 </>
               ) : (
@@ -648,9 +636,9 @@ const handleSubCategoryClick = (subCategory) => {
                   </MenuItem>
                   <SubMenuDropdown $isVisible={hoveredSubCategory === subCategory}>
                     {menuData[selectedMainCategory][subCategory].map((item) => (
-                      <SubMenuItem key={item} onClick={() => handleMenuClick(`/${item}`)}>
-                        {item}
-                      </SubMenuItem>
+                      <SubMenuItem key={item.name} onClick={() => handleMenuClick(item.path)}>
+                          {item.name}
+                        </SubMenuItem>
                     ))}
                   </SubMenuDropdown>
                 </div>

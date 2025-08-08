@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import axios from 'axios';
+import useAuthStore from '../stores/authStore'; // 1. 우리가 만든 Zustand 스토어를 import 합니다.
+import { loginUser } from '../api/auth'; // API 함수 import
 
 const USE_API = false; // true면 실제 API, false면 임시(localStorage/mock)
 
@@ -293,28 +295,28 @@ const SignupLink = styled.div`
 `;
 
 // 로그인 컴포넌트
-function ApplicantLogin({ onLoginSuccess = () => {} }) {
+function ApplicantLogin() {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    id: '',
-    password: '',
-    keepLogin: false
-  });
+  const { login, isLoggedIn } = useAuthStore(); 
 
+  const [formData, setFormData] = useState({ id: '', password: '', keepLogin: false });
+  const [error, setError] = useState('');
+
+  // 로그인 상태가 true로 바뀌면 마이페이지로 이동
   useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
+    if (isLoggedIn) {
+      navigate('/mypage');
+    }
+  }, [isLoggedIn, navigate]);
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }));
+    setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
 
     if (!formData.id || !formData.password) {
       alert('아이디와 비밀번호를 입력해주세요.');
@@ -322,125 +324,61 @@ function ApplicantLogin({ onLoginSuccess = () => {} }) {
     }
 
     try {
-      let userData;
+      // README.md의 localStorage 방식으로 로그인 테스트
+      const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '{}');
+      const user = registeredUsers[formData.id];
 
-      if (USE_API) {
-        // ✅ 실제 백엔드 로그인 API 호출
-        const response = await axios.post('/api/users/login', {
-          username: formData.id,
-          password: formData.password
-        });
-
-        const { token, user_id, username, role } = response.data;
-
-        // 토큰 및 유저 정보 저장
-        localStorage.setItem('token', token);
-        localStorage.setItem('user', JSON.stringify({ user_id, username, role }));
-
-        userData = { user_id, username, role };
-
-      } else {
-        // ✅ 임시 로컬 테스트 (localStorage에 저장된 유저로 로그인)
-        const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '{}');
-        const user = registeredUsers[formData.id];
-
-        if (!user || user.password !== formData.password) {
-          throw new Error('아이디 또는 비밀번호가 일치하지 않습니다.');
-        }
-
-        userData = {
-          name: user.name,
-          id: user.id,
-          email: user.email,
-          phone: user.phone,
-          address: user.address
-        };
-
-        localStorage.setItem('user', JSON.stringify(userData));
+      if (!user || user.password !== formData.password) {
+        throw new Error('아이디 또는 비밀번호가 일치하지 않습니다.');
       }
 
-      // 로그인 성공
-      onLoginSuccess(userData);
+      // 로그인 성공 시, Zustand의 login 함수만 호출
+      login({
+        user: { name: user.name, username: user.id },
+        token: 'mock-localstorage-token'
+      });
+      
       alert('로그인 되었습니다. 서비스를 이용하실 수 있습니다.');
-      navigate('/dashboard');
+      // 여기서 navigate를 호출하지 않습니다. useEffect가 처리합니다.
 
     } catch (err) {
       console.error('로그인 오류:', err);
-      alert(err.message || '로그인에 실패했습니다.');
+      setError(err.message || '로그인에 실패했습니다.');
     }
   };
-
-  const handleFindId = () => alert('아이디 찾기 기능 준비 중');
-  const handleFindPassword = () => alert('비밀번호 찾기 기능 준비 중');
-  const handleSignup = () => navigate('/terms');
-  // 로그인 성공 시 실행되는 함수 예시
-  const handleLoginSuccess = (userInfo) => {
-    setIsLoggedIn(true); // <-- 반드시 이거 들어가야 됨
-    setUserInfo(userInfo);
-  };
+  
   return (
     <PageContainer>
       <LoginContainer>
         <Title>출원인 로그인</Title>
-        
         <Form onSubmit={handleSubmit}>
           <FormGroup>
             <Label>아이디 *</Label>
-            <Input
-              type="text"
-              name="id"
-              value={formData.id}
-              onChange={handleInputChange}
-              required
-            />
+            <Input name="id" type="text" value={formData.id} onChange={handleInputChange} required />
           </FormGroup>
-
           <FormGroup>
             <Label>비밀번호 *</Label>
-            <Input
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleInputChange}
-              required
-            />
+            <Input name="password" type="password" value={formData.password} onChange={handleInputChange} required />
           </FormGroup>
 
+          {error && <p style={{ color: 'red', fontSize: '12px', textAlign: 'center' }}>{error}</p>}
+          
           <CheckboxGroup>
             <CheckboxItem>
-              <input
-                type="checkbox"
-                name="keepLogin"
-                checked={formData.keepLogin}
-                onChange={handleInputChange}
-              />
+              <input name="keepLogin" type="checkbox" checked={formData.keepLogin} onChange={handleInputChange} />
               <span>로그인 상태 유지</span>
             </CheckboxItem>
           </CheckboxGroup>
-
-          <LoginButton type="submit">
-            로그인
-          </LoginButton>
+          <LoginButton type="submit">로그인</LoginButton>
         </Form>
-
-        <Divider>
-          <span>또는</span>
-        </Divider>
-
+        <Divider><span>또는</span></Divider>
         <LinkGroup>
-          <LinkButton type="button" onClick={handleFindId}>
-            아이디 찾기
-          </LinkButton>
-          <LinkButton type="button" onClick={handleFindPassword}>
-            비밀번호 찾기
-          </LinkButton>
+          <LinkButton type="button">아이디 찾기</LinkButton>
+          <LinkButton type="button">비밀번호 찾기</LinkButton>
         </LinkGroup>
-
         <SignupLink>
           <span>아직 회원이 아니신가요?</span>
-          <button type="button" onClick={handleSignup}>
-            회원가입
-          </button>
+          <button type="button" onClick={() => navigate('/signup')}>회원가입</button>
         </SignupLink>
       </LoginContainer>
     </PageContainer>

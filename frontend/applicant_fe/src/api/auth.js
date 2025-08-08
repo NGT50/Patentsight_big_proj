@@ -1,26 +1,27 @@
 import axios from './axiosInstance';
 
-// 로그인 API 호출 함수
-export const loginUser = async ({ email, password }) => {
+// 로그인 API 호출 함수 (경로 및 필드명 수정)
+export const loginUser = async ({ username, password }) => {
   try {
-    // API 명세서에 따라 엔드포인트는 /api/auth/login 등으로 변경될 수 있습니다.
-    const response = await axios.post('/api/auth/login', { email, password });
-    return response.data; // { accessToken, user: { ... } } 형태를 기대
+    // API 명세서 경로: POST /api/users/login
+    const response = await axios.post('/api/users/login', { username, password });
+    return response.data; // { token, user_id, ... }
   } catch (error) {
     console.error("로그인 실패:", error);
-    // 에러 응답이 있다면 그 메시지를, 없다면 일반 메시지를 throw
     throw new Error(error.response?.data?.message || '로그인에 실패했습니다.');
   }
 };
 
-// 회원가입 API 호출 함수 추가
-export const signupUser = async ({ name, email, password, dateOfBirth }) => {
+// 출원인 회원가입 API 호출 함수 (경로 및 필드명 수정)
+export const signupApplicant = async ({ username, password, name, birthDate, email }) => {
   try {
-    const response = await axios.post('/api/auth/signup', {
-      name,
-      email,
+    // API 명세서 경로: POST /api/users/applicant
+    const response = await axios.post('/api/users/applicant', {
+      username,
       password,
-      dateOfBirth, // API 명세에 따라 필드명은 변경될 수 있습니다.
+      name,
+      birthDate,
+      email,
     });
     return response.data;
   } catch (error) {
