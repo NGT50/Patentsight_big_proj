@@ -8,6 +8,7 @@ import com.patentsight.patent.domain.PatentStatus;
 import com.patentsight.patent.dto.PatentRequest;
 import com.patentsight.patent.dto.PatentResponse;
 import com.patentsight.patent.dto.SubmitPatentRequest;
+import com.patentsight.patent.dto.SubmitPatentResponse; // 새로 추가된 DTO
 import com.patentsight.patent.service.PatentService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -44,9 +45,9 @@ public class PatentController {
     }
 
     @PostMapping("/{id}/submit")
-    public ResponseEntity<PatentResponse> submit(@PathVariable("id") Long id,
-                                                 @RequestBody(required = false) SubmitPatentRequest request) {
-        PatentResponse res = patentService.submitPatent(id);
+    public ResponseEntity<SubmitPatentResponse> submit(@PathVariable("id") Long id,
+                                                       @RequestBody(required = false) SubmitPatentRequest request) {
+        SubmitPatentResponse res = patentService.submitPatent(id);
         return ResponseEntity.ok(res);
     }
 

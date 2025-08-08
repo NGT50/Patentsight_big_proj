@@ -1,6 +1,7 @@
 package com.patentsight.review.dto;
 
 import lombok.*;
+import com.patentsight.review.domain.OpinionType;
 
 import java.time.LocalDateTime;
 
@@ -9,6 +10,7 @@ import java.time.LocalDateTime;
 public class OpinionNoticeResponse {
     private Long noticeId;
     private Long reviewId;
+    private OpinionType type;
     private String content;
     private String structuredContent;
     private Boolean isAiDrafted;
