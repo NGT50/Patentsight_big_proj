@@ -430,7 +430,7 @@ const SubMenuDropdown = styled.div`
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   z-index: 1000;
   min-width: 200px;
-  display: ${props => props.isVisible ? 'block' : 'none'};
+  display: ${props => props.$isVisible ? 'block' : 'none'};
 `;
 
 const Overlay = styled.div`
@@ -648,7 +648,7 @@ const handleSubCategoryClick = (subCategory) => {
                   >
                     {subCategory}
                   </MenuItem>
-                  <SubMenuDropdown isVisible={hoveredSubCategory === subCategory}>
+                  <SubMenuDropdown $isVisible={hoveredSubCategory === subCategory}>
                     {menuData[selectedMainCategory][subCategory].map((item) => (
                       <SubMenuItem key={item} onClick={() => handleMenuClick(`/${item}`)}>
                         {item}
@@ -750,4 +750,3 @@ const handleSubCategoryClick = (subCategory) => {
 }
 
 export default Navigation;
-

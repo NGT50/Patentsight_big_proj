@@ -376,8 +376,8 @@ export default function PatentDashboard() {
                             <div className="flex items-center gap-2">
                               <Building2 className="w-4 h-4 text-gray-400" />
                               <span className="text-gray-600">출원인:</span>
+                              <span className="ml-6 font-medium  ml-auto text-gray-900">{item.applicant}</span>
                             </div>
-                            <div className="ml-6 font-medium text-gray-900">{item.applicant}</div>
                             <div className="flex items-center gap-2 mt-3">
                               <User className="w-4 h-4 text-gray-400" />
                               <span className="text-gray-600">담당 심사관:</span>
