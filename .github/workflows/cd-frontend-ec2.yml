@@ -38,7 +38,7 @@ jobs:
           strip_components: 3
           overwrite: true
 
-      - name: Restart pm2
+      - name: Restart pm2 (no tail)
         uses: appleboy/ssh-action@v1.1.0
         with:
           host: ${{ secrets.HOST }}
@@ -46,34 +46,18 @@ jobs:
           key: ${{ secrets.KEY }}
           script: |
             set -e
-      
-            # 1) nvm을 쓰면 로드 (없으면 무시)
-            if [ -s "$HOME/.nvm/nvm.sh" ]; then
-              . "$HOME/.nvm/nvm.sh"
-              nvm use 18 >/dev/null 2>&1 || true
-            fi
-      
-            # 2) npm 전역(사용자) 경로 PATH에 추가 (npm config set prefix '~/.npm-global' 했던 경우)
+            # nvm / npm-global 경로 로드 (pm2 못 찾는 문제 예방)
+            if [ -s "$HOME/.nvm/nvm.sh" ]; then . "$HOME/.nvm/nvm.sh"; nvm use 18 >/dev/null 2>&1 || true; fi
             export PATH="$HOME/.npm-global/bin:$PATH"
       
-            # 3) pm2가 보이는지 확인, 없으면 설치(선택)
-            if ! command -v pm2 >/dev/null 2>&1; then
-              echo "pm2 not found; installing locally..."
-              npm i -g pm2
-              hash -r
-            fi
-      
-            # 4) 앱별 포트 선택 (applicant_fe=3000, examiner_fe=3001)
             APP_NAME="${{ matrix.fe }}"
             APP_DIR="/home/${{ secrets.USERNAME }}/fe/${APP_NAME}"
             PORT=$([ "$APP_NAME" = "applicant_fe" ] && echo 3000 || echo 3001)
       
-            # 5) pm2 reload (없으면 serve로 신규 등록) + 저장
-            pm2 reload "$APP_NAME" \
-              || pm2 serve "$APP_DIR" "$PORT" --spa --name "$APP_NAME"
-      
+            # pm2 재시작(없으면 최초 serve) + 저장
+            pm2 reload "$APP_NAME" || pm2 serve "$APP_DIR" "$PORT" --spa --name "$APP_NAME"
             pm2 save
       
-            # (선택) 현재 pm2 리스트와 최근 로그 한 줄
-            pm2 ls
-            pm2 logs "$APP_NAME" --lines 5
+            # 상태 한 줄 + 간단 헬스체크 (tail 금지)
+            pm2 list | grep "$APP_NAME" || true
+            curl -Is "http://127.0.0.1:${PORT}" | head -n1 || true
