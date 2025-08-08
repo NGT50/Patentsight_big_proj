@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 // 필요한 모든 Lucide React 아이콘을 임포트합니다. 챗봇 관련 아이콘 추가
 import { 
   Info, FileText, Image, MessageSquare, Copy, FlaskConical, 
-  CheckCircle, XCircle, Send, Bot, Maximize2, Minimize2, Lightbulb, GanttChart, Scale, X 
+  CheckCircle, XCircle, Send, Bot, Maximize2, Minimize2, Lightbulb, GanttChart, Scale, X
 } from 'lucide-react'; 
 // import Header from '../components/Header';
 import { patentDetailMockData } from '../mocks/patentDetailMock';

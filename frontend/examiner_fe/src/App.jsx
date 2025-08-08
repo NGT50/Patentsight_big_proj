@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import styled from 'styled-components';
 import Navigation from './components/Navigation';
@@ -14,6 +14,7 @@ import PatentReview from './pages/PatentReview';
 import DesignReview from './pages/DesignReview';
 import PatentDashboard from './pages/PatentDashboard';
 import DesignDashboard from './pages/DesignDashboard';
+import LandingPage from './pages/LandingPage';
 
 const AppContainer = styled.div`
   min-height: 100vh;
@@ -61,7 +62,30 @@ function App() {
     setUserInfo(null);
     localStorage.removeItem('isLoggedIn');
     localStorage.removeItem('userInfo');
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
   };
+
+  // 창이 닫힐 때 로그아웃 처리
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (isLoggedIn) {
+        // 로그인 상태일 때만 로그아웃 처리
+        localStorage.removeItem('isLoggedIn');
+        localStorage.removeItem('userInfo');
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+      }
+    };
+
+    // beforeunload 이벤트 리스너 추가
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    // 컴포넌트 언마운트 시 이벤트 리스너 제거
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [isLoggedIn]);
 
   return (
     <Router>
@@ -74,8 +98,8 @@ function App() {
         />
         <MainContent>
           <Routes>
-            {/* 기본 경로로 접속하면 로그인 페이지로 리디렉트 */}
-            <Route path="/" element={<ExaminerLogin />} />
+            {/* 기본 경로로 접속하면 랜딩 페이지로 이동 */}
+            <Route path="/" element={<LandingPage />} />
             
             <Route path="/login" element={<ExaminerLogin onLoginSuccess={handleLoginSuccess} />} />
             <Route path="/terms" element={<TermsAgreement />} />
@@ -94,4 +118,5 @@ function App() {
     </Router>
   );
 }
+
 export default App;
