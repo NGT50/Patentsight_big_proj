@@ -11,6 +11,8 @@ import com.patentsight.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -104,20 +106,47 @@ public class ReviewServiceImpl implements ReviewService {
     @Override
     public ReviewDetailResponse getReviewDetail(Long reviewId) {
         Review review = reviewRepository.findById(reviewId)
-                .orElseThrow(() -> new IllegalArgumentException("Review not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "리뷰를 찾을 수 없습니다."));
+        Patent patent = review.getPatent(); // 특허 정보
+        User examiner = review.getExaminer(); // 심사관 정보
+        String applicantName = getApplicantName(patent.getApplicantId()); // 출원인 이름 조회
 
         return ReviewDetailResponse.builder()
-                .reviewId(review.getReviewId())
-                .patentId(review.getPatent().getPatentId())
-                .patentTitle(review.getPatent().getTitle())
-                .examinerName(review.getExaminer().getName())
+                .reviewId(review.getReviewId()) // ✅ Review 객체 기준으로 변경
+                .patentId(patent.getPatentId())
+                .title(patent.getTitle())
+                .applicantName(applicantName)
+                .inventor(patent.getInventor())
+                .applicationNumber(patent.getApplicationNumber())
+                .applicationDate(patent.getSubmittedAt().toLocalDate()) // LocalDateTime → LocalDate 변환
+                .technicalField(patent.getTechnicalField())
+                .backgroundTechnology(patent.getBackgroundTechnology())
+                .problemToSolve(patent.getProblemToSolve())
+                .solution(patent.getSolution())
+                .effect(patent.getEffect())
+                .summary(patent.getSummary())
+                .drawingDescription(patent.getDrawingDescription())
+                .claims(patent.getClaims())
+                .applicationContent(generateApplicationContent(patent)) // ✅ 명세서 요약 조합
+                .cpc(patent.getCpc())
+                .reviewStatus(patent.getStatus().name()) // PatentStatus 사용
+                .examinerName(examiner.getName())
                 .decision(review.getDecision())
                 .comment(review.getComment())
                 .reviewedAt(review.getReviewedAt())
-                .summary(review.getPatent().getSummary())
-                .claims(review.getPatent().getClaims())
-                .aiChecks(List.of()) // TODO: AI 점검 결과 연결 가능
+                .aiChecks(List.of()) // 현재 Review에 AI 점검 결과 필드 없음 → 빈 리스트로 처리
                 .build();
+    }
+
+    private String generateApplicationContent(Patent patent) {
+        return "기술분야: " + patent.getTechnicalField() + "\n"
+                + "배경기술: " + patent.getBackgroundTechnology() + "\n"
+                + "해결 과제: " + patent.getProblemToSolve() + "\n"
+                + "해결 수단: " + patent.getSolution() + "\n"
+                + "기대 효과: " + patent.getEffect() + "\n"
+                + "도면 설명: " + patent.getDrawingDescription() + "\n"
+                + "요약: " + patent.getSummary() + "\n"
+                + "청구항 수: " + (patent.getClaims() != null ? patent.getClaims().size() : 0) + "개";
     }
 
     // 5️⃣ 심사 결과 제출
