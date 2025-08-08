@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   Palette, Info, Image, MessageSquare, Copy, FlaskConical, 
-  CheckCircle, XCircle, Send, Bot, Lightbulb, GanttChart, Scale, X 
+  CheckCircle, XCircle, Send, Bot, Lightbulb, GanttChart, Scale, X
 } from 'lucide-react'; 
 // import Header from '../components/Header';
 import { designDetailMockData } from '../mocks/designDetailMock';

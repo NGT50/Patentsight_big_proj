@@ -199,7 +199,7 @@ const DocumentEditor = () => {
           className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-all ${
             activeTab === 'details' 
               ? 'bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200' 
-              : 'bg-blue-100 text-blue-700 border border-blue-200 hover:bg-blue-200'
+              : 'bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200'
           }`}
         >
           <FileText className="w-4 h-4" />
@@ -209,7 +209,7 @@ const DocumentEditor = () => {
           onClick={() => setActiveTab('claims')} 
           className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-all ${
             activeTab === 'claims' 
-              ? 'text-gray-700 hover:text-blue-500 hover:bg-gray-50 border border-transparent' 
+              ? 'bg-blue-100 text-blue-700 border border-blue-200 hover:bg-blue-200' 
               : 'bg-blue-100 text-blue-700 border border-blue-200 hover:bg-blue-200'
           }`}
         >
@@ -220,7 +220,7 @@ const DocumentEditor = () => {
           onClick={() => setActiveTab('summary')} 
           className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-all ${
             activeTab === 'summary' 
-              ? 'text-gray-700 hover:text-blue-500 hover:bg-gray-50 border border-transparent' 
+              ? 'bg-blue-100 text-blue-700 border border-blue-200 hover:bg-blue-200' 
               : 'bg-blue-100 text-blue-700 border border-blue-200 hover:bg-blue-200'
           }`}
         >
