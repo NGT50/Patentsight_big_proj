@@ -20,7 +20,7 @@ import {
 const MyPage = () => {
   const navigate = useNavigate();
   
-  // Mock 데이터 (테스트용) 2
+  // Mock 데이터 (테스트용) 123
   const mockPatents = [
     { 
       patentId: 101, 
