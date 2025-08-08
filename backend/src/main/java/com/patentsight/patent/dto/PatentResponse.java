@@ -51,7 +51,7 @@ public class PatentResponse {
     public void setDrawingDescription(String drawingDescription) { this.drawingDescription = drawingDescription; }
     public List<String> getClaims() { return claims; }
     public void setClaims(List<String> claims) { this.claims = claims; }
-
+    // CICD test용 주석
     public static class InventionDetails {
         private String problemToSolve;
         private String solution;
