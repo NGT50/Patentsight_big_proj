@@ -6,27 +6,7 @@ import {
 } from 'lucide-react';
 
 // API 함수는 기존 코드를 그대로 유지합니다.
-// import { getReviewList } from '../api/review';
-
-// --- Mock API for Demonstration ---
-// 실제 API를 사용할 때는 이 부분을 주석 처리하거나 삭제하고 위의 import를 사용하세요.
-const mockPatentData = [
-    { reviewId: 1, applicationNumber: '10-2023-0012345', patentTitle: '인공지능 기반 실시간 번역 시스템', applicantName: '테크이노베이션', examinerName: '김철수', receptionDate: '2023-01-15', status: 'REVIEWING', summary: '사용자 음성을 실시간으로 인식하여 다국어로 번역하고 출력하는 기술에 관한 발명.', technicalField: '인공지능', reviewProgress: 50 },
-    { reviewId: 2, applicationNumber: '10-2023-0023456', patentTitle: '자율주행 드론의 충돌 회피 알고리즘', applicantName: '퓨처모빌리티', examinerName: '이영희', receptionDate: '2023-02-20', status: 'APPROVE', summary: '라이다 센서와 비전 센서를 융합하여 장애물을 정확하게 인식하고 회피하는 자율주행 드론 기술.', technicalField: '자율주행', reviewProgress: 100 },
-    { reviewId: 3, applicationNumber: '10-2023-0034567', patentTitle: '신재생에너지 효율 증대 장치', applicantName: '그린에너지 솔루션', examinerName: '박지성', receptionDate: '2023-03-10', status: 'SUBMITTED', summary: '태양광 패널의 발전 효율을 극대화하는 새로운 하이브리드 소재에 관한 발명.', technicalField: '에너지', reviewProgress: 10 },
-    { reviewId: 4, applicationNumber: '10-2023-0045678', patentTitle: '블록체인 기반 개인정보 보호 시스템', applicantName: '시큐어데이터', examinerName: '최유리', receptionDate: '2023-04-05', status: 'REJECT', summary: '개인정보를 암호화된 블록에 저장하고 사용자의 동의 없이는 접근할 수 없도록 하는 보안 기술.', technicalField: '블록체인', reviewProgress: 90 },
-];
-
-const getReviewList = (userId, type) => {
-    console.log(`Fetching data for userId: ${userId}, type: ${type}`);
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            resolve(mockPatentData);
-        }, 500);
-    });
-};
-// --- End of Mock API ---
-
+import { getReviewList } from '../api/review';
 
 // 특허 등록 단계를 위한 아이콘
 function PatentCertificate(props) {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   Palette, Info, FileText, Image, MessageSquare, Copy, FlaskConical, 
@@ -6,15 +6,16 @@ import {
 } from 'lucide-react'; 
 
 // API 함수들을 각 모듈에서 임포트합니다.
-import { submitReview, getReviewDetail } from '../api/review';
-import { 
-  startChatSession, 
-  sendChatMessageToServer, 
-  validatePatentDocument, 
-  analyzeImageSimilarity, 
-  generate3DModel,
-  generateRejectionDraft
-} from '../api/ai';
+ import { submitReview, getReviewDetail } from '../api/review';
+ import { 
+   startChatSession, 
+   sendChatMessageToServer, 
+   validatePatentDocument, 
+   analyzeImageSimilarity, 
+   generate3DModel,
+   generateRejectionDraft
+ } from '../api/ai';
+
 
 // 3D 모델 뷰어 컴포넌트 (가정)
 const ThreeDModelViewer = ({ glbPath }) => {
@@ -110,7 +111,18 @@ export default function PatentReview() {
   }, [id, navigate]);
 
   const sendChatMessage = async (message = inputMessage) => {
-    if (!message.trim() || !patent) return;
+    // [수정] patentId 존재 여부 확인 로직 추가
+    if (!message.trim() || !patent || !patent.patentId) {
+      console.error("Cannot send message: patent data or patentId is missing.");
+      const errorMessage = {
+        id: crypto.randomUUID(),
+        type: 'bot',
+        message: "오류: 특허 정보가 올바르지 않아 AI와 대화를 시작할 수 없습니다.",
+        timestamp: new Date()
+      };
+      setChatMessages(prev => [...prev, errorMessage]);
+      return;
+    }
 
     const newUserMessage = {
       id: crypto.randomUUID(),
@@ -122,29 +134,27 @@ export default function PatentReview() {
     setInputMessage('');
     setIsTyping(true);
 
-    const contextText = `
----
-[참고 자료]
-특허명: ${patent.title}
-요약: ${patent.description}
-청구항:
-${patent.claims && patent.claims.length > 0 ? patent.claims.map((claim, i) => `${i + 1}. ${claim}`).join('\n') : '청구항 정보 없음'}
----
-
-위 참고 자료를 바탕으로 다음 질문에 답변해 주세요:
-    `;
+    const messagePayload = {
+        message: message,
+        requested_features: ['similarity', 'check']
+    };
     
-    const messageWithContext = `${contextText}\n\n"${message}"`;
-
     try {
       let currentSessionId = chatSessionId;
       if (!currentSessionId) {
         const sessionResponse = await startChatSession(patent.patentId);
+        
+        // [수정] 서버 응답에 session_id가 있는지 확인
+        if (!sessionResponse || !sessionResponse.session_id) {
+            throw new Error("Failed to get a valid session_id from the server.");
+        }
+
         currentSessionId = sessionResponse.session_id;
         setChatSessionId(currentSessionId);
       }
 
-      const botResponse = await sendChatMessageToServer(currentSessionId, messageWithContext);
+      const botResponse = await sendChatMessageToServer(currentSessionId, messagePayload);
+      
       const botMessage = {
         id: botResponse.message_id || crypto.randomUUID(),
         type: 'bot',
@@ -152,6 +162,17 @@ ${patent.claims && patent.claims.length > 0 ? patent.claims.map((claim, i) => `$
         timestamp: new Date(botResponse.created_at)
       };
       setChatMessages(prev => [...prev, botMessage]);
+
+      if (botResponse.executed_features && botResponse.executed_features.length > 0) {
+        const featuresMessage = {
+            id: crypto.randomUUID(),
+            type: 'bot-features',
+            features: botResponse.executed_features,
+            results: botResponse.features_result,
+            timestamp: new Date()
+        };
+        setChatMessages(prev => [...prev, featuresMessage]);
+      }
 
     } catch (error) {
       console.error("챗봇 메시지 전송 실패:", error);
@@ -640,20 +661,43 @@ ${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getD
         </div>
         
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {chatMessages.map((message) => (
-            <div key={message.id} className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[80%] p-3 rounded-lg ${
-                message.type === 'user'
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-gray-100 text-gray-800'
-              }`}>
-                <p className="text-sm whitespace-pre-line">{message.message}</p>
-                <p className={`text-xs mt-1 ${message.type === 'user' ? 'text-blue-100' : 'text-gray-500'}`}>
-                  {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </p>
+          {chatMessages.map((message) => {
+            // [수정] AI 기능 수행 결과를 표시하기 위한 새로운 렌더링 블록 추가
+            if (message.type === 'bot-features') {
+              return (
+                <div key={message.id} className="flex justify-start">
+                  <div className="max-w-[85%] p-3 rounded-lg bg-indigo-50 border border-indigo-200 text-sm">
+                    <p className="font-semibold text-indigo-800 mb-2 flex items-center gap-1.5">
+                      <CheckCircle className="w-4 h-4 text-indigo-500" />
+                      AI가 다음 작업을 수행했습니다:
+                    </p>
+                    <ul className="space-y-1.5 pl-2">
+                      {message.features.map((feature, index) => (
+                        <li key={index} className="text-gray-700">
+                          - <strong>{feature}:</strong> {message.results[index]}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              );
+            }
+            
+            return (
+              <div key={message.id} className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[80%] p-3 rounded-lg ${
+                  message.type === 'user'
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-gray-100 text-gray-800'
+                }`}>
+                  <p className="text-sm whitespace-pre-line">{message.message}</p>
+                  <p className={`text-xs mt-1 ${message.type === 'user' ? 'text-blue-100' : 'text-gray-500'}`}>
+                    {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
           {isTyping && (
             <div className="flex justify-start">
               <div className="bg-gray-100 p-3 rounded-lg">
