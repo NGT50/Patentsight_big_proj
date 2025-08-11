@@ -2,7 +2,7 @@ package com.patentsight.ai.dto;
 
 public class ImageIdRequest {
     private Long patentId;
-    private String imageId;
+    private Long imageId;
 
     public Long getPatentId() {
         return patentId;
@@ -12,11 +12,11 @@ public class ImageIdRequest {
         this.patentId = patentId;
     }
 
-    public String getImageId() {
+    public Long getImageId() {
         return imageId;
     }
 
-    public void setImageId(String imageId) {
+    public void setImageId(Long imageId) {
         this.imageId = imageId;
     }
 }

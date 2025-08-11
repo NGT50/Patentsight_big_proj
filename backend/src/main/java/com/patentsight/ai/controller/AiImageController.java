@@ -30,4 +30,16 @@ public class AiImageController {
         Generated3DModelResponse response = aiImageService.generate3DModel(request);
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/3d-models/{id}")
+    public ResponseEntity<Generated3DModelResponse> get3DModel(@PathVariable Long id) {
+        Generated3DModelResponse response = aiImageService.getGenerated3DModel(id);
+        return response != null ? ResponseEntity.ok(response) : ResponseEntity.notFound().build();
+    }
+
+    @DeleteMapping("/3d-models/{id}")
+    public ResponseEntity<Void> delete3DModel(@PathVariable Long id) {
+        boolean deleted = aiImageService.deleteGenerated3DModel(id);
+        return deleted ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
+    }
 }

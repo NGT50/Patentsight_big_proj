@@ -12,4 +12,8 @@ public interface AiImageService {
     List<ImageSimilarityResponse> analyzeImageSimilarity(ImageSimilarityRequest request);
 
     Generated3DModelResponse generate3DModel(ImageIdRequest request);
+
+    Generated3DModelResponse getGenerated3DModel(Long id);
+
+    boolean deleteGenerated3DModel(Long id);
 }
