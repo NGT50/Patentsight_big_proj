@@ -66,4 +66,16 @@ class AiImageServiceImplTest {
         assertEquals("model/gltf-binary", saved.getContentType());
         assertArrayEquals(gltf, saved.getBytes());
     }
+
+    @Test
+    void getGenerated3DModelDelegatesToFileService() {
+        FileResponse fileRes = new FileResponse();
+        fileRes.setFileId(10L);
+        when(fileService.get(10L)).thenReturn(fileRes);
+
+        FileResponse res = service.getGenerated3DModel(10L);
+
+        assertEquals(10L, res.getFileId());
+        verify(fileService).get(10L);
+    }
 }

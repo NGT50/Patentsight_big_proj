@@ -66,4 +66,9 @@ public class AiImageServiceImpl implements AiImageService {
             throw new RuntimeException("Failed to read generated model", e);
         }
     }
+
+    @Override
+    public FileResponse getGenerated3DModel(Long id) {
+        return fileService.get(id);
+    }
 }
