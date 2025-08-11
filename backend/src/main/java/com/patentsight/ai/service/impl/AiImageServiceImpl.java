@@ -3,9 +3,16 @@ package com.patentsight.ai.service.impl;
 import com.patentsight.ai.client.ThreeDModelApiClient;
 import com.patentsight.ai.dto.*;
 import com.patentsight.ai.service.AiImageService;
+import com.patentsight.file.dto.FileResponse;
+import com.patentsight.file.service.FileService;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -14,9 +21,11 @@ import java.util.stream.Collectors;
 public class AiImageServiceImpl implements AiImageService {
 
     private final ThreeDModelApiClient threeDModelApiClient;
+    private final FileService fileService;
 
-    public AiImageServiceImpl(ThreeDModelApiClient threeDModelApiClient) {
+    public AiImageServiceImpl(ThreeDModelApiClient threeDModelApiClient, FileService fileService) {
         this.threeDModelApiClient = threeDModelApiClient;
+        this.fileService = fileService;
     }
 
     @Override
@@ -28,9 +37,26 @@ public class AiImageServiceImpl implements AiImageService {
 
     @Override
     public Generated3DModelResponse generate3DModel(ImageIdRequest request) {
-        Mono<Generate3DModelApiResponse> mono = threeDModelApiClient.generate(
-                Paths.get("uploads", request.getImageId() + ".jpg"));
-        Generate3DModelApiResponse apiResponse = mono.block();
-        return new Generated3DModelResponse(apiResponse.getResultId(), apiResponse.getFilePath());
+        Mono<Path> mono = threeDModelApiClient.generate(
+                Paths.get("uploads", request.getImageId() + ".jpg"),
+                Paths.get("uploads"));
+        Path glbPath = mono.block();
+        if (glbPath == null) {
+            throw new RuntimeException("Failed to generate 3D model");
+        }
+
+        try (InputStream is = Files.newInputStream(glbPath)) {
+            MockMultipartFile gltfFile = new MockMultipartFile(
+                    "file",
+                    glbPath.getFileName().toString(),
+                    "model/gltf-binary",
+                    is
+            );
+
+            FileResponse saved = fileService.create(gltfFile, null, request.getPatentId());
+            return new Generated3DModelResponse(saved.getFileId(), saved.getFileUrl());
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to read generated model", e);
+        }
     }
 }
