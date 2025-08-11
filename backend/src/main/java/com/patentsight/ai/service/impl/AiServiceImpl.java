@@ -6,7 +6,7 @@ import com.patentsight.ai.service.AiService;
 import com.patentsight.ai.service.DraftService;
 import com.patentsight.file.domain.FileAttachment;
 import com.patentsight.file.service.FileService;
-import com.patentsight.ai.util.OpenAiClient;
+import com.patentsight.ai.util.DraftApiClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -17,7 +17,7 @@ import java.io.File;
 public class AiServiceImpl implements AiService {
 
     private final FileService fileService;
-    private final OpenAiClient openAiClient;
+    private final DraftApiClient draftApiClient;
     private final DraftService draftService;
 
     @Override
@@ -29,7 +29,7 @@ public class AiServiceImpl implements AiService {
         File localFile = new File(file.getFileUrl());
 
         // 📌 3. FastAPI 호출하여 opinion 생성
-        String opinionText = openAiClient.requestOpinion(localFile);
+        String opinionText = draftApiClient.requestOpinion(localFile);
 
         // 📌 4. 초안 DB 저장 및 응답 반환
         return draftService.createAndReturnDraft(patentId, DraftType.REJECTION, opinionText);

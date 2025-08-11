@@ -1,14 +1,9 @@
 package com.patentsight.ai.service;
 
-import com.patentsight.ai.dto.SearchResultResponse;
-import com.patentsight.ai.dto.SimilarSearchRequest;
-import com.patentsight.ai.dto.FeedbackRequest;
-
-import java.util.List;
+import com.patentsight.ai.dto.TrademarkSearchResponse;
+import org.springframework.web.multipart.MultipartFile;
 
 public interface SearchService {
-
-    List<SearchResultResponse> searchSimilarPatent(SimilarSearchRequest request);
-
-    void submitFeedback(String resultId, FeedbackRequest request);
+    TrademarkSearchResponse searchTrademarkByImage(MultipartFile file);
+    TrademarkSearchResponse searchTrademarkByText(String text);
 }

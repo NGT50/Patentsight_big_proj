@@ -13,7 +13,7 @@ import java.io.File;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class OpenAiClient {
+public class DraftApiClient {
 
     private final WebClient webClient;
 
