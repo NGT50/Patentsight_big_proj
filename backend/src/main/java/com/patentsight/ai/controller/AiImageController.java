@@ -33,8 +33,14 @@ public class AiImageController {
     }
 
     @GetMapping("/3d-models/{id}")
-    public ResponseEntity<FileResponse> getGenerated3DModel(@PathVariable("id") Long id) {
-        FileResponse response = aiImageService.getGenerated3DModel(id);
+    public ResponseEntity<?> getGenerated3DModel(@PathVariable("id") String id) {
+        Long parsedId;
+        try {
+            parsedId = Long.parseLong(id);
+        } catch (NumberFormatException ex) {
+            return ResponseEntity.badRequest().body("Invalid id: " + id);
+        }
+        FileResponse response = aiImageService.getGenerated3DModel(parsedId);
         if (response == null) {
             return ResponseEntity.notFound().build();
         }
