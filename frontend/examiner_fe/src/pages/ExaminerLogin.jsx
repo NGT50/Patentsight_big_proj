@@ -121,7 +121,7 @@ function ExaminerLogin({ onLoginSuccess = () => {} }) {
               <h1 className="text-2xl font-bold text-white">심사관 로그인</h1>
             </div>
             <p className="text-blue-100 text-center mt-2 text-sm">
-              특허 출원 AI 서비스에 오신 것을 환영합니다
+              특허 심사 AI 서비스에 오신 것을 환영합니다
             </p>
           </div>
 
