@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
+import { verifyExaminerCode } from '../api/auth';
 
 const PageContainer = styled.div`
   max-width: 600px;
@@ -224,7 +225,6 @@ const AuthButton = styled.button`
 `;
 
 function ExaminerAuth() {
-
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: '',
@@ -233,12 +233,14 @@ function ExaminerAuth() {
     employeeNumber: '',
     examinerCode: ''
   });
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     window.scrollTo({
       top: 0,
       left: 0,
-      behavior: 'smooth' // 부드러운 스크롤
+      behavior: 'smooth'
     });
   }, []);
 
@@ -250,25 +252,37 @@ function ExaminerAuth() {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
+    setIsLoading(true);
 
-     // 임시로 허용할 코드 설정 (개발용)
-    const validCode = "1234"; // 또는 원하는 코드
-
-    if (formData.examinerCode === validCode) {
-      navigate('/signup', { 
-        state: { 
-          authData: {
-            name: formData.name,
-            department: formData.department,
-            position: formData.position,
-            employeeNumber: formData.employeeNumber
-          }
-        } 
+    try {
+      // 백엔드 API 호출
+      const response = await verifyExaminerCode({
+        authCode: formData.examinerCode
       });
-    } else {
-      alert('심사관 코드가 올바르지 않습니다.');
+
+      if (response.verified) {
+        // 인증 성공 시 회원가입 페이지로 이동
+        navigate('/signup', { 
+          state: { 
+            authData: {
+              name: formData.name,
+              department: formData.department,
+              position: formData.position,
+              employeeNumber: formData.employeeNumber
+            }
+          } 
+        });
+      } else {
+        setError('심사관 코드가 올바르지 않습니다.');
+      }
+    } catch (error) {
+      console.error('인증 오류:', error);
+      setError(error.message || '인증에 실패했습니다.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -340,12 +354,19 @@ function ExaminerAuth() {
             />
           </FormGroup>
 
+          {/* 에러 메시지 */}
+          {error && (
+            <div style={{ color: 'red', textAlign: 'center', marginBottom: '10px' }}>
+              {error}
+            </div>
+          )}
+
           <ButtonGroup>
             <Button type="button" className="secondary" onClick={() => navigate('/login')}>
               취소
             </Button>
-            <AuthButton type="submit">
-              인증 확인
+            <AuthButton type="submit" disabled={isLoading}>
+              {isLoading ? '인증 중...' : '인증 확인'}
             </AuthButton>
           </ButtonGroup>
         </Form>

@@ -61,10 +61,15 @@ const MainContent = styled.main`
 
 function App() {
   // 상태 관리를 useState -> Zustand로 변경
-  const { isLoggedIn, user, logout } = useAuthStore();
+  const { isLoggedIn, user, logout, initialize } = useAuthStore();
   // 알림 팝업 상태를 App.jsx에서 관리합니다.
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const toggleNotifications = () => setIsNotificationOpen(prev => !prev);
+
+  // 앱 시작 시 인증 상태 복원
+  useEffect(() => {
+    initialize();
+  }, [initialize]);
 
   return (
     <QueryClientProvider client={queryClient}>
