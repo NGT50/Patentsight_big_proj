@@ -7,6 +7,8 @@ import com.patentsight.file.dto.FileResponse;
 import com.patentsight.file.service.FileService;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.stereotype.Service;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Mono;
 
 import java.io.IOException;
@@ -37,8 +39,13 @@ public class AiImageServiceImpl implements AiImageService {
 
     @Override
     public Generated3DModelResponse generate3DModel(ImageIdRequest request) {
+        FileResponse image = fileService.get(Long.valueOf(request.getImageId()));
+        if (image == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Image not found: " + request.getImageId());
+        }
+        Path imagePath = Paths.get(image.getFileUrl());
         Mono<Path> mono = threeDModelApiClient.generate(
-                Paths.get("uploads", request.getImageId() + ".jpg"),
+                imagePath,
                 Paths.get("uploads"));
         Path glbPath = mono.block();
         if (glbPath == null) {

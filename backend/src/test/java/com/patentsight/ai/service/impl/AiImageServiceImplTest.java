@@ -38,7 +38,12 @@ class AiImageServiceImplTest {
         byte[] gltf = new byte[]{0x0, 0x1};
         Path tmp = Files.createTempFile("image-1", ".glb");
         Files.write(tmp, gltf);
-        when(apiClient.generate(any(), any())).thenReturn(Mono.just(tmp));
+        Path imagePath = Files.createTempFile("image", ".jpg");
+        when(apiClient.generate(eq(imagePath), any())).thenReturn(Mono.just(tmp));
+
+        FileResponse imageRes = new FileResponse();
+        imageRes.setFileUrl(imagePath.toString());
+        when(fileService.get(1L)).thenReturn(imageRes);
 
         FileResponse fileRes = new FileResponse();
         fileRes.setFileId(5L);
@@ -46,7 +51,7 @@ class AiImageServiceImplTest {
         when(fileService.create(any(), isNull(), eq(123L))).thenReturn(fileRes);
 
         ImageIdRequest req = new ImageIdRequest();
-        req.setImageId("image-1");
+        req.setImageId("1");
         req.setPatentId(123L);
 
         Generated3DModelResponse res = service.generate3DModel(req);
