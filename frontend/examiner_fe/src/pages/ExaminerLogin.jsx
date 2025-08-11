@@ -1,19 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Lock, LogIn, Search, Key, FileText, Palette } from 'lucide-react';
-import axios from 'axios';
-
-const USE_API = false; // true면 실제 API, false면 임시(localStorage/mock)
+import { loginUser } from '../api/auth';
 
 // 로그인 컴포넌트
 function ExaminerLogin({ onLoginSuccess = () => {} }) {
   const navigate = useNavigate();
+  
   const [formData, setFormData] = useState({
-    id: '',
+    username: '',
     password: '',
     patentType: '', // 'patent' 또는 'design'
     saveId: false
   });
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -23,7 +24,7 @@ function ExaminerLogin({ onLoginSuccess = () => {} }) {
     if (savedId) {
       setFormData(prev => ({
         ...prev,
-        id: savedId,
+        username: savedId,
         saveId: true
       }));
     }
@@ -39,79 +40,66 @@ function ExaminerLogin({ onLoginSuccess = () => {} }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
+    setIsLoading(true);
 
-    if (!formData.id || !formData.password) {
+    if (!formData.username || !formData.password) {
       alert('아이디와 비밀번호를 입력해주세요.');
+      setIsLoading(false);
       return;
     }
 
     if (!formData.patentType) {
       alert('심사유형을 선택해주세요.');
+      setIsLoading(false);
       return;
     }
 
     try {
-      let userData;
+      // 백엔드 API 호출
+      const response = await loginUser({
+        username: formData.username,
+        password: formData.password
+      });
 
-      if (USE_API) {
-        // ✅ 실제 백엔드 로그인 API 호출
-        const response = await axios.post('/api/users/login', {
-          username: formData.id,
-          password: formData.password,
-          patentType: formData.patentType
-        });
+      // 로그인 성공 시 사용자 정보 구성
+      const userData = {
+        name: response.name || response.username || formData.username,
+        username: formData.username,
+        id: response.userId || response.user_id,
+        role: response.role,
+        patentType: formData.patentType
+      };
 
-        const { token, user_id, username, role } = response.data;
+      // 토큰 및 유저 정보 저장
+      localStorage.setItem('token', response.token);
+      localStorage.setItem('user', JSON.stringify(userData));
+      localStorage.setItem('isLoggedIn', 'true');
 
-        // 토큰 및 유저 정보 저장
-        localStorage.setItem('token', token);
-        localStorage.setItem('user', JSON.stringify({ user_id, username, role, patentType: formData.patentType }));
-
-        userData = { user_id, username, role, patentType: formData.patentType };
-
-      } else {
-        // ✅ 임시 로컬 테스트 (localStorage에 저장된 유저로 로그인)
-        const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '{}');
-        const user = registeredUsers[formData.id];
-
-        if (!user || user.password !== formData.password) {
-          throw new Error('아이디 또는 비밀번호가 일치하지 않습니다.');
-        }
-
-        userData = {
-          name: user.name,
-          id: user.id,
-          email: user.email,
-          phone: user.phone,
-          address: user.address,
-          patentType: formData.patentType
-        };
-
-        localStorage.setItem('user', JSON.stringify(userData));
-      }
-
-      // 로그인 성공
-      onLoginSuccess(userData);
-      
       // 아이디 저장 처리
       if (formData.saveId) {
-        localStorage.setItem('savedId', formData.id);
+        localStorage.setItem('savedId', formData.username);
       } else {
         localStorage.removeItem('savedId');
       }
+
+      // 로그인 성공 콜백 호출
+      onLoginSuccess(userData);
       
       alert('로그인 되었습니다. 서비스를 이용하실 수 있습니다.');
       
       // 심사유형에 따라 다른 대시보드로 이동
       if (formData.patentType === 'patent') {
-        navigate('/PatentDashboard');
+        navigate('/patent-dashboard');
       } else if (formData.patentType === 'design') {
-        navigate('/DesignDashboard');
-      } 
+        navigate('/design-dashboard');
+      }
 
     } catch (err) {
       console.error('로그인 오류:', err);
-      alert(err.message || '로그인에 실패했습니다.');
+      setError(err.message || '로그인에 실패했습니다.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -151,8 +139,8 @@ function ExaminerLogin({ onLoginSuccess = () => {} }) {
                   </div>
                   <input
                     type="text"
-                    name="id"
-                    value={formData.id}
+                    name="username"
+                    value={formData.username}
                     onChange={handleInputChange}
                     required
                     className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
@@ -250,13 +238,26 @@ function ExaminerLogin({ onLoginSuccess = () => {} }) {
                 </label>
               </div>
 
+              {/* 에러 메시지 */}
+              {error && <p className="text-red-600 text-sm text-center">{error}</p>}
+
               {/* 로그인 버튼 */}
               <button
                 type="submit"
-                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 px-4 rounded-xl font-medium hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 flex items-center justify-center space-x-2"
+                disabled={isLoading}
+                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 px-4 rounded-xl font-medium hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <LogIn className="w-5 h-5" />
-                <span>로그인</span>
+                {isLoading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    <span>로그인 중...</span>
+                  </>
+                ) : (
+                  <>
+                    <LogIn className="w-5 h-5" />
+                    <span>로그인</span>
+                  </>
+                )}
               </button>
             </form>
 

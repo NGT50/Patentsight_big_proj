@@ -31,8 +31,8 @@ const LandingPage = () => {
       // 로그인되어 있으면 마이페이지로 이동
       navigate('/mypage');
     } else {
-      // 로그인되어 있지 않으면 회원가입 페이지로 이동
-      navigate('/signup');
+      // 로그인되어 있지 않으면 로그인 페이지로 이동
+      navigate('/login');
     }
   };
 

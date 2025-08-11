@@ -6,7 +6,6 @@ import Footer from './components/Footer';
 import ExaminerLogin from './pages/ExaminerLogin';
 import ExaminerAuth from './pages/ExaminerAuth';
 import ExaminerSignup from './pages/ExaminerSignup';
-
 import ExaminerMyPage from './pages/ExaminerMyPage';
 import TermsAgreement from './pages/TermsAgreement';
 import PrivacyPolicy from './pages/PrivacyPolicy';
@@ -105,12 +104,12 @@ function App() {
             <Route path="/terms" element={<TermsAgreement />} />
             <Route path="/auth" element={<ExaminerAuth />} />
             <Route path="/signup" element={<ExaminerSignup />} />
-            <Route path="/mypage" element={<ExaminerMyPage userInfo={userInfo} onUpdateUserInfo={setUserInfo} />} />
+            <Route path="/mypage" element={<ExaminerMyPage userInfo={userInfo} />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/patentreview/:id" element={<PatentReview />} />
             <Route path="/designreview/:id" element={<DesignReview />} />
-            <Route path="/patentdashboard" element={<PatentDashboard />} />
-            <Route path="/designdashboard" element={<DesignDashboard />} />
+            <Route path="/patent-dashboard" element={<PatentDashboard />} />
+            <Route path="/design-dashboard" element={<DesignDashboard />} />
           </Routes>
         </MainContent>
         <Footer />

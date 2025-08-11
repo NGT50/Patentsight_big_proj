@@ -6,12 +6,12 @@ const getBaseURL = () => {
   if (import.meta.env.DEV) {
     return ''; // 프록시를 통해 /api 요청이 백엔드로 전달됨
   }
-  
+
   // 프로덕션 환경: 실제 배포된 서버 사용
   if (import.meta.env.PROD) {
     return 'http://35.175.253.22:8080';
   }
-  
+
   // 기본값
   return '';
 };
@@ -44,7 +44,6 @@ instance.interceptors.response.use(
   },
   (error) => {
     if (error.response?.status === 401) {
-      // 토큰이 만료되었거나 유효하지 않은 경우
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       localStorage.removeItem('isLoggedIn');

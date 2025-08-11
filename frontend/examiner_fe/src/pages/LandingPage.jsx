@@ -25,23 +25,23 @@ const LandingPage = () => {
   // 로그인 상태 확인
   const isLoggedIn = () => {
     const token = localStorage.getItem('token');
-    const user = localStorage.getItem('user');
-    // token이 있거나 user가 있으면 로그인된 것으로 인식
-    return token || user;
+    const userInfo = localStorage.getItem('userInfo');
+    // token이 있거나 userInfo가 있으면 로그인된 것으로 인식
+    return token || userInfo;
   };
 
   const handleStartClick = () => {
     if (isLoggedIn()) {
       // 로그인되어 있으면 사용자의 심사유형에 따라 대시보드로 이동
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
-      if (user?.patentType === 'design') {
-        navigate('/DesignDashboard');
+      const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
+      if (userInfo?.patentType === 'design') {
+        navigate('/design-dashboard');
       } else {
-        navigate('/PatentDashboard');
+        navigate('/patent-dashboard');
       }
     } else {
-      // 로그인되어 있지 않으면 회원가입 페이지로 이동
-      navigate('/signup');
+      // 로그인되어 있지 않으면 로그인 페이지로 이동
+      navigate('/login');
     }
   };
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
+import { signupExaminer } from '../api/auth';
 
 const PageContainer = styled.div`
   max-width: 800px;
@@ -419,22 +420,24 @@ const ProgressLine = styled.div`
 function ExaminerSignup() {
   const navigate = useNavigate();
   const location = useLocation();
-  const authData = location.state?.authData;
 
   const [formData, setFormData] = useState({
-    id: '',
+    username: '',
     password: '',
     confirmPassword: '',
+    name: '',
+    birthDate: '',
     email: '',
     phone: '',
-    name: authData?.name || '',
-    department: authData?.department || '',
-    position: authData?.position || '',
-    employeeNumber: authData?.employeeNumber || '',
+    department: 'PATENT',
+    position: '',
+    employeeNumber: '',
     examinerField: 'patent',
     agreeTerms: false,
     agreePrivacy: false
   });
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const [passwordStatus, setPasswordStatus] = useState(''); // '', valid, invalid
   const [confirmPasswordStatus, setConfirmPasswordStatus] = useState(''); // '', valid, invalid
@@ -445,17 +448,7 @@ function ExaminerSignup() {
     left: 0,
     behavior: 'smooth' // 부드러운 스크롤
   });
-
-    if (authData) {
-      setFormData(prev => ({
-        ...prev,
-        name: authData.name,
-        department: authData.department,
-        position: authData.position,
-        employeeNumber: authData.employeeNumber
-      }));
-    }
-  }, [authData]);
+  }, []);
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -531,48 +524,54 @@ function ExaminerSignup() {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
+    setIsLoading(true);
     
     // 비밀번호 확인 검증
     if (formData.password !== formData.confirmPassword) {
       alert('비밀번호가 일치하지 않습니다.');
+      setIsLoading(false);
       return;
     }
     
     // 비밀번호 규칙 검증
     if (passwordStatus !== 'valid') {
       alert('비밀번호가 조건을 만족하지 않습니다.');
+      setIsLoading(false);
       return;
     }
     
     // 비밀번호 확인 상태 검증
     if (confirmPasswordStatus !== 'valid') {
       alert('비밀번호 확인이 일치하지 않습니다.');
+      setIsLoading(false);
       return;
     }
-    
-    // 회원가입 정보를 localStorage에 저장
-    const userData = {
-      name: formData.name,
-      id: formData.id,
-      password: formData.password,
-      email: formData.email,
-      phone: formData.phone,
-      department: formData.department,
-      position: formData.position,
-      employeeNumber: formData.employeeNumber,
-      examinerField: formData.examinerField
-    };
-    
-    // 사용자 정보를 localStorage에 저장
-    localStorage.setItem('registeredUsers', JSON.stringify({
-      ...JSON.parse(localStorage.getItem('registeredUsers') || '{}'),
-      [formData.id]: userData
-    }));
-    
-    alert('회원가입이 완료되었습니다. 로그인해주세요.');
-    navigate('/login');
+
+    try {
+      // 백엔드 API 호출
+      const signupData = {
+        username: formData.username,
+        password: formData.password,
+        name: formData.name,
+        birthDate: formData.birthDate,
+        department: formData.department,
+        employeeNumber: formData.employeeNumber,
+        position: formData.position
+      };
+      
+      await signupExaminer(signupData);
+      
+      alert('회원가입이 완료되었습니다. 로그인해주세요.');
+      navigate('/login');
+    } catch (error) {
+      console.error('회원가입 오류:', error);
+      setError(error.message || '회원가입에 실패했습니다.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -607,8 +606,8 @@ function ExaminerSignup() {
             <Label>아이디 *</Label>
             <Input
               type="text"
-              name="id"
-              value={formData.id}
+              name="username"
+              value={formData.username}
               onChange={handleInputChange}
               required
             />
@@ -687,23 +686,42 @@ function ExaminerSignup() {
                 value={formData.name}
                 onChange={handleInputChange}
                 required
-                readOnly={!!authData}
               />
             </FormGroup>
             <FormGroup>
-              <Label>부서 *</Label>
+              <Label>생년월일 *</Label>
               <Input
-                type="text"
-                name="department"
-                value={formData.department}
+                type="date"
+                name="birthDate"
+                value={formData.birthDate}
                 onChange={handleInputChange}
                 required
-                readOnly={!!authData}
               />
             </FormGroup>
           </Row>
 
           <Row>
+            <FormGroup>
+              <Label>부서 *</Label>
+              <select
+                name="department"
+                value={formData.department}
+                onChange={handleInputChange}
+                required
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  backgroundColor: 'white'
+                }}
+              >
+                <option value="PATENT">특허</option>
+                <option value="DESIGN">디자인</option>
+                <option value="TRADEMARK">상표</option>
+              </select>
+            </FormGroup>
             <FormGroup>
               <Label>직급 *</Label>
               <Input
@@ -712,21 +730,34 @@ function ExaminerSignup() {
                 value={formData.position}
                 onChange={handleInputChange}
                 required
-                readOnly={!!authData}
-              />
-            </FormGroup>
-            <FormGroup>
-              <Label>사원번호 *</Label>
-              <Input
-                type="text"
-                name="employeeNumber"
-                value={formData.employeeNumber}
-                onChange={handleInputChange}
-                required
-                readOnly={!!authData}
               />
             </FormGroup>
           </Row>
+
+                     <Row>
+             <FormGroup>
+               <Label>사원번호 *</Label>
+               <Input
+                 type="text"
+                 name="employeeNumber"
+                 value={formData.employeeNumber}
+                 onChange={handleInputChange}
+                 required
+               />
+             </FormGroup>
+             <FormGroup>
+               <Label>연락처 *</Label>
+               <Input
+                 type="tel"
+                 name="phone"
+                 value={formData.phone}
+                 onChange={handleInputChange}
+                 placeholder="010-1234-5678"
+                 maxLength="13"
+                 required
+               />
+             </FormGroup>
+           </Row>
 
           <FormGroup>
             <Label>심사 분야 *</Label>
@@ -796,9 +827,16 @@ function ExaminerSignup() {
               <span>개인정보처리방침에 동의합니다 *</span>
             </CheckboxItem>
           </CheckboxGroup>
+
+          {/* 에러 메시지 */}
+          {error && (
+            <div style={{ color: 'red', textAlign: 'center', marginBottom: '10px' }}>
+              {error}
+            </div>
+          )}
           
-          <Button type="submit" className="primary">
-              회원가입
+          <Button type="submit" className="primary" disabled={isLoading}>
+            {isLoading ? '회원가입 중...' : '회원가입'}
           </Button>
 
           <ButtonGroup>
