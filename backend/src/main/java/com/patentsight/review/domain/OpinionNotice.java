@@ -41,4 +41,7 @@ public class OpinionNotice {
     @Column(name = "type")
     private OpinionType type;
 
+    @Enumerated(EnumType.STRING)
+    private OpinionStatus status;
+
 }

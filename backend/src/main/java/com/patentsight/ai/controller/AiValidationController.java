@@ -1,26 +1,35 @@
 package com.patentsight.ai.controller;
 
-import com.patentsight.ai.dto.PatentIdRequest;
-import com.patentsight.ai.dto.ValidationResultResponse;
-import com.patentsight.ai.service.ValidationService;
+import com.patentsight.ai.dto.AiCheckRequest;
+import com.patentsight.ai.dto.AiCheckResponse;
+import com.patentsight.ai.service.ValidationService; // 다음 단계에 만들 서비스
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
+// ... import 구문
+import org.springframework.web.bind.annotation.PathVariable; // PathVariable import
 
 @RestController
-@RequestMapping("/api/ai")
+@RequiredArgsConstructor
 public class AiValidationController {
 
     private final ValidationService validationService;
 
-    public AiValidationController(ValidationService validationService) {
-        this.validationService = validationService;
+    // 기존 엔드포인트 (JSON 직접 받기)
+    @PostMapping("/api/ai/validations")
+    public ResponseEntity<AiCheckResponse> validateDocumentByBody(@RequestBody AiCheckRequest request) {
+        AiCheckResponse response = validationService.validateDocument(request);
+        return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/validations")
-    public ResponseEntity<List<ValidationResultResponse>> validatePatentDocument(
-            @RequestBody PatentIdRequest request) {
-        return ResponseEntity.ok(validationService.validatePatent(request.getPatentId()));
+    // --- 새로 추가할 엔드포인트 (ID로 검증하기) ---
+    @PostMapping("/api/ai/patents/{id}/validate")
+    public ResponseEntity<AiCheckResponse> validateDocumentById(@PathVariable("id") Long patentId) {
+        AiCheckResponse response = validationService.validateDocument(patentId);
+        return ResponseEntity.ok(response);
     }
 }

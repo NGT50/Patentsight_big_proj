@@ -94,4 +94,9 @@ public class FileService {
         res.setUpdatedAt(attachment.getUpdatedAt());
         return res;
     }
+
+    public FileAttachment findById(Long id) {
+        return fileRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("File not found: " + id));
+    }
 }

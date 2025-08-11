@@ -6,7 +6,7 @@ import lombok.Data;
 
 @Data
 @AllArgsConstructor
-public class DraftListResponse {
+public class DraftDetailResponse {
     private Long draftId;
     private DraftType type;
     private String content;

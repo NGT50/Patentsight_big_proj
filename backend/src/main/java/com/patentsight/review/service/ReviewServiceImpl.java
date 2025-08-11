@@ -6,6 +6,9 @@ import com.patentsight.patent.repository.PatentRepository;
 import com.patentsight.review.domain.Review;
 import com.patentsight.review.dto.*;
 import com.patentsight.review.repository.ReviewRepository;
+import com.patentsight.review.domain.OpinionNotice;
+import com.patentsight.review.domain.OpinionStatus;
+import com.patentsight.review.repository.OpinionNoticeRepository;
 import com.patentsight.user.domain.User;
 import com.patentsight.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -26,21 +29,23 @@ public class ReviewServiceImpl implements ReviewService {
     private final ReviewRepository reviewRepository;
     private final PatentRepository patentRepository;
     private final UserRepository userRepository;
+    private final OpinionNoticeRepository opinionNoticeRepository;
+
 
     // 1️⃣ 심사관 수동 배정
     @Override
     public Review assignReviewer(AssignRequest request) {
-        // 출원번호로 특허 조회
+        // 1. 출원번호로 특허 조회
         Patent patent = patentRepository.findByApplicationNumber(request.getApplicationNumber())
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Patent not found with application number: " + request.getApplicationNumber()));
 
-        // 심사관 조회
+        // 2. 심사관 조회
         User examiner = userRepository.findById(request.getExaminerId())
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Examiner not found with ID: " + request.getExaminerId()));
 
-        // Review 생성
+        // 3. Review 생성
         Review review = new Review();
         review.setPatent(patent);
         review.setExaminer(examiner);
@@ -48,8 +53,25 @@ public class ReviewServiceImpl implements ReviewService {
         review.setReviewedAt(null);
         review.setAutoAssigned(false);
 
-        return reviewRepository.save(review);
+        // ✅ 4. 저장
+        Review savedReview = reviewRepository.save(review);
+
+        // ✅ 5. OpinionNotice 자동 생성 (NOT_STARTED 상태)
+        OpinionNotice notice = OpinionNotice.builder()
+                .review(savedReview)
+                .type(null)                     // 아직 유형 없음
+                .status(OpinionStatus.NOT_STARTED) // ✅ 핵심!
+                .content(null)                 // 내용 없음
+                .structuredContent(null)       // 구조화 없음
+                .isAiDrafted(false)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        opinionNoticeRepository.save(notice); // 저장!
+
+        return savedReview;
     }
+
 
     // 2️⃣ 자동 배정 (아직 미구현)
     @Override
