@@ -69,7 +69,7 @@
 | Delete Drafts | 생성된 초안 삭제 | DELETE | /api/ai/drafts?patentId={patentId} | – | – |  |
 | Validate Patent Document | 출원 문서 오류 점검 (Rule + GPT) | POST | /api/ai/validations | `{"patentId":1}` | `[{"errorType":"MISSING_FIELD","message":"title is required"}]` | 규칙 기반 + AI 분석 |
 | Analyze Image Similarity | 이미지 유사도 분석 | POST | /api/ai/image-similarities | `{"patentId":1,"imageIds":[1,2]}` | `[{"imageId":1,"similarityScore":0.87}]` | 다중 이미지 가능 |
-| Generate 3D Model | 3D 모델 생성 | POST | /api/ai/3d-models | `{"patentId":1,"imageId":1}` | `{"resultId":1,"filePath":"/models/1.glb"}` | 결과는 FileAttachment로 연결 가능 |
+| Generate 3D Model | 3D 모델 생성 | POST | /api/ai/3d-models | `{"patentId":1,"imageId":1}` | `{"resultId":1,"filePath":"/models/1.glb"}` | 외부 3D 생성 API 호출 (기본값: octree_resolution=256, num_inference_steps=8, guidance_scale=5.0, face_count=40000, texture=false)<br>결과는 FileAttachment로 연결 가능 |
 | Start Chat Session | 챗봇 세션 생성 | POST | /api/ai/chat/sessions | `{"patentId":1,"sessionType":"CHECK"}` | `{"sessionId":1,"startedAt":"2024-01-01T09:00:00Z"}` | sessionType: ex. "CHECK", "DRAFT" |
 | Send Chat Message | AI 챗봇 메시지 전송 + 기능 실행 요청 | POST | /api/ai/chat/sessions/{sessionId}/messages | `{"message":"안녕하세요","requestedFeatures":["CHECK"]}` | `{"messageId":1,"sender":"USER","content":"답변","executedFeatures":["CHECK"],"featuresResult":{},"createdAt":"2024-01-01T09:01:00Z"}` | AI_ChatMessage, AI_ActionLog 포함 |
 | Get Chat History | 특정 챗봇 세션 대화 내역 조회 | GET | /api/ai/chat/sessions/{sessionId}/messages | – | `[{"messageId":1,"sender":"USER","content":"안녕하세요","executedFeatures":[],"featuresResult":{},"createdAt":"2024-01-01T09:01:00Z"}]` | session 단위 대화 이력 제공 |
@@ -81,6 +81,24 @@
 | Get AI Check Result | 점검 결과 상세 조회 | GET | /api/ai/checks/result/{checkId} | – | `{"checkId":"chk-1","riskScore":0.1,"detailedResults":[]}` | 상세 결과를 개별 호출로 조회 가능 |
 | SearchSimilarPatent | 유사특허 검색 실행 | POST | /api/search/similar | `{"patentId":1,"searchQuery":"자전거","searchType":"KEYWORD"}` | `[{"resultId":1,"similarPatentCode":"KR12345","similarityScore":0.92}]` | 검색 결과는 DB에 저장, similarityScore 내림차순 |
 | SubmitSearchFeedback | 검색 결과 피드백 등록 | POST | /api/search/results/{resultId}/feedback | `{"isRelevant":true}` | `{"resultId":1,"isRelevant":true,"updatedAt":"2024-01-02T09:00:00Z"}` | 피드백은 AI 학습 데이터로 활용 가능 |
+
+- 3D 모델 생성 외부 API 예시:
+
+  ```bash
+  curl -X POST "https://090afeef334a.ngrok-free.app/generate" \
+    -F "file=@3020130058145M011.1.jpg" \
+    -F "octree_resolution=256" -F "num_inference_steps=8" \
+    -F "guidance_scale=5.0" -F "face_count=40000" -F "texture=false" \
+    --output result.glb
+  ```
+
+- 기본값 사용 시 간단 호출:
+
+  ```bash
+  curl -X POST "https://090afeef334a.ngrok-free.app/generate" \
+    -F "file=@3020130058145M011.1.jpg" \
+    --output result.glb
+  ```
 
 ## 6️⃣ **FileAttachment (파일 관리)**
 
