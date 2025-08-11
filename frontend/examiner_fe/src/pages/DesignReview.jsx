@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Palette, Info, Image, MessageSquare, Copy, FlaskConical,
@@ -6,27 +6,29 @@ import {
 } from 'lucide-react';
 
 // API 함수들을 각 모듈에서 임포트합니다.
-import { submitReview, getReviewDetail } from '../api/review';
-import { 
-  startChatSession, 
-  sendChatMessageToServer, 
-  validatePatentDocument, 
-  analyzeImageSimilarity, 
-  generate3DModel,
-  generateRejectionDraft
-} from '../api/ai';
+ import { submitReview, getReviewDetail } from '../api/review';
+ import { 
+   startChatSession, 
+   sendChatMessageToServer, 
+   validatePatentDocument, 
+   analyzeImageSimilarity, 
+   generate3DModel,
+   generateRejectionDraft
+ } from '../api/ai';
+
+
+
 
 // 가상의 3D 모델 뷰어 컴포넌트
 const ThreeDModelViewer = ({ glbPath }) => {
   return (
     <div className="w-full h-72 bg-gray-200 rounded-lg overflow-hidden flex items-center justify-center border border-gray-300">
-      {/* 실제 3D 뷰어 라이브러리(e.g., three.js)를 여기에 통합할 수 있습니다. */}
       <p className="text-gray-600 text-sm font-medium">3D 모델 뷰어: {glbPath}</p>
     </div>
   );
 };
 
-export default function App() {
+export default function DesignReview() {
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -109,7 +111,17 @@ export default function App() {
   }, [id, navigate]);
 
   const sendChatMessage = async (message = inputMessage) => {
-    if (!message.trim() || !design) return;
+    if (!message.trim() || !design || !design.patentId) {
+      console.error("Cannot send message: design data or patentId is missing.");
+      const errorMessage = {
+        id: crypto.randomUUID(),
+        type: 'bot',
+        message: "오류: 디자인 정보가 올바르지 않아 AI와 대화를 시작할 수 없습니다.",
+        timestamp: new Date()
+      };
+      setChatMessages(prev => [...prev, errorMessage]);
+      return;
+    }
 
     const newUserMessage = {
       id: crypto.randomUUID(),
@@ -121,29 +133,26 @@ export default function App() {
     setInputMessage('');
     setIsTyping(true);
 
-    const contextText = `
----
-[참고 자료]
-디자인명: ${design.title || design.patentTitle}
-요약: ${design.summary}
-청구항:
-${design.claims && design.claims.length > 0 ? design.claims.map((claim, i) => `${i + 1}. ${claim}`).join('\n') : '청구항 정보 없음'}
----
-
-위 참고 자료를 바탕으로 다음 질문에 답변해 주세요:
-    `;
+    const messagePayload = {
+      message: message,
+      requested_features: ['similarity', 'check']
+    };
     
-    const messageWithContext = `${contextText}\n\n"${message}"`;
-
     try {
       let currentSessionId = chatSessionId;
       if (!currentSessionId) {
         const sessionResponse = await startChatSession(design.patentId);
+        
+        if (!sessionResponse || !sessionResponse.session_id) {
+            throw new Error("Failed to get a valid session_id from the server.");
+        }
+
         currentSessionId = sessionResponse.session_id;
         setChatSessionId(currentSessionId);
       }
 
-      const botResponse = await sendChatMessageToServer(currentSessionId, messageWithContext);
+      const botResponse = await sendChatMessageToServer(currentSessionId, messagePayload);
+      
       const botMessage = {
         id: botResponse.message_id || crypto.randomUUID(),
         type: 'bot',
@@ -152,12 +161,28 @@ ${design.claims && design.claims.length > 0 ? design.claims.map((claim, i) => `$
       };
       setChatMessages(prev => [...prev, botMessage]);
 
+      if (botResponse.executed_features && botResponse.executed_features.length > 0) {
+        const featuresMessage = {
+            id: crypto.randomUUID(),
+            type: 'bot-features',
+            features: botResponse.executed_features,
+            results: botResponse.features_result,
+            timestamp: new Date()
+        };
+        setChatMessages(prev => [...prev, featuresMessage]);
+      }
+
     } catch (error) {
       console.error("챗봇 메시지 전송 실패:", error);
+      let specificErrorMessage = "죄송합니다. AI 도우미와 연결하는 데 문제가 발생했습니다.";
+      if (error.message === "Failed to get a valid session_id from the server.") {
+          specificErrorMessage = "오류: AI와 새로운 대화 세션을 시작하지 못했습니다. 서버 응답을 확인해주세요.";
+      }
+      
       const errorMessage = {
         id: crypto.randomUUID(),
         type: 'bot',
-        message: "죄송합니다. AI 도우미와 연결하는 데 문제가 발생했습니다.",
+        message: specificErrorMessage,
         timestamp: new Date()
       };
       setChatMessages(prev => [...prev, errorMessage]);
@@ -530,6 +555,9 @@ ${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getD
                 </div>
               </div>
               <div>
+                <h4 className="font-medium text-lg mb-2 text-gray-800 flex items-center gap-1">
+                    <FileText className="w-4 h-4 text-indigo-400" /> 요약
+                </h4>
                 <div className="text-sm text-gray-700 leading-relaxed bg-gray-50 p-3 rounded-md border border-gray-100 max-h-32 overflow-y-auto">
                   {design.summary}
                 </div>
