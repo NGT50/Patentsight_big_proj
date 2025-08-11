@@ -42,6 +42,12 @@ public class User {
     @Column(name = "current_load", nullable = false, columnDefinition = "int default 0")
     private int currentLoad;
 
+    // ✅ 🔹 추가 필드: 사원번호
+    private String employeeNumber;
+
+    // ✅ 🔹 추가 필드: 직급
+    private String position;
+
     @PrePersist
     public void prePersist() {
         this.createdAt = LocalDateTime.now();

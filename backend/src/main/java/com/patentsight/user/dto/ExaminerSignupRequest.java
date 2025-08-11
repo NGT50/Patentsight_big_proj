@@ -8,5 +8,7 @@ public record ExaminerSignupRequest(
         String password,
         String name,
         LocalDate birthDate,
-        DepartmentType department   // enum 타입으로 받음
+        DepartmentType department,   // enum 타입으로 받음
+        String employeeNumber,
+        String position
 ) {}

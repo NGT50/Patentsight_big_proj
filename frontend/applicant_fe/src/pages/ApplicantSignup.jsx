@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
+import { signupApplicant } from '../api/auth';
 
 const PageContainer = styled.div`
   max-width: 800px;
@@ -516,6 +517,7 @@ function ApplicantSignup() {
   const [isEmailVerified, setIsEmailVerified] = useState(false);
   const [passwordStatus, setPasswordStatus] = useState(''); // '', valid, invalid
   const [confirmPasswordStatus, setConfirmPasswordStatus] = useState(''); // '', valid, invalid
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     window.scrollTo({
@@ -651,7 +653,7 @@ function ApplicantSignup() {
     }, 1000);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     // 이메일 인증 확인
@@ -684,23 +686,28 @@ function ApplicantSignup() {
       return;
     }
 
-    // 회원가입 정보를 localStorage에 저장
-    const userData = {
-      name: formData.name,
-      id: formData.id,
-      password: formData.password,
-      email: `${formData.emailId}@${formData.emailDomain}`,
-      phone: formData.phone,
-      address: formData.address
-    };
-    
-    // 사용자 정보를 localStorage에 저장
-    localStorage.setItem('registeredUsers', JSON.stringify({
-      ...JSON.parse(localStorage.getItem('registeredUsers') || '{}'),
-      [formData.id]: userData
-    }));
+    setIsLoading(true);
 
-    navigate('/signup-complete');
+    try {
+      // 백엔드 API 호출
+      const signupData = {
+        username: formData.id,
+        password: formData.password,
+        name: formData.name,
+        birthDate: formData.birthDate,
+        email: `${formData.emailId}@${formData.emailDomain}`
+      };
+
+      await signupApplicant(signupData);
+      
+      alert('회원가입이 완료되었습니다!');
+      navigate('/signup-complete');
+    } catch (error) {
+      console.error('회원가입 오류:', error);
+      alert(error.message || '회원가입에 실패했습니다.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -874,7 +881,9 @@ function ApplicantSignup() {
 
           <ButtonGroup>
             <Button type="button" className="secondary" onClick={() => navigate('/')}>취소</Button>
-            <Button type="submit" className="primary">회원가입</Button>
+            <Button type="submit" className="primary" disabled={isLoading}>
+              {isLoading ? '가입 중...' : '회원가입'}
+            </Button>
           </ButtonGroup>
         </Form>
       </FormContainer>
