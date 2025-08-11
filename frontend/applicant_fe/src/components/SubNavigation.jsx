@@ -4,8 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   Home, 
   Search, 
-  Plus,
-  Archive
+  Plus
 } from 'lucide-react';
 
 const SubNavContainer = styled.nav`
@@ -139,11 +138,10 @@ const SubNavigation = ({ isLoggedIn }) => {
     
     if (path === '/mypage' || path === '/dashboard') return 'mypage';
     if (path.startsWith('/patent/')) {
-      if (path === '/patent/new') return 'new-patent';
       return 'patent';
     }
+    if (path === '/new-patent-choice') return 'new-patent';
     if (path === '/search') return 'search';
-    if (path === '/archive') return 'archive';
     
     return '';
   };
@@ -173,7 +171,7 @@ const SubNavigation = ({ isLoggedIn }) => {
       id: 'new-patent',
       label: '새 출원',
       icon: <Plus />,
-      path: '/patent/new'
+      path: '/new-patent-choice'
     },
     {
       id: 'search',
@@ -181,12 +179,7 @@ const SubNavigation = ({ isLoggedIn }) => {
       icon: <Search />,
       path: '/search'
     },
-    {
-      id: 'archive',
-      label: '보관함',
-      icon: <Archive />,
-      path: '/archive'
-    }
+
   ];
 
   const activeMenu = getActiveMenu();

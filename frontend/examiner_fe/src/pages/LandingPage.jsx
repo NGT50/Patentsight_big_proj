@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   FileText, 
@@ -21,6 +21,12 @@ import {
 
 const LandingPage = () => {
   const navigate = useNavigate();
+  const [isVisible, setIsVisible] = useState(false);
+
+  // 페이지 로드 시 애니메이션 시작
+  useEffect(() => {
+    setIsVisible(true);
+  }, []);
 
   // 로그인 상태 확인
   const isLoggedIn = () => {
@@ -94,17 +100,23 @@ const LandingPage = () => {
       <section className="relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
           <div className="text-center">
-            <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
+            <h1 className={`text-5xl md:text-6xl font-bold text-gray-900 mb-6 transition-all duration-1000 ease-out transform ${
+              isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
+            }`}>
               AI와 함께하는
               <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
                 {" "}스마트 특허 심사
               </span>
             </h1>
-            <p className="text-xl text-gray-600 mb-8 max-w-4xl mx-auto">
+            <p className={`text-xl text-gray-600 mb-8 max-w-4xl mx-auto transition-all duration-1000 ease-out delay-300 transform ${
+              isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
+            }`}>
               인공지능이 도와주는 특허 심사 시스템으로 더욱 정확하고 효율적인 
               특허 심사 업무를 경험해보세요.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <div className={`flex flex-col sm:flex-row gap-4 justify-center transition-all duration-1000 ease-out delay-500 transform ${
+              isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
+            }`}>
               <button
                 onClick={handleStartClick}
                 className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-8 py-4 rounded-xl font-semibold text-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 flex items-center justify-center space-x-2"

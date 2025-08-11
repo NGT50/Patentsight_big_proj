@@ -71,7 +71,7 @@ function ApplicantLogin() {
 
   const handleFindId = () => alert('아이디 찾기 기능 준비 중');
   const handleFindPassword = () => alert('비밀번호 찾기 기능 준비 중');
-  const handleSignup = () => navigate('/signup');
+  const handleSignup = () => navigate('/terms');
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center p-4">

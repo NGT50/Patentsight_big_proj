@@ -97,7 +97,7 @@ function App() {
               {/* 보호 라우트 (로그인 해야만 접근 가능) */}
               <Route path="/mypage" element={<MyPage />} />
               <Route path="/search" element={<SearchResult />} />
-              <Route path="/patents/new" element={<NewPatentChoicePage />} />
+              <Route path="/new-patent-choice" element={<NewPatentChoicePage />} />
               <Route path="/check/patents" element={<PatentCheckListPage />} />
               <Route path="/check/designs" element={<DesignCheckListPage />} />
               <Route path="/patent/:id" element={<DocumentEditor />} />
