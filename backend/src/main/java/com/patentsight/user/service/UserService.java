@@ -80,6 +80,6 @@ public class UserService {
 
         String token = jwtTokenProvider.createToken(user.getUserId(), user.getUsername(), user.getRole());
 
-        return new LoginResponse(token, user.getUserId(), user.getUsername(), user.getRole());
+        return new LoginResponse(token, user.getUserId(), user.getUsername(), user.getName(), user.getRole());
     }
 }
