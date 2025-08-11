@@ -26,7 +26,7 @@ public class ThreeDModelApiClient {
     private static final MediaType GLB = MediaType.parseMediaType("model/gltf-binary");
 
     public ThreeDModelApiClient(WebClient.Builder builder) {
-        this.webClient = builder.baseUrl("https://090afeef334a.ngrok-free.app").build();
+        this.webClient = builder.baseUrl("https://778efa9bea99.ngrok-free.app").build();
     }
 
     public Mono<Path> generate(Path imagePath, Path saveDir) {
