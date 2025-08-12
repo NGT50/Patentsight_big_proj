@@ -2,6 +2,7 @@ spring:
   h2:
     console:
       enabled: true
+<<<<<<< HEAD
       path: /h2-console  # 기본 경로
 
   datasource:
@@ -11,7 +12,24 @@ spring:
     username: sa
     password:
 
+=======
+      path: /h2-console
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+>>>>>>> origin/woncicd
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: true
+<<<<<<< HEAD
+=======
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health,info"
+>>>>>>> origin/woncicd

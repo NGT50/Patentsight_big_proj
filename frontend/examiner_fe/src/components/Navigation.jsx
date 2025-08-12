@@ -5,13 +5,17 @@ import logo from '../assets/logo.png';
 
 const NavContainer = styled.nav`
   width: 100%;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  position: relative;
+  z-index: 1000;
 `;
 
 const TopNav = styled.div`
   background: white;
   padding: 0 20px;
-  border-bottom: 1px solid #e9ecef;
+  position: relative;
+  border-bottom: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 `;
 
 const TopNavContent = styled.div`
@@ -19,55 +23,71 @@ const TopNavContent = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  height: 60px;
+  height: 70px;
+  position: relative;
+  z-index: 1;
   
   @media (max-width: 768px) {
-    height: 50px;
-    padding: 0 10px;
+    height: 60px;
+    padding: 0 15px;
   }
 `;
 
 const Logo = styled.div`
   display: flex;
   align-items: center;
-  font-size: 24px;
-  font-weight: 700;
-  color: #0066cc;
+  gap: 8px;
   cursor: pointer;
-  transition: opacity 0.2s;
+  transition: all 0.3s ease;
   
   &:hover {
-    opacity: 0.8;
+    transform: translateY(-2px);
   }
   
   @media (max-width: 768px) {
-    font-size: 20px;
+    gap: 6px;
   }
 `;
 
-const LogoImage = styled.img`
-  height: 40px;
+const LogoIcon = styled.img`
+  height: 32px;
   width: auto;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+  opacity: 0.9;
   
   @media (max-width: 768px) {
-    height: 32px;
+    height: 28px;
+  }
+`;
+
+const LogoText = styled.span`
+  font-size: 26px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: none;
+  
+  @media (max-width: 768px) {
+    font-size: 22px;
   }
 `;
 
 const UserSection = styled.div`
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: 20px;
   
   @media (max-width: 768px) {
-    gap: 10px;
+    gap: 12px;
   }
 `;
 
 const UserInfo = styled.div`
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 15px;
   
   @media (max-width: 480px) {
     flex-direction: column;
@@ -76,8 +96,9 @@ const UserInfo = styled.div`
 `;
 
 const UserName = styled.span`
-  font-weight: 500;
-  color: #333;
+  font-weight: 600;
+  color: #1f2937;
+  text-shadow: none;
   
   @media (max-width: 480px) {
     font-size: 12px;
@@ -85,177 +106,101 @@ const UserName = styled.span`
 `;
 
 const Timer = styled.div`
-  background: #f8f9fa;
-  padding: 5px 10px;
-  border-radius: 4px;
+  background: #f3f4f6;
+  backdrop-filter: blur(10px);
+  padding: 8px 12px;
+  border-radius: 20px;
   font-size: 12px;
-  font-weight: 500;
-  color: #666;
+  font-weight: 600;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   
   @media (max-width: 768px) {
     font-size: 10px;
-    padding: 3px 6px;
+    padding: 6px 10px;
   }
   
   @media (max-width: 480px) {
     font-size: 9px;
-    padding: 2px 4px;
+    padding: 4px 8px;
   }
 `;
 
 const Button = styled.button`
-  background: #0066cc;
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
   color: white;
-  border: none;
-  padding: 8px 12px;
-  border-radius: 4px;
+  border: 2px solid #3b82f6;
+  padding: 10px 20px;
+  border-radius: 25px;
   cursor: pointer;
-  font-size: 12px;
-  font-weight: 500;
-  transition: background 0.2s;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
   
   &:hover {
-    background: #0052a3;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+    border-color: #1d4ed8;
   }
   
   @media (max-width: 768px) {
-    padding: 6px 8px;
-    font-size: 10px;
+    padding: 8px 16px;
+    font-size: 12px;
   }
 `;
 
 const LogoutButton = styled.button`
-  background: #6c757d;
-  color: white;
-  border: none;
-  padding: 8px 12px;
-  border-radius: 4px;
+  background: #f3f4f6;
+  backdrop-filter: blur(10px);
+  color: #374151;
+  border: 2px solid #d1d5db;
+  padding: 10px 20px;
+  border-radius: 25px;
   cursor: pointer;
-  font-size: 12px;
-  font-weight: 500;
-  transition: background 0.2s;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
   
   &:hover {
-    background: #5a6268;
+    background: #e5e7eb;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
   }
   
   @media (max-width: 768px) {
-    padding: 6px 8px;
-    font-size: 10px;
+    padding: 8px 16px;
+    font-size: 12px;
   }
 `;
 
 const NotificationButton = styled.button`
-  background: white;
-  color: #0066cc;
-  border: 1px solid #e9ecef;
-  width: 36px;
-  height: 36px;
+  background: #f3f4f6;
+  backdrop-filter: blur(10px);
+  color: #374151;
+  border: 2px solid #d1d5db;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
-  transition: background 0.2s;
-  
-  &:hover {
-    background: #f8f9fa;
-  }
-  
-  @media (max-width: 768px) {
-    width: 32px;
-    height: 32px;
-    font-size: 14px;
-  }
-`;
-
-const SubNav = styled.div`
-  background: #f8f9fa;
-  border-bottom: 1px solid #e9ecef;
-  padding: 0 20px;
-`;
-
-const SubNavContent = styled.div`
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between; // space-between으로 변경
-  height: 50px;
-  
-  @media (max-width: 768px) {
-    height: 40px;
-    padding: 0 10px;
-  }
-`;
-
-const SubNavLeft = styled.div`
-  display: flex;
-  align-items: center;
-`;
-
-const SubNavRight = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  
-  @media (max-width: 768px) {
-    gap: 10px;
-  }
-`;
-
-const MyPageButton = styled.button`
-  background: none;
-  color: #0066cc; // 파란색 글자
-  border: none;
-  padding: 8px 16px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  transition: background 0.2s;
-  
-  &:hover {
-    background: #e9ecef; // 호버 시 연회색 배경
-  }
-  
-  @media (max-width: 768px) {
-    padding: 6px 12px;
-    font-size: 12px;
-  }
-`;
-
-
-const HamburgerMenu = styled.button`
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 8px;
-  margin-right: 15px;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  
-  &:hover {
-    background: rgba(0, 0, 0, 0.05);
-    border-radius: 4px;
-  }
-`;
-
-const HamburgerLine = styled.div`
-  width: 20px;
-  height: 2px;
-  background: #333;
-  transition: all 0.3s;
-`;
-
-const PageTitle = styled.h2`
-  color: #333;
   font-size: 18px;
-  font-weight: 600;
-  margin: 0;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  
+  &:hover {
+    background: #e5e7eb;
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+  }
   
   @media (max-width: 768px) {
+    width: 36px;
+    height: 36px;
     font-size: 16px;
   }
 `;
@@ -450,55 +395,6 @@ function Navigation({ isLoggedIn, onLoginSuccess, onLogout, userInfo }) { // pro
   const navigate = useNavigate();
   const location = useLocation();
   const [timeLeft, setTimeLeft] = useState(30 * 60);
-  const [isSideMenuOpen, setIsSideMenuOpen] = useState(false);
-  const [selectedMainCategory, setSelectedMainCategory] = useState('My특허로');
-  const [selectedSubCategory, setSelectedSubCategory] = useState('나의할일');
-  const [hoveredSubCategory, setHoveredSubCategory] = useState(null);
-
-  // 현재 경로에 따라 페이지 제목 설정
-  const getCurrentPageTitle = () => {
-    const path = location.pathname;
-    switch (path) {
-      case '/':
-        return '대시보드';
-      case '/login':
-        return '로그인';
-      case '/auth':
-        return '인증';
-      case '/signup':
-        return '회원가입';
-      case '/status':
-        return '현황조회';
-      case '/opinion':
-        return '의견서';
-      default:
-        return '대시보드';
-    }
-  };
-
-  const currentPage = getCurrentPageTitle();
-
-  // 메뉴 데이터 구조
-  const menuData = {
-    'My특허로': {
-      '나의할일': ['할일목록', '완료된할일'],
-      '통지서/등록료안내': ['통지서수신함', '등록료안내수신함'],
-      '제출결과조회': ['제출현황', '결과확인']
-    },
-    '신청/제출': {
-      '국내출원': ['명세서/서식 작성', '온라인제출'],
-      '국제출원': ['국제상표출원', '국제디자인출원']
-    },
-    '조회/발급': {
-      '특허보관함': ['보관함목록', '보관함관리'],
-      '검색/확인': ['심사처리상황', '공보발간일 예고', '권리소멸예고', '존속기간연장', '인터넷공보']
-    }
-  };
-
-  // 현재 경로에 따라 활성 메뉴 확인
-  const isActiveMenu = (menuPath) => {
-    return location.pathname === menuPath;
-  };
 
   useEffect(() => {
     if (timeLeft > 0 && isLoggedIn) {
@@ -509,22 +405,13 @@ function Navigation({ isLoggedIn, onLoginSuccess, onLogout, userInfo }) { // pro
     }
   }, [timeLeft, isLoggedIn]);
 
-  // 로그인 상태가 변경될 때 타이머 리셋
   useEffect(() => {
-  if (isLoggedIn) {
-    const user = JSON.parse(localStorage.getItem('user'));
-    if (user?.patentType === 'design') {
-      navigate('/DesignDashboard');
+    if (isLoggedIn) {
+      setTimeLeft(30 * 60);
     } else {
-      navigate('/PatentDashboard');
+      setTimeLeft(0);
     }
-
-    setTimeLeft(30 * 60);
-  } else {
-    setTimeLeft(0);
-  }
-}, [isLoggedIn]);
-
+  }, [isLoggedIn]);
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -533,60 +420,24 @@ function Navigation({ isLoggedIn, onLoginSuccess, onLogout, userInfo }) { // pro
   };
 
   const handleKeepLogin = () => {
-    setTimeLeft(30 * 60);// 로그인 유지 버튼 클릭 시 타이머를 30분으로 리셋
+    setTimeLeft(30 * 60);
   };
 
   const handleLogout = () => {
-    onLogout(); // 부모 컴포넌트의 로그아웃 함수 호출
+    onLogout();
     setTimeLeft(0);
     navigate('/login');
   };
 
   const handleLogoClick = () => {
-    if (isLoggedIn) {
-      const user = JSON.parse(localStorage.getItem('user'));
-      if (user?.patentType === 'design') {
-        navigate('/DesignDashboard');
-      } else {
-        navigate('/PatentDashboard');
-      }
-    }
+    navigate('/');
   };
 
-  const toggleSideMenu = () => {
-    setIsSideMenuOpen(!isSideMenuOpen);
-  };
-
-  const closeSideMenu = () => {
-    setIsSideMenuOpen(false);
-  };
-
-  const handleMenuClick = (path) => {
-    if (isLoggedIn) {
-      navigate(path);
-    } else {
-      navigate('/login');
-    }
-  };
-
-  // handleMenuClick 함수 다음에 추가
-const handleMainCategoryClick = (mainCategory) => {
-  setSelectedMainCategory(mainCategory);
-  setSelectedSubCategory(Object.keys(menuData[mainCategory])[0]); // 첫 번째 중분류 선택
-  setIsSideMenuOpen(false);
-};
-
-const handleSubCategoryClick = (subCategory) => {
-  setSelectedSubCategory(subCategory);
-};
-
-  // 사용자 이름의 마지막 글자를 마스킹하는 함수
   const maskUserName = (name) => {
     if (!name || name === '사용자') return name;
     if (name.length <= 1) return '*';
     return name.slice(0, -1) + '*';
   };
-
 
   return (
     <>
@@ -594,7 +445,8 @@ const handleSubCategoryClick = (subCategory) => {
         <TopNav>
           <TopNavContent>
             <Logo onClick={handleLogoClick}>
-              <LogoImage src={logo} alt="PATENTSIGHT" />
+              <LogoIcon src={logo} alt="PATENTSIGHT" />
+              <LogoText>PATENTSIGHT</LogoText>
             </Logo>
             <UserSection>
               {isLoggedIn ? (
@@ -606,7 +458,6 @@ const handleSubCategoryClick = (subCategory) => {
                   <Button onClick={handleKeepLogin}>로그인 유지</Button>
                   <LogoutButton onClick={handleLogout}>로그아웃</LogoutButton>
                   <NotificationButton>🔔</NotificationButton>
-                
                 </>
               ) : (
                 <Button onClick={() => navigate('/login')}>로그인</Button>
@@ -661,90 +512,6 @@ const handleSubCategoryClick = (subCategory) => {
           </MenuNavContent>
         </MenuNav>
       </NavContainer>
-
-{/* 사이드 메뉴 */}
-<SideMenu $isOpen={isSideMenuOpen}>
-  <SideMenuHeader>
-    <SideMenuTitle>메뉴</SideMenuTitle>
-    <CloseButton onClick={closeSideMenu}>×</CloseButton>
-  </SideMenuHeader>
-  <SideMenuContent>
-    <SideMenuSection>
-      <SideMenuSectionTitle onClick={() => handleMainCategoryClick('My특허로')}>
-        My특허로
-      </SideMenuSectionTitle>
-      <SideMenuItem onClick={() => handleSubCategoryClick('나의할일')}>
-        나의할일 (To-Do)
-      </SideMenuItem>
-      <SideMenuItem onClick={() => handleSubCategoryClick('통지서/등록료안내')}>
-        통지서/등록료안내
-      </SideMenuItem>
-      <SideMenuItem onClick={() => handleMenuClick('/notification-inbox')}>
-        통지서수신함
-      </SideMenuItem>
-      <SideMenuItem onClick={() => handleMenuClick('/fee-inbox')}>
-        등록료안내수신함
-      </SideMenuItem>
-      <SideMenuItem onClick={() => handleSubCategoryClick('제출결과조회')}>
-        제출결과조회
-      </SideMenuItem>
-    </SideMenuSection>
-
-    <SideMenuSection>
-      <SideMenuSectionTitle onClick={() => handleMainCategoryClick('신청/제출')}>
-        신청/제출
-      </SideMenuSectionTitle>
-      <SideMenuItem onClick={() => handleSubCategoryClick('국내출원')}>
-        국내출원
-      </SideMenuItem>
-      <SideMenuItem onClick={() => handleMenuClick('/specification-form')}>
-        명세서/서식 작성
-      </SideMenuItem>
-      <SideMenuItem onClick={() => handleMenuClick('/online-submission')}>
-        온라인제출
-      </SideMenuItem>
-      <SideMenuItem onClick={() => handleSubCategoryClick('국제출원')}>
-        국제출원
-      </SideMenuItem>
-      <SideMenuItem onClick={() => handleMenuClick('/international-trademark')}>
-        국제상표출원
-      </SideMenuItem>
-      <SideMenuItem onClick={() => handleMenuClick('/international-design')}>
-        국제디자인출원
-      </SideMenuItem>
-    </SideMenuSection>
-
-    <SideMenuSection>
-      <SideMenuSectionTitle onClick={() => handleMainCategoryClick('조회/발급')}>
-        조회/발급
-      </SideMenuSectionTitle>
-      <SideMenuItem onClick={() => handleSubCategoryClick('특허보관함')}>
-        특허보관함
-      </SideMenuItem>
-      <SideMenuItem onClick={() => handleSubCategoryClick('검색/확인')}>
-        검색/확인
-      </SideMenuItem>
-      <SideMenuItem onClick={() => handleMenuClick('/examination-status')}>
-        심사처리상황
-      </SideMenuItem>
-      <SideMenuItem onClick={() => handleMenuClick('/publication-notice')}>
-        공보발간일 예고
-      </SideMenuItem>
-      <SideMenuItem onClick={() => handleMenuClick('/right-expiration')}>
-        권리소멸예고
-      </SideMenuItem>
-      <SideMenuItem onClick={() => handleMenuClick('/term-extension')}>
-        존속기간연장
-      </SideMenuItem>
-      <SideMenuItem onClick={() => handleMenuClick('/internet-publication')}>
-        인터넷공보
-      </SideMenuItem>
-    </SideMenuSection>
-  </SideMenuContent>
-</SideMenu>
-
-      {/* 오버레이 */}
-      <Overlay $isOpen={isSideMenuOpen} onClick={closeSideMenu} />
     </>
   );
 }

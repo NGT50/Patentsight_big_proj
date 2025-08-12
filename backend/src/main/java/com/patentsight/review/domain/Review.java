@@ -26,6 +26,7 @@ public class Review {
     private User examiner;  // 심사관
 
     @Enumerated(EnumType.STRING)
+<<<<<<< HEAD
     private Decision decision; // [수정] Enum 확장
 
     @Column(columnDefinition = "TEXT")
@@ -33,11 +34,20 @@ public class Review {
     
     private LocalDateTime reviewedAt;
 
+=======
+    private Decision decision; // APPROVE / PENDING / REJECT
+
+    private String comment;
+    private LocalDateTime reviewedAt;
+
+    // 🔹 reviewType을 enum으로 변경
+>>>>>>> origin/woncicd
     @Enumerated(EnumType.STRING)
     private PatentType reviewType;
 
     private boolean autoAssigned; // 자동 배정 여부
 
+<<<<<<< HEAD
     /**
      * [수정] 심사 결정 상태 Enum
      * PENDING을 제거하고 SUBMITTED, REVIEWING을 추가하여 상태를 명확하게 관리합니다.
@@ -47,5 +57,9 @@ public class Review {
         REVIEWING,  // 심사중 (심사관이 의견 작성 등 작업을 시작한 상태)
         APPROVE,    // 승인
         REJECT      // 거절
+=======
+    public enum Decision {
+        APPROVE, PENDING, REJECT
+>>>>>>> origin/woncicd
     }
 }

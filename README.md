@@ -30,3 +30,13 @@ localStorage.setItem('registeredUsers', JSON.stringify({
 ```
 
 > ✅ 실제 백엔드 API 연동 전까지는 이 방식으로 로그인 기
+
+# Patentsight Project
+
+This repository contains a sample structure for a patent management service. The backend is implemented with Spring Boot and organized under the `com.patentsight` package. A minimal frontend directory is also included.
+
+## Documentation
+
+- [Database ERD](docs/ERD.md)
+- [Patent API Specification](docs/patent-api.md)
+

@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
+@CrossOrigin(origins = {"http://35.175.253.22:3000", "http://35.175.253.22:3001"})  // CORS설정 추가(나성원)
 public class UserController {
 
     private final UserService userService;
@@ -39,4 +40,8 @@ public class UserController {
         // 🔹 요청 → Service에서 검증 → 결과 응답
         return ResponseEntity.ok(userService.verifyExaminer(request));
     }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> origin/woncicd

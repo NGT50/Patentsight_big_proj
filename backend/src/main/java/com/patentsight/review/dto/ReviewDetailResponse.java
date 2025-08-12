@@ -1,84 +1,54 @@
 package com.patentsight.review.dto;
 
-import com.patentsight.patent.domain.Patent;
 import com.patentsight.review.domain.Review;
-import com.patentsight.user.domain.User;
 import lombok.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
-@Getter @Setter
-@NoArgsConstructor @AllArgsConstructor @Builder
+/**
+ * 출원 내용 + 심사 결과를 통합적으로 담는 DTO
+ */
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class ReviewDetailResponse {
-    // API 명세서에 맞게 모든 필드를 추가합니다.
-    private Long reviewId;
-    private Long patentId;
-    private String title;
-    private String applicantName;
-    private String inventor;
-    private String applicationNumber;
-    private String applicationDate;
-    private String technicalField;
-    private String backgroundTechnology;
-    private String problemToSolve;
-    private String solution;
-    private String effect;
-    private String summary;
-    private String drawingDescription;
-    private List<String> drawings; // 실제 파일 URL 목록이 될 수 있습니다.
-    private List<String> claims;
-    private String applicationContent; // 여러 필드를 조합한 요약 정보
-    private String cpc;
-    private String reviewStatus;
-    private String examinerName;
-    private Review.Decision decision;
-    private String comment;
-    private LocalDateTime reviewedAt;
-    private List<String> aiChecks; // AI 점검 결과
 
-    // 생성자 또는 정적 팩토리 메소드를 사용하여 엔티티를 DTO로 변환합니다.
-    public static ReviewDetailResponse from(Review review, User applicant) {
-        Patent patent = review.getPatent();
-        
-        // applicationContent 필드를 생성하기 위해 여러 필드를 조합합니다.
-        String content = String.format(
-            "기술분야: %s\n배경기술: %s\n해결 과제: %s\n해결 수단: %s\n기대 효과: %s\n도면 설명: %s\n요약: %s\n청구항 수: %d개",
-            patent.getTechnicalField(),
-            patent.getBackgroundTechnology(),
-            patent.getProblemToSolve(),
-            patent.getSolution(),
-            patent.getEffect(),
-            patent.getDrawingDescription(),
-            patent.getSummary(),
-            patent.getClaims() != null ? patent.getClaims().size() : 0
-        );
+    // === [1] 고유 식별 정보 ===
+    private Long reviewId;            // 심사 고유 ID
+    private Long patentId;            // 특허 고유 ID
 
-        return ReviewDetailResponse.builder()
-                .reviewId(review.getReviewId())
-                .patentId(patent.getPatentId())
-                .title(patent.getTitle())
-                .applicantName(applicant.getName()) // 조회해온 출원인 이름 사용
-                .inventor(patent.getInventor())
-                .applicationNumber(patent.getApplicationNumber())
-                .applicationDate(patent.getSubmittedAt().toLocalDate().toString()) // 날짜 형식으로 변환
-                .technicalField(patent.getTechnicalField())
-                .backgroundTechnology(patent.getBackgroundTechnology())
-                .problemToSolve(patent.getProblemToSolve())
-                .solution(patent.getSolution())
-                .effect(patent.getEffect())
-                .summary(patent.getSummary())
-                .drawingDescription(patent.getDrawingDescription())
-                .drawings(null) // TODO: 파일 목록 조회 로직 추가 필요
-                .claims(patent.getClaims())
-                .applicationContent(content)
-                .cpc(patent.getCpc())
-                .reviewStatus(patent.getStatus().name())
-                .examinerName(review.getExaminer().getName())
-                .decision(review.getDecision())
-                .comment(review.getComment())
-                .reviewedAt(review.getReviewedAt())
-                .aiChecks(List.of()) // TODO: AI 점검 결과 연결
-                .build();
-    }
+    // === [2] 출원 기본 정보 ===
+    private String title;             // 발명 제목
+    private String applicantName;     // 출원인 이름
+    private String inventor;          // 발명자 이름
+    private String applicationNumber; // 출원번호 또는 분류번호
+    private LocalDate applicationDate;// 출원 접수일
+
+    // === [3] 출원 기술 내용 ===
+    private String technicalField;        // 기술분야 설명
+    private String backgroundTechnology;  // 배경 기술 설명
+    private String problemToSolve;        // 발명이 해결하려는 과제
+    private String solution;              // 해결 수단
+    private String effect;                // 발명의 효과
+    private String summary;               // 발명 요약
+    private String drawingDescription;    // 도면 간단 설명
+    private List<String> drawings;        // 도면 이미지 목록 (URL)
+    private List<String> claims;          // 청구항 목록
+    private String applicationContent;    // 출원인이 작성한 전체 명세서 등
+
+    // === [4] 분류 및 상태 정보 ===
+    private String cpc;               // CPC 또는 IPC 코드
+    private String reviewStatus;      // 심사 상태 (예: 심사 중, 승인 등)
+
+    // === [5] 심사 결과 정보 ===
+    private String examinerName;      // 심사관 이름
+    private Review.Decision decision; // 심사 결과 (APPROVE, REJECT 등)
+    private String comment;           // 심사관의 의견 또는 코멘트
+    private LocalDateTime reviewedAt; // 심사 완료 일시
+    private List<String> aiChecks;    // AI 자동 점검 결과 목록
+
 }

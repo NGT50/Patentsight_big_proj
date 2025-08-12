@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   Palette, Info, FileText, Image, MessageSquare, Copy, FlaskConical, 
-  CheckCircle, Send, Bot, Lightbulb, GanttChart, Scale, X, ScrollText, Check
+  CheckCircle, Send, Bot, Lightbulb, GanttChart, Scale, X, ScrollText, Check,
+  Info, FileText, Image, MessageSquare, Copy, FlaskConical, 
+  CheckCircle, XCircle, Send, Bot, Maximize2, Minimize2, Lightbulb, GanttChart, Scale, X
 } from 'lucide-react'; 
 
 // API 함수들을 각 모듈에서 임포트합니다.

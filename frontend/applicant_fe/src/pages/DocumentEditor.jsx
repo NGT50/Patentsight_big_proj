@@ -159,12 +159,60 @@ const DocumentEditor = () => {
 
   // --- 렌더링 JSX (develop-fe2 디자인 기반 + jw-front 기능) ---
   const renderTabs = () => (
+<<<<<<< HEAD
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-2 mb-6">
       <nav className="flex space-x-2" aria-label="Tabs">
         <button onClick={() => setActiveTab('details')} className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-all ${activeTab === 'details' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100'}`}><FileText className="w-4 h-4" /> 발명의 상세한 설명</button>
         <button onClick={() => setActiveTab('claims')} className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-all ${activeTab === 'claims' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100'}`}><Edit3 className="w-4 h-4" /> 청구범위</button>
         <button onClick={() => setActiveTab('summary')} className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-all ${activeTab === 'summary' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100'}`}><Eye className="w-4 h-4" /> 요약 및 기타</button>
         <button onClick={() => setActiveTab('drawings')} className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-all ${activeTab === 'drawings' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100'}`}>도면</button>
+=======
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+      <nav className="flex space-x-8" aria-label="Tabs">
+        <button 
+          onClick={() => setActiveTab('details')} 
+          className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-all ${
+            activeTab === 'details' 
+              ? 'bg-blue-100 text-blue-700 border border-blue-200 hover:bg-blue-200' 
+              : 'bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200'
+          }`}
+        >
+          <FileText className="w-4 h-4" />
+          발명의 상세한 설명
+        </button>
+        <button 
+          onClick={() => setActiveTab('claims')} 
+          className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-all ${
+            activeTab === 'claims' 
+              ? 'bg-blue-100 text-blue-700 border border-blue-200 hover:bg-blue-200' 
+              : 'bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200'
+          }`}
+        >
+          <Edit3 className="w-4 h-4" />
+          청구범위
+        </button>
+        <button 
+          onClick={() => setActiveTab('summary')} 
+          className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-all ${
+            activeTab === 'summary' 
+              ? 'bg-blue-100 text-blue-700 border border-blue-200 hover:bg-blue-200' 
+              : 'bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200'
+          }`}
+        >
+          <Eye className="w-4 h-4" />
+          요약 및 기타
+        </button>
+        <button 
+          onClick={() => setActiveTab('drawings')} 
+          className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-all ${
+            activeTab === 'drawings' 
+              ? 'bg-blue-100 text-blue-700 border border-blue-200 hover:bg-blue-200' 
+              : 'bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200'
+          }`}
+        >
+          도면
+        </button>
+>>>>>>> origin/woncicd
       </nav>
     </div>
   );
