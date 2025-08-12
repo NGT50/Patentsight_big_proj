@@ -3,44 +3,13 @@ package com.patentsight.ai.dto;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Map;
 
-public class DraftResponse {
-    @JsonProperty("log_id")
-    private String logId;
-    @JsonProperty("draft_text")
-    private String draftText;
+public class ClaimDraftApiResponse {
     @JsonProperty("rag_context")
     private String ragContext;
     @JsonProperty("sections_raw")
     private Map<String, Object> sectionsRaw;
     @JsonProperty("sections_parsed")
     private Map<String, Object> sectionsParsed;
-
-    public DraftResponse() {}
-
-    public DraftResponse(String logId, String draftText, String ragContext,
-                         Map<String, Object> sectionsRaw, Map<String, Object> sectionsParsed) {
-        this.logId = logId;
-        this.draftText = draftText;
-        this.ragContext = ragContext;
-        this.sectionsRaw = sectionsRaw;
-        this.sectionsParsed = sectionsParsed;
-    }
-
-    public String getLogId() {
-        return logId;
-    }
-
-    public void setLogId(String logId) {
-        this.logId = logId;
-    }
-
-    public String getDraftText() {
-        return draftText;
-    }
-
-    public void setDraftText(String draftText) {
-        this.draftText = draftText;
-    }
 
     public String getRagContext() {
         return ragContext;

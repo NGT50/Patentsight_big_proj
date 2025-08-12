@@ -20,8 +20,8 @@ public class AiDraftController {
     }
 
     @PostMapping("/claims")
-    public ResponseEntity<DraftResponse> generateClaimDraft(@RequestBody PatentIdRequest request) {
-        DraftResponse response = draftService.generateClaimDraft(request.getPatentId());
+    public ResponseEntity<DraftResponse> generateClaimDraft(@RequestBody ClaimDraftRequest request) {
+        DraftResponse response = draftService.generateClaimDraft(request);
         return ResponseEntity.ok(response);
     }
 
@@ -31,13 +31,11 @@ public class AiDraftController {
         return ResponseEntity.ok(response);
     }
 
-    // 수정된 부분: @RequestParam 대신 @PathVariable을 사용하도록 변경
     @GetMapping("/{patentId}/drafts")
     public ResponseEntity<List<DraftListResponse>> listDrafts(@PathVariable Long patentId) {
         return ResponseEntity.ok(draftService.getDrafts(patentId));
     }
 
-    // 수정된 부분: @RequestParam 대신 @PathVariable을 사용하도록 변경
     @DeleteMapping("/{patentId}/drafts")
     public ResponseEntity<Void> deleteDrafts(@PathVariable Long patentId) {
         draftService.deleteDrafts(patentId);
