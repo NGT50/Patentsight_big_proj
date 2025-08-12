@@ -1,4 +1,4 @@
-import { api } from './examiner';
+import axiosInstance from './axiosInstance';
 
 /**
  * [챗봇] 새로운 챗봇 세션을 시작합니다.
@@ -6,7 +6,7 @@ import { api } from './examiner';
  * @returns {Promise<object>} 생성된 세션 정보 (e.g., { session_id, started_at })
  */
 export const startChatSession = async (patentId) => {
-  const response = await api.post('/ai/chat/sessions', { patent_id: patentId, session_type: 'DRAFT' });
+  const response = await axiosInstance.post('/ai/chat/sessions', { patent_id: patentId, session_type: 'DRAFT' });
   return response.data;
 };
 
@@ -17,7 +17,7 @@ export const startChatSession = async (patentId) => {
  * @returns {Promise<object>} 챗봇의 응답 메시지 정보
  */
 export const sendChatMessageToServer = async (sessionId, message) => {
-  const response = await api.post(`/ai/chat/sessions/${sessionId}/messages`, { message });
+  const response = await axiosInstance.post(`/ai/chat/sessions/${sessionId}/messages`, { message });
   return response.data;
 };
 
@@ -27,7 +27,7 @@ export const sendChatMessageToServer = async (sessionId, message) => {
  * @returns {Promise<Array<object>>} 오류 점검 결과 목록
  */
 export const validatePatentDocument = async (patentId) => {
-  const response = await api.post('/ai/validations', { patent_id: patentId });
+  const response = await axiosInstance.post('/ai/validations', { patent_id: patentId });
   return response.data;
 };
 
@@ -38,7 +38,7 @@ export const validatePatentDocument = async (patentId) => {
  * @returns {Promise<Array<object>>} 이미지별 유사도 분석 결과
  */
 export const analyzeImageSimilarity = async (patentId, imageIds = []) => {
-  const response = await api.post('/ai/image-similarities', { patent_id: patentId, image_ids: imageIds });
+  const response = await axiosInstance.post('/ai/image-similarities', { patent_id: patentId, image_ids: imageIds });
   return response.data;
 };
 
@@ -49,7 +49,7 @@ export const analyzeImageSimilarity = async (patentId, imageIds = []) => {
  * @returns {Promise<object>} 생성된 3D 모델 정보 (e.g., { result_id, file_path })
  */
 export const generate3DModel = async (patentId, imageId) => {
-  const response = await api.post('/ai/3d-models', { patent_id: patentId, image_id: imageId });
+  const response = await axiosInstance.post('/ai/3d-models', { patent_id: patentId, image_id: imageId });
   return response.data;
 };
 
@@ -60,6 +60,6 @@ export const generate3DModel = async (patentId, imageId) => {
  */
 export const generateRejectionDraft = async (patentId) => {
   // API 명세에 fileId가 필요하다면 인자로 받아 함께 전송해야 합니다.
-  const response = await api.post('/ai/draft/rejections', { patentId });
+  const response = await axiosInstance.post('/ai/draft/rejections', { patentId });
   return response.data;
 };
