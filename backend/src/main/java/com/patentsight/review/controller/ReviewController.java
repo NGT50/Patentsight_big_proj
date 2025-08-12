@@ -23,12 +23,6 @@ public class ReviewController {
         return reviewService.assignReviewer(request);
     }
 
-    // 2️⃣ 자동 배정
-    @PostMapping("/assign/auto")
-    public List<Review> autoAssign(@RequestParam("type") String type) {
-        return reviewService.autoAssign(type);
-    }
-
     // 3️⃣ 심사 목록 조회 (status 필터링 가능)
     @GetMapping("/list/{userId}")
     public List<ReviewListResponse> getReviewList(

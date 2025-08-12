@@ -19,7 +19,7 @@ public class AiDraftController {
     private final DraftService draftService;
 
     // ✅ 1. 초안 생성 (거절)
-    @PostMapping("/draft/rejections")
+    @PostMapping("/drafts/rejections")
     public DraftDetailResponse generateRejectionDraft(@RequestBody RejectionDraftRequest request) {
         return aiService.generateRejectionDraft(request.getPatentId(), request.getFileId());
     }
@@ -31,20 +31,20 @@ public class AiDraftController {
     }
 
     // ✅ 3. 초안 상세 조회
-    @GetMapping("/draft/{draftId}")
+    @GetMapping("/drafts/{draftId}")
     public DraftDetailResponse getDraft(@PathVariable Long draftId) {
         return draftService.getDraft(draftId);
     }
 
     // ✅ 4. 초안 수정
-    @PatchMapping("/draft/{draftId}")
+    @PatchMapping("/drafts/{draftId}")
     public DraftDetailResponse updateDraft(@PathVariable Long draftId,
                                            @RequestBody DraftUpdateRequest request) {
         return draftService.updateDraft(draftId, request.getContent());
     }
 
     // ✅ 5. 초안 삭제
-    @DeleteMapping("/draft/{draftId}")
+    @DeleteMapping("/drafts/{draftId}")
     public void deleteDraft(@PathVariable Long draftId) {
         draftService.deleteDraft(draftId);
     }

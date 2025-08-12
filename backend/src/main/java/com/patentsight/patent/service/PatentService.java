@@ -11,6 +11,7 @@ import com.patentsight.file.dto.RestoreVersionResponse;
 import com.patentsight.file.repository.FileRepository;
 import com.patentsight.file.repository.SpecVersionRepository;
 import com.patentsight.patent.domain.Patent;
+import com.patentsight.review.service.ReviewService; //추가
 import com.patentsight.patent.domain.PatentStatus;
 import com.patentsight.patent.dto.PatentRequest;
 import com.patentsight.patent.dto.PatentResponse;
@@ -22,6 +23,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate; // RestTemplate 추가
 
+// ✅ [알림] 추가 import
+import com.patentsight.notification.service.NotificationService;
+import com.patentsight.notification.dto.NotificationRequest;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -32,20 +37,28 @@ import java.util.stream.Collectors;
 public class PatentService {
 
     private final PatentRepository patentRepository;
+    private final ReviewService reviewService;
     private final FileRepository fileRepository;
     private final SpecVersionRepository specVersionRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final RestTemplate restTemplate; // RestTemplate 필드 추가
     private final String fastApiIpcUrl = "http://127.0.0.1:5000/predict"; // AI 모델 IPC 엔드포인트
 
+    // ✅ [알림] 서비스 필드 추가
+    private final NotificationService notificationService;
+
     public PatentService(PatentRepository patentRepository,
                          FileRepository fileRepository,
                          SpecVersionRepository specVersionRepository,
-                         RestTemplate restTemplate) {
+                         RestTemplate restTemplate,
+                         NotificationService notificationService,
+                         ReviewService reviewService) { // ✅ [알림] 주입
         this.patentRepository = patentRepository;
         this.fileRepository = fileRepository;
         this.specVersionRepository = specVersionRepository;
         this.restTemplate = restTemplate;
+        this.notificationService = notificationService; // ✅
+        this.reviewService = reviewService;
     }
 
     public PatentResponse createPatent(PatentRequest request, Long applicantId) {
@@ -67,6 +80,17 @@ public class PatentService {
         patent.setDrawingDescription(request.getDrawingDescription());
         patent.setClaims(request.getClaims());
         patentRepository.save(patent);
+
+        // ✅ [알림] 특허 생성 알림
+        notificationService.createNotification(
+                NotificationRequest.builder()
+                        .userId(applicantId)
+                        .notificationType("PATENT_CREATED")
+                        .message("새로운 특허가 등록되었습니다: " + patent.getTitle())
+                        .targetType("PATENT")
+                        .targetId(patent.getPatentId())
+                        .build()
+        );
 
         List<FileAttachment> attachments = java.util.Collections.emptyList();
         if (request.getFileIds() != null && !request.getFileIds().isEmpty()) {
@@ -187,16 +211,13 @@ public class PatentService {
         if (patent == null) return null;
 
         // 1. FastAPI에 보낼 요청 본문 생성
-        // 특허의 청구항(claims)을 가져와 JSON 객체로 만듭니다.
-        // 여기서는 첫 번째 청구항만 예시로 사용하겠습니다.
         String firstClaim = patent.getClaims() != null && !patent.getClaims().isEmpty() ? patent.getClaims().get(0) : "";
         PredictRequest requestBody = new PredictRequest(firstClaim);
 
-        // 2. RestTemplate을 사용해 FastAPI 호출
-        // PredictRequest 객체를 전송하고 PredictResponse 객체로 응답을 받습니다.
+        // 2. FastAPI 호출
         PredictResponse predictResponse = restTemplate.postForObject(fastApiIpcUrl, requestBody, PredictResponse.class);
 
-        // 3. AI 모델로부터 받은 IPC 코드를 추출하여 사용
+        // 3. AI 모델로 받은 IPC 코드 사용
         String ipcCode = "N/A";
         if (predictResponse != null && !predictResponse.getTopIpcResults().isEmpty()) {
             ipcCode = predictResponse.getTopIpcResults().get(0).getMaingroup();
@@ -208,12 +229,23 @@ public class PatentService {
         if (patent.getApplicationNumber() == null) {
             patent.setApplicationNumber(generateApplicationNumber(patent));
         }
-        patent.setIpc(ipcCode); // 엔티티에 IPC 코드 저장
-
-        // 5. 변경 사항 DB에 저장
+        patent.setIpc(ipcCode);
         patentRepository.save(patent);
+        reviewService.autoAssignWithSpecialty(patent);
 
-        // 6. 응답 DTO에 필요한 정보와 IPC 코드를 담아 반환
+
+        // ✅ [알림] 특허 제출 알림
+        notificationService.createNotification(
+                NotificationRequest.builder()
+                        .userId(patent.getApplicantId())
+                        .notificationType("PATENT_SUBMITTED")
+                        .message("특허가 제출되었습니다: " + patent.getTitle())
+                        .targetType("PATENT")
+                        .targetId(patent.getPatentId())
+                        .build()
+        );
+
+        // 6. 응답 DTO
         return new SubmitPatentResponse(
                 patent.getPatentId(),
                 patent.getApplicantId(),
@@ -242,6 +274,18 @@ public class PatentService {
         if (patent == null) return null;
         patent.setStatus(status);
         patentRepository.save(patent);
+
+        // ✅ [알림] 상태 변경 알림
+        notificationService.createNotification(
+                NotificationRequest.builder()
+                        .userId(patent.getApplicantId())
+                        .notificationType("PATENT_STATUS_CHANGED")
+                        .message("특허 상태가 변경되었습니다: " + status)
+                        .targetType("PATENT")
+                        .targetId(patent.getPatentId())
+                        .build()
+        );
+
         PatentResponse res = new PatentResponse();
         res.setPatentId(patent.getPatentId());
         res.setApplicantId(patent.getApplicantId());
@@ -311,6 +355,21 @@ public class PatentService {
     public boolean deletePatent(Long patentId) {
         Patent patent = patentRepository.findById(patentId).orElse(null);
         if (patent == null) return false;
+
+        // ✅ [알림] 삭제 알림 (삭제 전에 title/userId 사용)
+        Long userId = patent.getApplicantId();
+        String title = patent.getTitle();
+        Long targetId = patent.getPatentId();
+        notificationService.createNotification(
+                NotificationRequest.builder()
+                        .userId(userId)
+                        .notificationType("PATENT_DELETED")
+                        .message("특허가 삭제되었습니다: " + title)
+                        .targetType("PATENT")
+                        .targetId(targetId)
+                        .build()
+        );
+
         patentRepository.delete(patent);
         return true;
     }

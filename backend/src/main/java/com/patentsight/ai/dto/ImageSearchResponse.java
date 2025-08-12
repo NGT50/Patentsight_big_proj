@@ -6,7 +6,7 @@ import java.util.List;
 
 @Data // @Getter, @Setter, @ToString 등을 모두 포함
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class TrademarkSearchResponse {
+public class ImageSearchResponse {
 
     private List<SearchResult> results;
 

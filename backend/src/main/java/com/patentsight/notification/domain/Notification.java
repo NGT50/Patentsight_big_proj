@@ -1,43 +1,32 @@
 package com.patentsight.notification.domain;
 
 import jakarta.persistence.*;
+import lombok.*;
+import com.patentsight.user.domain.User;
+
 import java.time.LocalDateTime;
 
 @Entity
+@Getter
+@Setter
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class Notification {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long notificationId;
 
-    private Long userId;
+    private String notificationType;  // 알림 유형
+    private String message;           // 알림 내용
+    private String targetType;        // 타겟 타입
+    private Long targetId;            // 타겟 ID
 
-    private String notificationType;
+    private boolean isRead;           // 읽음 여부
+    private LocalDateTime createdAt;  // 생성일
 
-    private String message;
-
-    private String targetType;
-
-    private Long targetId;
-
-    private boolean isRead;
-
-    private LocalDateTime createdAt;
-
-    public Long getNotificationId() { return notificationId; }
-    public void setNotificationId(Long notificationId) { this.notificationId = notificationId; }
-    public Long getUserId() { return userId; }
-    public void setUserId(Long userId) { this.userId = userId; }
-    public String getNotificationType() { return notificationType; }
-    public void setNotificationType(String notificationType) { this.notificationType = notificationType; }
-    public String getMessage() { return message; }
-    public void setMessage(String message) { this.message = message; }
-    public String getTargetType() { return targetType; }
-    public void setTargetType(String targetType) { this.targetType = targetType; }
-    public Long getTargetId() { return targetId; }
-    public void setTargetId(Long targetId) { this.targetId = targetId; }
-    public boolean isRead() { return isRead; }
-    public void setRead(boolean read) { isRead = read; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")     // 로그인 사용자
+    private User user;
 }
