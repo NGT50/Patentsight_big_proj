@@ -205,7 +205,193 @@ const NotificationButton = styled.button`
   }
 `;
 
-function Navigation({ isLoggedIn, onLoginSuccess, onLogout, userInfo }) {
+const MenuNav = styled.div`
+  background: white;
+  border-bottom: 1px solid #e9ecef;
+  padding: 0 20px;
+  position: relative;
+`;
+
+const MenuNavContent = styled.div`
+  width: 100%;
+  display: flex;
+  align-items: center;
+  height: 50px;
+  gap: 30px;
+  
+  @media (max-width: 768px) {
+    height: 40px;
+    padding: 0 10px;
+    gap: 20px;
+    overflow-x: auto;
+  }
+`;
+
+const MenuItem = styled.a`
+  color: #666;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 14px;
+  padding: 8px 0;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+  cursor: pointer;
+  position: relative;
+  
+  &:hover {
+    color: #0066cc;
+    border-bottom-color: #0066cc;
+  }
+  
+  &.active {
+    color: #0066cc;
+    border-bottom-color: #0066cc;
+  }
+  
+  @media (max-width: 768px) {
+    font-size: 12px;
+    white-space: nowrap;
+  }
+`;
+
+// 사이드 메뉴 스타일
+const SideMenu = styled.div`
+  position: fixed;
+  top: 0;
+  left: ${props => props.$isOpen ? '0' : '-300px'};
+  width: 300px;
+  height: 100vh;
+  background: white;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  transition: left 0.3s ease;
+  overflow-y: auto;
+`;
+
+const SideMenuHeader = styled.div`
+  background: #0066cc;
+  color: white;
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const SideMenuTitle = styled.h3`
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+`;
+
+const CloseButton = styled.button`
+  background: none;
+  border: none;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+  }
+`;
+
+const SideMenuContent = styled.div`
+  padding: 20px;
+`;
+
+const SideMenuSection = styled.div`
+  margin-bottom: 30px;
+`;
+
+const SideMenuSectionTitle = styled.h4`
+  color: #0066cc;
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 15px 0;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #0066cc;
+  cursor: pointer; // 추가
+  transition: color 0.2s; // 추가
+
+  &:hover {
+    color: #0052a3; // 추가
+  }
+`;
+
+const SideMenuItem = styled.a`
+  display: block;
+  color: #333;
+  text-decoration: none;
+  padding: 10px 0;
+  font-size: 14px;
+  transition: color 0.2s;
+  
+  &:hover {
+    color: #0066cc;
+  }
+`;
+
+const SideMenuSubItem = styled.a`
+  display: block;
+  color: #666;
+  text-decoration: none;
+  padding: 8px 0 8px 20px;
+  font-size: 13px;
+  transition: color 0.2s;
+  
+  &:hover {
+    color: #0066cc;
+  }
+`;
+
+const SubMenuItem = styled.div`
+  padding: 10px 15px;
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+  transition: background 0.2s;
+  
+  &:hover {
+    background: #f8f9fa;
+    color: #0066cc;
+  }
+`;
+
+// 소분류 드롭다운 스타일
+const SubMenuDropdown = styled.div`
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  min-width: 200px;
+  display: ${props => props.$isVisible ? 'block' : 'none'};
+`;
+
+const Overlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  opacity: ${props => props.$isOpen ? 1 : 0};
+  visibility: ${props => props.$isOpen ? 'visible' : 'hidden'};
+  transition: all 0.3s ease;
+`;
+
+function Navigation({ isLoggedIn, onLoginSuccess, onLogout, userInfo }) { // props 추가
   const navigate = useNavigate();
   const location = useLocation();
   const [timeLeft, setTimeLeft] = useState(30 * 60);
@@ -279,10 +465,55 @@ function Navigation({ isLoggedIn, onLoginSuccess, onLogout, userInfo }) {
             </UserSection>
           </TopNavContent>
         </TopNav>
+
+        <SubNav>
+          <SubNavContent>
+            <SubNavLeft>
+              <HamburgerMenu onClick={toggleSideMenu}>
+                <HamburgerLine />
+                <HamburgerLine />
+                <HamburgerLine />
+              </HamburgerMenu>
+              <PageTitle>{selectedMainCategory}</PageTitle>
+            </SubNavLeft>
+            <SubNavRight>
+              {isLoggedIn && (
+                <MyPageButton onClick={() => navigate('/mypage')}>
+                  마이페이지
+                </MyPageButton>
+              )}
+            </SubNavRight>
+          </SubNavContent>
+        </SubNav>
+
+        <MenuNav>
+          <MenuNavContent>
+            {menuData[selectedMainCategory] && 
+              Object.keys(menuData[selectedMainCategory]).map((subCategory) => (
+                <div key={subCategory} style={{ position: 'relative' }}>
+                  <MenuItem 
+                    className={selectedSubCategory === subCategory ? 'active' : ''}
+                    onClick={() => setSelectedSubCategory(subCategory)}
+                    onMouseEnter={() => setHoveredSubCategory(subCategory)}
+                    onMouseLeave={() => setHoveredSubCategory(null)}
+                  >
+                    {subCategory}
+                  </MenuItem>
+                  <SubMenuDropdown $isVisible={hoveredSubCategory === subCategory}>
+                    {menuData[selectedMainCategory][subCategory].map((item) => (
+                      <SubMenuItem key={item} onClick={() => handleMenuClick(`/${item}`)}>
+                        {item}
+                      </SubMenuItem>
+                    ))}
+                  </SubMenuDropdown>
+                </div>
+              ))
+            }
+          </MenuNavContent>
+        </MenuNav>
       </NavContainer>
     </>
   );
 }
 
 export default Navigation;
-
