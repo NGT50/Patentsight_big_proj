@@ -63,7 +63,7 @@
 
 | API 이름 | 설명 | Method | URL | 요청 데이터 | 응답 데이터 | 비고 |
 | --- | --- | --- | --- | --- | --- | --- |
-| Generate Claim Draft | 청구항 초안 생성 | POST | /api/ai/draft/claims | `{"query":"자율주행 차량의 객체 인식 취약점 보완 장치 및 방법","top_k":5}` | `{"log_id":1,"draft_text":"청구항 초안","rag_context":"…","sections_raw":{…},"sections_parsed":{"발명의 명칭":"…","요약":"…","기술 분야":"…","배경 기술":"…","해결하려는 과제":"…","과제의 해결 수단":"…","발명의 효과":"…","청구항":["…"]}}` | AI_ActionLog 및 AI_ChatMessage 로그 포함 |
+| Generate Claim Draft | 청구항 초안 생성 | POST | /api/ai/draft/claims | `{"query":"자율주행 차량의 객체 인식 취약점 보완 장치 및 방법","top_k":5}` | `{"log_id":1,"draft_text":"청구항 초안","rag_context":"…","sections_parsed":{"발명의 명칭":"…","요약":"…","기술 분야":"…","배경 기술":"…","해결하려는 과제":"…","과제의 해결 수단":"…","발명의 효과":"…","청구항":"[청구항 1]..."}}` | AI_ActionLog 및 AI_ChatMessage 로그 포함 |
 | Generate Rejection Draft | 거절 사유 초안 생성 | POST | /api/ai/draft/rejections | `{"patentId":1}` | `{"logId":2,"draftText":"거절 사유 초안"}` | 구조 동일 |
 | List Drafts | 출원별 생성된 초안 목록 조회 | GET | /api/ai/drafts?patentId={patentId} | – | `[{"draftId":1,"type":"CLAIM","content":"청구항 초안"}]` | type: "CLAIM" 또는 "REJECTION", 최신순 정렬 |
 | Delete Drafts | 생성된 초안 삭제 | DELETE | /api/ai/drafts?patentId={patentId} | – | – |  |
@@ -107,12 +107,6 @@
     "log_id": 1,
     "draft_text": "[청구항 1] 자율주행 차량의 객체 인식 취약점을 보완하기 위한 장치...",
     "rag_context": "기판 세정 건조 장치에 있어서...광원 시스템",
-    "sections_raw": {
-      "기술 분야 및 배경 기술": "{...}",
-      "해결하려는 과제 및 해결 수단": "{...}",
-      "발명의 효과": "{...}",
-      "청구항": "{...}"
-    },
     "sections_parsed": {
       "발명의 명칭": "자율주행 차량의 객체 인식 취약점 보완 장치 및 방법",
       "요약": "자율주행 차량의 객체 인식 기술은 차량이 주변 환경을 인식하고 이해하는 데 필요한 기술...",

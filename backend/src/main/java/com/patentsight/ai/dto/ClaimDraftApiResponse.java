@@ -6,8 +6,6 @@ import java.util.Map;
 public class ClaimDraftApiResponse {
     @JsonProperty("rag_context")
     private String ragContext;
-    @JsonProperty("sections_raw")
-    private Map<String, Object> sectionsRaw;
     @JsonProperty("sections_parsed")
     private Map<String, Object> sectionsParsed;
 
@@ -17,14 +15,6 @@ public class ClaimDraftApiResponse {
 
     public void setRagContext(String ragContext) {
         this.ragContext = ragContext;
-    }
-
-    public Map<String, Object> getSectionsRaw() {
-        return sectionsRaw;
-    }
-
-    public void setSectionsRaw(Map<String, Object> sectionsRaw) {
-        this.sectionsRaw = sectionsRaw;
     }
 
     public Map<String, Object> getSectionsParsed() {

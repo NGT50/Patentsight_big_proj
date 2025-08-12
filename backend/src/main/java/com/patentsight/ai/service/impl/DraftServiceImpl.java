@@ -34,7 +34,6 @@ public class DraftServiceImpl implements DraftService {
                 UUID.randomUUID().toString(),
                 draftText,
                 apiRes.getRagContext(),
-                apiRes.getSectionsRaw(),
                 apiRes.getSectionsParsed()
         );
     }

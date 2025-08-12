@@ -10,19 +10,16 @@ public class DraftResponse {
     private String draftText;
     @JsonProperty("rag_context")
     private String ragContext;
-    @JsonProperty("sections_raw")
-    private Map<String, Object> sectionsRaw;
     @JsonProperty("sections_parsed")
     private Map<String, Object> sectionsParsed;
 
     public DraftResponse() {}
 
     public DraftResponse(String logId, String draftText, String ragContext,
-                         Map<String, Object> sectionsRaw, Map<String, Object> sectionsParsed) {
+                         Map<String, Object> sectionsParsed) {
         this.logId = logId;
         this.draftText = draftText;
         this.ragContext = ragContext;
-        this.sectionsRaw = sectionsRaw;
         this.sectionsParsed = sectionsParsed;
     }
 
@@ -48,14 +45,6 @@ public class DraftResponse {
 
     public void setRagContext(String ragContext) {
         this.ragContext = ragContext;
-    }
-
-    public Map<String, Object> getSectionsRaw() {
-        return sectionsRaw;
-    }
-
-    public void setSectionsRaw(Map<String, Object> sectionsRaw) {
-        this.sectionsRaw = sectionsRaw;
     }
 
     public Map<String, Object> getSectionsParsed() {

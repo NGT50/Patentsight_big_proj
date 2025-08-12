@@ -9,7 +9,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Mono;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -36,7 +35,6 @@ class DraftServiceImplTest {
         Map<String, Object> parsed = new HashMap<>();
         parsed.put("청구항", "draft text");
         apiRes.setSectionsParsed(parsed);
-        apiRes.setSectionsRaw(Collections.singletonMap("raw", "data"));
         when(apiClient.generate(req)).thenReturn(Mono.just(apiRes));
 
         DraftResponse res = service.generateClaimDraft(req);
@@ -45,6 +43,5 @@ class DraftServiceImplTest {
         assertEquals("draft text", res.getDraftText());
         assertEquals("ctx", res.getRagContext());
         assertEquals(parsed, res.getSectionsParsed());
-        assertEquals(apiRes.getSectionsRaw(), res.getSectionsRaw());
     }
 }
