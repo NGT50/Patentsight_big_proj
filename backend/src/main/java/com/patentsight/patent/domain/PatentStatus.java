@@ -5,5 +5,7 @@ public enum PatentStatus {
     SUBMITTED,
     REVIEWING,
     APPROVED,
-    REJECTED
+    REJECTED,
+    WAITING_ASSIGNMENT, // ✅ 추가
+
 }
