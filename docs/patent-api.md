@@ -85,7 +85,7 @@
 - 청구항 초안 생성 외부 API 예시:
 
   ```bash
-    curl -v "https://kw-crossword-experiments-instrumentation.trycloudflare.com/generate?minimal=true&include_rag_meta=true&rag_format=meta" \
+    curl -v "https://varieties-rings-advantage-buildings.trycloudflare.com/generate?minimal=true&include_rag_meta=true&rag_format=meta" \
       -H "Content-Type: application/json; charset=utf-8" \
       --data '{"query":"자율주행 차량의 객체 인식 취약점 보완 장치 및 방법","top_k":5}'
     ```

@@ -13,7 +13,7 @@ public class ClaimDraftApiClient {
 
     public ClaimDraftApiClient(WebClient.Builder builder) {
         this.webClient = builder
-                .baseUrl("https://kw-crossword-experiments-instrumentation.trycloudflare.com")
+                .baseUrl("https://varieties-rings-advantage-buildings.trycloudflare.com")
                 .build();
     }
 
