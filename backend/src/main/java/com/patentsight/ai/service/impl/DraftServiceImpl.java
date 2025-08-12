@@ -26,15 +26,25 @@ public class DraftServiceImpl implements DraftService {
             throw new RuntimeException("Failed to generate claim draft");
         }
         Map<String, Object> parsed = apiRes.getSectionsParsed();
-        String draftText = null;
-        if (parsed != null && parsed.get("청구항") instanceof String) {
-            draftText = (String) parsed.get("청구항");
-        }
+        String title = getString(parsed, "발명의 명칭");
+        String summary = getString(parsed, "요약");
+        String technicalField = getString(parsed, "기술 분야");
+        String backgroundTechnology = getString(parsed, "배경 기술");
+        DraftResponse.InventionDetails details = new DraftResponse.InventionDetails();
+        details.setProblemToSolve(getString(parsed, "해결하려는 과제"));
+        details.setSolution(getString(parsed, "과제의 해결 수단"));
+        details.setEffect(getString(parsed, "발명의 효과"));
+        List<String> claims = parseClaims(parsed.get("청구항"));
+
         return new DraftResponse(
                 UUID.randomUUID().toString(),
-                draftText,
                 apiRes.getRagContext(),
-                apiRes.getSectionsParsed()
+                title,
+                summary,
+                technicalField,
+                backgroundTechnology,
+                details,
+                claims
         );
     }
 
@@ -51,5 +61,25 @@ public class DraftServiceImpl implements DraftService {
     @Override
     public void deleteDrafts(Long patentId) {
         // no-op
+    }
+
+    private String getString(Map<String, Object> map, String key) {
+        if (map == null) return null;
+        Object val = map.get(key);
+        return val instanceof String ? (String) val : null;
+    }
+
+    private List<String> parseClaims(Object claimsObj) {
+        if (claimsObj instanceof List) {
+            //noinspection unchecked
+            return (List<String>) claimsObj;
+        } else if (claimsObj instanceof String) {
+            String[] parts = ((String) claimsObj).split("\n\n");
+            return java.util.Arrays.stream(parts)
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .toList();
+        }
+        return java.util.Collections.emptyList();
     }
 }

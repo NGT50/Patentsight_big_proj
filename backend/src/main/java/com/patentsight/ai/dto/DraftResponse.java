@@ -1,57 +1,71 @@
 package com.patentsight.ai.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import java.util.Map;
+import java.util.List;
 
 public class DraftResponse {
     @JsonProperty("log_id")
     private String logId;
-    @JsonProperty("draft_text")
-    private String draftText;
     @JsonProperty("rag_context")
-    private String ragContext;
-    @JsonProperty("sections_parsed")
-    private Map<String, Object> sectionsParsed;
+    private List<RagMeta> ragContext;
+    private String title;
+    private String summary;
+    private String technicalField;
+    private String backgroundTechnology;
+    private InventionDetails inventionDetails;
+    private List<String> claims;
 
     public DraftResponse() {}
 
-    public DraftResponse(String logId, String draftText, String ragContext,
-                         Map<String, Object> sectionsParsed) {
+    public DraftResponse(String logId, List<RagMeta> ragContext, String title,
+                         String summary, String technicalField, String backgroundTechnology,
+                         InventionDetails inventionDetails, List<String> claims) {
         this.logId = logId;
-        this.draftText = draftText;
         this.ragContext = ragContext;
-        this.sectionsParsed = sectionsParsed;
+        this.title = title;
+        this.summary = summary;
+        this.technicalField = technicalField;
+        this.backgroundTechnology = backgroundTechnology;
+        this.inventionDetails = inventionDetails;
+        this.claims = claims;
     }
 
-    public String getLogId() {
-        return logId;
-    }
+    public String getLogId() { return logId; }
+    public void setLogId(String logId) { this.logId = logId; }
 
-    public void setLogId(String logId) {
-        this.logId = logId;
-    }
+    public List<RagMeta> getRagContext() { return ragContext; }
+    public void setRagContext(List<RagMeta> ragContext) { this.ragContext = ragContext; }
 
-    public String getDraftText() {
-        return draftText;
-    }
+    public String getTitle() { return title; }
+    public void setTitle(String title) { this.title = title; }
 
-    public void setDraftText(String draftText) {
-        this.draftText = draftText;
-    }
+    public String getSummary() { return summary; }
+    public void setSummary(String summary) { this.summary = summary; }
 
-    public String getRagContext() {
-        return ragContext;
-    }
+    public String getTechnicalField() { return technicalField; }
+    public void setTechnicalField(String technicalField) { this.technicalField = technicalField; }
 
-    public void setRagContext(String ragContext) {
-        this.ragContext = ragContext;
-    }
+    public String getBackgroundTechnology() { return backgroundTechnology; }
+    public void setBackgroundTechnology(String backgroundTechnology) { this.backgroundTechnology = backgroundTechnology; }
 
-    public Map<String, Object> getSectionsParsed() {
-        return sectionsParsed;
-    }
+    public InventionDetails getInventionDetails() { return inventionDetails; }
+    public void setInventionDetails(InventionDetails inventionDetails) { this.inventionDetails = inventionDetails; }
 
-    public void setSectionsParsed(Map<String, Object> sectionsParsed) {
-        this.sectionsParsed = sectionsParsed;
+    public List<String> getClaims() { return claims; }
+    public void setClaims(List<String> claims) { this.claims = claims; }
+
+    public static class InventionDetails {
+        private String problemToSolve;
+        private String solution;
+        private String effect;
+
+        public String getProblemToSolve() { return problemToSolve; }
+        public void setProblemToSolve(String problemToSolve) { this.problemToSolve = problemToSolve; }
+
+        public String getSolution() { return solution; }
+        public void setSolution(String solution) { this.solution = solution; }
+
+        public String getEffect() { return effect; }
+        public void setEffect(String effect) { this.effect = effect; }
     }
 }
