@@ -2,22 +2,20 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Palette, Info, Image, MessageSquare, Copy, FlaskConical,
-  CheckCircle, Send, Bot, Lightbulb, GanttChart, Scale, X, FileText, ScrollText, Check
+  CheckCircle, Send, Bot, Lightbulb, GanttChart, Scale, X, FileText, ScrollText, Check, Upload
 } from 'lucide-react';
 
 // API 함수들을 각 모듈에서 임포트합니다.
- import { submitReview, getReviewDetail } from '../api/review';
- import { 
-   startChatSession, 
-   sendChatMessageToServer, 
-   validatePatentDocument, 
-   analyzeImageSimilarity, 
-   generate3DModel,
-   generateRejectionDraft
- } from '../api/ai';
-
-
-
+import { submitReview, getReviewDetail } from '../api/review';
+import { 
+  startChatSession, 
+  sendChatMessageToServer, 
+  validatePatentDocument, 
+  analyzeImageSimilarity, 
+  generate3DModel,
+  generateRejectionDraft,
+  searchDesignImage // 디자인 이미지 검색 API 임포트
+} from '../api/ai';
 
 // 가상의 3D 모델 뷰어 컴포넌트
 const ThreeDModelViewer = ({ glbPath }) => {
@@ -57,6 +55,10 @@ export default function DesignReview() {
   const [threeDModelPath, setThreeDModelPath] = useState('');
   const [isGenerating3D, setIsGenerating3D] = useState(false);
   const [isGeneratingDraft, setIsGeneratingDraft] = useState(false);
+  const [isSearchingSimilarity, setIsSearchingSimilarity] = useState(false);
+  const [uploadedImage, setUploadedImage] = useState(null);
+  const [designImageUrl, setDesignImageUrl] = useState('');
+
 
   const quickQuestions = [
     { id: 'q1', text: '유사 디자인', icon: Copy, query: '이 디자인과 유사한 디자인을 찾아줘' },
@@ -72,9 +74,7 @@ export default function DesignReview() {
       try {
         const data = await getReviewDetail(id);
         setDesign(data);
-
-        const simResults = await analyzeImageSimilarity(data.patentId, []); 
-        setSimilarityResults(simResults || []);
+        setDesignImageUrl(data.drawingImageUrl || 'https://placehold.co/400x300.png?text=No+Image');
 
         let translatedStatus = '';
         switch (data.decision) {
@@ -99,6 +99,12 @@ export default function DesignReview() {
             break;
         }
         setStatus(translatedStatus);
+        
+        // 페이지 로드 시 AI 유사 디자인 분석 자동 실행
+        // 실제 이미지를 가져오는 URL이 있다고 가정
+        if (designImageUrl) {
+            handleSimilaritySearch(designImageUrl);
+        }
 
       } catch (error) {
         console.error('심사 상세 정보 조회 실패:', error);
@@ -352,6 +358,35 @@ ${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getD
     }
   };
 
+  // AI 유사 디자인 검색 로직 추가
+  const handleSimilaritySearch = async (imageFile) => {
+    if (!imageFile) {
+      // 이미지 파일이 없을 경우 기본 이미지를 사용하여 AI 분석을 실행합니다.
+      // 실제 구현 시에는 design.file_url 등을 활용해야 합니다.
+      showMessageBox('유사도 분석을 위해 이미지가 필요합니다.');
+      return;
+    }
+
+    setIsSearchingSimilarity(true);
+    setSimilarityResults([]);
+    
+    try {
+      const results = await searchDesignImage(imageFile);
+      if (results && results.results) {
+        setSimilarityResults(results.results);
+        showMessageBox(`총 ${results.results.length}개의 유사 디자인을 찾았습니다.`);
+      } else {
+        showMessageBox('유사 디자인을 찾을 수 없습니다.');
+      }
+    } catch (error) {
+      console.error('유사도 분석 실패:', error);
+      showMessageBox('유사도 분석 중 오류가 발생했습니다.');
+    } finally {
+      setIsSearchingSimilarity(false);
+    }
+  };
+
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
@@ -397,23 +432,23 @@ ${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getD
 
         <div className="p-8 font-sans">
           <section className="mb-6 border border-gray-200 p-6 rounded-xl bg-white shadow-sm">
-             <h3 className="font-semibold text-xl mb-4 text-gray-800 flex items-center gap-2">
-               <Info className="w-5 h-5 text-indigo-500" /> 출원 정보
-             </h3>
-             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-3 text-gray-700">
-               <p><strong>출원번호:</strong> <span className="font-medium text-gray-900">{design.applicationNumber}</span></p>
-               <p><strong>접수일자:</strong> <span className="font-medium text-gray-900">{design.applicationDate}</span></p>
-               <p><strong>출원인:</strong> <span className="font-medium text-gray-900">{design.applicantName || '정보 없음'}</span></p>
-               <p><strong>디자인명:</strong> <span className="font-medium text-gray-900">{design.title || design.patentTitle}</span></p>
-               <p>
-                 <strong>심사상태:</strong>
-                 <span className={`font-semibold ${getStatusColorClass(status)} px-2 py-1 rounded text-sm ml-2`}>
-                   {status}
-                 </span>
-               </p>
-               <p><strong>분류:</strong> <span className="font-medium text-gray-900">{design.technicalField}</span></p>
-               <p><strong>담당 심사관:</strong> <span className="font-medium text-gray-900">{design.examinerName || '정보 없음'}</span></p>
-             </div>
+              <h3 className="font-semibold text-xl mb-4 text-gray-800 flex items-center gap-2">
+                <Info className="w-5 h-5 text-indigo-500" /> 출원 정보
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-3 text-gray-700">
+                <p><strong>출원번호:</strong> <span className="font-medium text-gray-900">{design.applicationNumber}</span></p>
+                <p><strong>접수일자:</strong> <span className="font-medium text-gray-900">{design.applicationDate}</span></p>
+                <p><strong>출원인:</strong> <span className="font-medium text-gray-900">{design.applicantName || '정보 없음'}</span></p>
+                <p><strong>디자인명:</strong> <span className="font-medium text-gray-900">{design.title || design.patentTitle}</span></p>
+                <p>
+                  <strong>심사상태:</strong>
+                  <span className={`font-semibold ${getStatusColorClass(status)} px-2 py-1 rounded text-sm ml-2`}>
+                    {status}
+                  </span>
+                </p>
+                <p><strong>분류:</strong> <span className="font-medium text-gray-900">{design.technicalField}</span></p>
+                <p><strong>담당 심사관:</strong> <span className="font-medium text-gray-900">{design.examinerName || '정보 없음'}</span></p>
+              </div>
           </section>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
@@ -550,7 +585,22 @@ ${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getD
                     <Image className="w-4 h-4 text-indigo-400" /> 2D 도면
                   </h4>
                   <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
-                    <p className="text-gray-600 col-span-full text-sm bg-gray-50 p-3 rounded-md border border-gray-100">등록된 2D 도면이 없습니다.</p>
+                    {design.drawingFileNames && design.drawingFileNames.length > 0 ? (
+                      design.drawingFileNames.map((fileName, index) => (
+                        <div key={index} className="relative group overflow-hidden rounded-lg shadow-sm">
+                          <img 
+                            src={`/api/files/${design.patentId}/${fileName}`} 
+                            alt={`도면 ${index + 1}`} 
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all duration-300 flex items-center justify-center">
+                            <span className="text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity">{fileName}</span>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-gray-600 col-span-full text-sm bg-gray-50 p-3 rounded-md border border-gray-100">등록된 2D 도면이 없습니다.</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -594,19 +644,29 @@ ${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getD
               <Copy className="w-5 h-5 text-indigo-500" /> AI 유사 디자인 분석
             </h3>
             <div className="flex gap-4 overflow-x-auto pb-2 -mx-2 px-2">
-              {similarityResults && similarityResults.length > 0 ? (
+              {isSearchingSimilarity ? (
+                <div className="w-full flex justify-center items-center py-8">
+                  <div className="w-8 h-8 border-4 border-gray-200 border-t-indigo-500 rounded-full animate-spin"></div>
+                  <p className="ml-4 text-gray-600">유사 디자인을 검색하고 있습니다...</p>
+                </div>
+              ) : similarityResults && similarityResults.length > 0 ? (
                 similarityResults.map((result, index) => (
                   <div key={result.similar_patent_code || index} className="min-w-[220px] w-full max-w-[250px] border border-gray-200 rounded-lg bg-white shadow-sm flex-shrink-0 transition-all hover:shadow-md hover:border-indigo-200">
                     <div className="h-32 bg-gray-100 flex items-center justify-center">
-                      <Image className="w-12 h-12 text-gray-400" />
+                        <img 
+                            src={result.image_url} 
+                            alt={`유사 디자인 ${index + 1}`} 
+                            className="w-full h-full object-contain"
+                            onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/400x300/e2e8f0/94a3b8?text=Image+Not+Found"; }}
+                        />
                     </div>
                     <div className="p-3">
-                      <p className="text-sm font-semibold text-gray-800 truncate">유사특허 {result.similar_patent_code || `결과 ${index + 1}`}</p>
-                      <p className="text-xs text-gray-500 mt-1">Image ID: {result.image_id}</p>
+                      <p className="text-sm font-semibold text-gray-800 truncate">{result.title || `유사 디자인 ${index + 1}`}</p>
+                      <p className="text-xs text-gray-500 mt-1">출원번호: {result.application_number}</p>
                       <div className="w-full bg-gray-200 rounded-full h-2.5 mt-3">
-                        <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: `${result.similarity_score}%` }}></div>
+                        <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: `${(result.similarity * 100).toFixed(2)}%` }}></div>
                       </div>
-                      <p className="text-right text-sm font-bold text-blue-700 mt-1">{result.similarity_score.toFixed(2)}%</p>
+                      <p className="text-right text-sm font-bold text-blue-700 mt-1">{(result.similarity * 100).toFixed(2)}%</p>
                     </div>
                   </div>
                 ))

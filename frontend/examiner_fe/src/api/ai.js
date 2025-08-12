@@ -63,3 +63,33 @@ export const generateRejectionDraft = async (patentId) => {
   const response = await api.post('/ai/draft/rejections', { patentId });
   return response.data;
 };
+
+
+// 디자인 유사도 이미지 검색 API
+export const searchDesignImage = async (imageUrl) => {
+  try {
+    // 이미지 URL을 Blob으로 변환
+    const response = await fetch(imageUrl);
+    const blob = await response.blob();
+
+    // Blob을 파일로 변환
+    const imageFile = new File([blob], "design-image.png", { type: blob.type });
+
+    const formData = new FormData();
+    formData.append('file', imageFile);
+
+    const apiResponse = await axiosInstance.post(
+      '/api/ai/search/design/image',
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    );
+    return apiResponse.data;
+  } catch (error) {
+    console.error('디자인 유사 이미지 검색 실패:', error);
+    throw error;
+  }
+};
