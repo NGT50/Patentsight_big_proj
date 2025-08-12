@@ -63,8 +63,8 @@
 
 | API 이름 | 설명 | Method | URL | 요청 데이터 | 응답 데이터 | 비고 |
 | --- | --- | --- | --- | --- | --- | --- |
-| Generate Claim Draft | 청구항 초안 생성 | POST | /api/ai/draft/claims | `{"query":"자율주행 차량의 객체 인식 취약점 보완 장치 및 방법","top_k":5}` | `{"log_id":"1","rag_context":[{"rank":1,"score":0.98,"app_num":"1020050050443","claim_num":1,"text":"…"}],"title":"…","summary":"…","technicalField":"…","backgroundTechnology":"…","inventionDetails":{"problemToSolve":"…","solution":"…","effect":"…"},"claims":["[청구항 1]...","[청구항 2]..."]}` | AI_ActionLog 및 AI_ChatMessage 로그 포함 |
-| Generate Rejection Draft | 거절 사유 초안 생성 | POST | /api/ai/draft/rejections | `{"patentId":1}` | `{"logId":2,"draftText":"거절 사유 초안"}` | 구조 동일 |
+| Generate Claim Draft | 청구항 초안 생성 | POST | /api/ai/drafts/claims | `{"query":"자율주행 차량의 객체 인식 취약점 보완 장치 및 방법","top_k":5}` | `{"log_id":"1","rag_context":[{"rank":1,"score":0.98,"app_num":"1020050050443","claim_num":1,"text":"…"}],"title":"…","summary":"…","technicalField":"…","backgroundTechnology":"…","inventionDetails":{"problemToSolve":"…","solution":"…","effect":"…"},"claims":["[청구항 1]...","[청구항 2]..."]}` | AI_ActionLog 및 AI_ChatMessage 로그 포함 |
+| Generate Rejection Draft | 거절 사유 초안 생성 | POST | /api/ai/drafts/rejections | `{"patentId":1}` | `{"logId":2,"draftText":"거절 사유 초안"}` | 구조 동일 |
 | List Drafts | 출원별 생성된 초안 목록 조회 | GET | /api/ai/drafts?patentId={patentId} | – | `[{"draftId":1,"type":"CLAIM","content":"청구항 초안"}]` | type: "CLAIM" 또는 "REJECTION", 최신순 정렬 |
 | Delete Drafts | 생성된 초안 삭제 | DELETE | /api/ai/drafts?patentId={patentId} | – | – |  |
 | Validate Patent Document | 출원 문서 오류 점검 (Rule + GPT) | POST | /api/ai/validations | `{"patentId":1}` | `[{"errorType":"MISSING_FIELD","message":"title is required"}]` | 규칙 기반 + AI 분석 |
