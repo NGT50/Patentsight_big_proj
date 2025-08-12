@@ -85,24 +85,14 @@
 - 청구항 초안 생성 외부 API 예시:
 
   ```bash
-  curl -v "https://kw-crossword-experiments-instrumentation.trycloudflare.com/generate?minimal=true&include_rag_meta=true&rag_format=meta" \
-    -H "Content-Type: application/json; charset=utf-8" \
-    --data-binary @request.json \
-    -o result.json
-  ```
+    curl -v "https://kw-crossword-experiments-instrumentation.trycloudflare.com/generate?minimal=true&include_rag_meta=true&rag_format=meta" \
+      -H "Content-Type: application/json; charset=utf-8" \
+      --data '{"query":"자율주행 차량의 객체 인식 취약점 보완 장치 및 방법","top_k":5}'
+    ```
 
-  `request.json`:
+    응답 예시:
 
-  ```json
-  {
-    "query": "자율주행 차량의 객체 인식 취약점 보완 장치 및 방법",
-    "top_k": 5
-  }
-  ```
-
-  응답 예시(`result.json`):
-
-  ```json
+    ```json
   {
     "log_id": "1",
     "rag_context": [
