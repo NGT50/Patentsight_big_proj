@@ -9,6 +9,7 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -33,12 +34,7 @@ public class ClaimDraftClient {
         }
 
         String response = webClient.post()
-                .uri(uriBuilder -> uriBuilder
-                        .path(CLAIM_API_URL)
-                        .queryParam("minimal", true)
-                        .queryParam("include_rag_meta", true)
-                        .queryParam("rag_format", "meta")
-                        .build())
+                .uri(URI.create(CLAIM_API_URL + "?minimal=true&include_rag_meta=true&rag_format=meta"))
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(body)
                 .retrieve()
