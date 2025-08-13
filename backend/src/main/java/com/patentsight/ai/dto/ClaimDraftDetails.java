@@ -1,5 +1,7 @@
 package com.patentsight.ai.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -11,6 +13,8 @@ import java.util.List;
  */
 @Data
 @NoArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class ClaimDraftDetails {
 
     @JsonProperty("log_id")
@@ -31,6 +35,7 @@ public class ClaimDraftDetails {
 
     @Data
     @NoArgsConstructor
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class RagContext {
         private Integer rank;
         private Double score;
@@ -46,6 +51,7 @@ public class ClaimDraftDetails {
 
     @Data
     @NoArgsConstructor
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class InventionDetails {
         private String problemToSolve;
         private String solution;
