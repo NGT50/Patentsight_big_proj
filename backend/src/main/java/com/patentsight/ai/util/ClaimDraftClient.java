@@ -20,7 +20,7 @@ public class ClaimDraftClient {
     @Qualifier("externalAiWebClient")
     private final WebClient webClient;
 
-    private static final String CLAIM_API_URL = "https://varieties-rings-advantage-buildings.trycloudflare.com/generate";
+    private static final String CLAIM_API_URL = "https://presenting-drill-stands-rogers.trycloudflare.com/generate";
 
     /**
      * 외부 청구항 생성 API 호출 후 raw JSON 응답을 반환한다.
