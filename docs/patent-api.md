@@ -52,7 +52,7 @@
 
 | API 이름 | 설명 | Method | URL | 요청 데이터 | 응답 데이터 | 비고 |
 | --- | --- | --- | --- | --- | --- | --- |
-| Generate Claim Draft | 청구항 초안 생성 | POST | /api/ai/drafts/claims | `{ "query":"자율주행 차량의 객체 인식 취약점 보완 장치 및 방법","top_k":5 }` | `{ "log_id":"1","rag_context":[{"rank":1,"score":0.98,"app_num":"1020050050443","claim_num":1,"text":"…"}],"title":"…","summary":"…","technicalField":"…","backgroundTechnology":"…","inventionDetails":{"problemToSolve":"…","solution":"…","effect":"…"},"claims":["[청구항 1]...","[청구항 2]..."] }` | AI_ActionLog 및 AI_ChatMessage 로그 포함 |
+| Generate Claim Draft | 청구항 초안 생성 | POST | /api/ai/drafts/claims | `{ "query":"자율주행 차량의 객체 인식 취약점 보완 장치 및 방법","top_k":5 }` | `{ "log_id":"1","rag_context":[{"rank":1,"score":0.98,"app_num":"1020050050443","claim_num":1,"text":"…"}],"title":"…","summary":"…","technicalField":"…","backgroundTechnology":"…","inventionDetails":{"problemToSolve":"…","solution":"…","effect":"…"},"claims":["[청구항 1]...","[청구항 2]..."] }` | 외부 청구항 생성 API 호출<br>(기본값: minimal=true, include_rag_meta=true, rag_format=meta)<br>AI_ActionLog 및 AI_ChatMessage 로그 포함 |
 | Generate Rejection Draft | 거절 사유 초안 생성 | POST | /api/ai/drafts/rejections | `{ "patentId":1 }` | `{ "logId":2,"draftText":"거절 사유 초안" }` | 구조 동일 |
 | List Drafts | 출원별 생성된 초안 목록 조회 | GET | /api/ai/drafts?patentId={patentId} | – | `[ { "draftId":1,"type":"CLAIM","content":"청구항 초안" } ]` | type: "CLAIM" 또는 "REJECTION", 최신순 정렬 |
 | Delete Drafts | 생성된 초안 삭제 | DELETE | /api/ai/drafts?patentId={patentId} | – | – |  |
@@ -110,6 +110,14 @@ curl -v "https://varieties-rings-advantage-buildings.trycloudflare.com/generate?
     "[청구항 5] 제 1항에 있어서..."
   ]
 }
+```
+
+- 기본값 사용 시 간단 호출:
+
+```bash
+curl -X POST "https://varieties-rings-advantage-buildings.trycloudflare.com/generate" \
+  -H "Content-Type: application/json; charset=utf-8" \
+  --data '{"query":"자율주행 차량의 객체 인식 취약점 보완 장치 및 방법"}'
 ```
 
 - 3D 모델 생성 외부 API 예시:
