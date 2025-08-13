@@ -43,6 +43,15 @@ Table PatentClaim {
   claim_text  text    [not null]
 }
 
+Table Draft {
+  id         bigint  [pk, not null]
+  patent_id  bigint
+  type       varchar [not null] // CLAIM / REJECTION
+  content    text
+  created_at datetime [not null]
+  updated_at datetime [not null]
+}
+
 Table Review {
   review_id    bigint   [pk, not null]
   patent_id    bigint   [not null] // FK → Patent.patent_id
@@ -157,6 +166,7 @@ Ref: Review.patent_id > Patent.patent_id
 Ref: Review.examiner_id > User.user_id
 Ref: FileAttachment.patent_id > Patent.patent_id
 Ref: SpecVersion.patent_id > Patent.patent_id
+Ref: Draft.patent_id > Patent.patent_id
 Ref: AiChatMessage.session_id > AiChatSession.session_id
 Ref: OpinionNotice.review_id > Review.review_id
 Ref: Notification.user_id > User.user_id
