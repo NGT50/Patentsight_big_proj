@@ -21,7 +21,7 @@ public class AiDraftController {
     // ✅ 1. 청구항 초안 생성
     @PostMapping("/drafts/claims")
     public DraftDetailResponse generateClaimDraft(@RequestBody ClaimDraftRequest request) {
-        return aiService.generateClaimDraft(request.getPatentId(), request.getQuery(), request.getTopK());
+        return aiService.generateClaimDraft(request.getQuery(), request.getTopK());
     }
 
     // ✅ 2. 초안 생성 (거절)
@@ -78,17 +78,8 @@ public class AiDraftController {
     }
 
     public static class ClaimDraftRequest {
-        private Long patentId;
         private String query;
         private Integer topK;
-
-        public Long getPatentId() {
-            return patentId;
-        }
-
-        public void setPatentId(Long patentId) {
-            this.patentId = patentId;
-        }
 
         public String getQuery() {
             return query;
