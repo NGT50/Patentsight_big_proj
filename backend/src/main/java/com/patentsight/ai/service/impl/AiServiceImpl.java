@@ -38,9 +38,9 @@ public class AiServiceImpl implements AiService {
     }
 
     @Override
-    public DraftDetailResponse generateClaimDraft(Long patentId, String query, Integer topK) {
+    public DraftDetailResponse generateClaimDraft(String query, Integer topK) {
         String raw = claimDraftClient.generate(query, topK);
         String claimsText = claimDraftClient.extractClaims(raw);
-        return draftService.createAndReturnDraft(patentId, DraftType.CLAIM, claimsText);
+        return draftService.createAndReturnDraft(null, DraftType.CLAIM, claimsText);
     }
 }

@@ -78,9 +78,9 @@ export const getLatestDocument = async (patentId) => {
 
 // 이하 모든 AI 관련 및 기타 함수들도 동일한 패턴으로 수정합니다.
 
-export const generateClaimDraft = async (patentId) => {
+export const generateClaimDraft = async ({ query, topK }) => {
   try {
-    const res = await axios.post('/api/ai/draft/claims', { patent_id: patentId });
+    const res = await axios.post('/api/ai/drafts/claims', { query, topK });
     return res.data;
   } catch (error) {
     console.error('청구항 초안 생성 실패:', error);
