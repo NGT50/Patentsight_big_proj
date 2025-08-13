@@ -1,5 +1,6 @@
 package com.patentsight.ai.controller;
 
+import com.patentsight.ai.dto.ClaimDraftDetails;
 import com.patentsight.ai.dto.DraftDetailResponse;
 import com.patentsight.ai.dto.DraftListResponse;
 import com.patentsight.ai.dto.DraftUpdateRequest;
@@ -20,7 +21,7 @@ public class AiDraftController {
 
     // ✅ 1. 청구항 초안 생성
     @PostMapping("/drafts/claims")
-    public DraftDetailResponse generateClaimDraft(@RequestBody ClaimDraftRequest request) {
+    public ClaimDraftDetails generateClaimDraft(@RequestBody ClaimDraftRequest request) {
         return aiService.generateClaimDraft(request.getQuery(), request.getTopK());
     }
 
