@@ -7,6 +7,7 @@ import com.patentsight.ai.service.DraftService;
 import com.patentsight.file.domain.FileAttachment;
 import com.patentsight.file.service.FileService;
 import com.patentsight.ai.util.DraftApiClient;
+import com.patentsight.ai.util.ClaimDraftClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -18,6 +19,7 @@ public class AiServiceImpl implements AiService {
 
     private final FileService fileService;
     private final DraftApiClient draftApiClient;
+    private final ClaimDraftClient claimDraftClient;
     private final DraftService draftService;
 
     @Override
@@ -33,5 +35,12 @@ public class AiServiceImpl implements AiService {
 
         // 📌 4. 초안 DB 저장 및 응답 반환
         return draftService.createAndReturnDraft(patentId, DraftType.REJECTION, opinionText);
+    }
+
+    @Override
+    public DraftDetailResponse generateClaimDraft(Long patentId, String query, Integer topK) {
+        String raw = claimDraftClient.generate(query, topK);
+        String claimsText = claimDraftClient.extractClaims(raw);
+        return draftService.createAndReturnDraft(patentId, DraftType.CLAIM, claimsText);
     }
 }
