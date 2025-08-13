@@ -1,6 +1,7 @@
 package com.patentsight.ai.service.impl;
 
 import com.patentsight.ai.domain.DraftType;
+import com.patentsight.ai.dto.ClaimDraftDetails;
 import com.patentsight.ai.dto.DraftDetailResponse;
 import com.patentsight.ai.service.AiService;
 import com.patentsight.ai.service.DraftService;
@@ -38,9 +39,8 @@ public class AiServiceImpl implements AiService {
     }
 
     @Override
-    public DraftDetailResponse generateClaimDraft(String query, Integer topK) {
+    public ClaimDraftDetails generateClaimDraft(String query, Integer topK) {
         String raw = claimDraftClient.generate(query, topK);
-        String claimsText = claimDraftClient.extractClaims(raw);
-        return draftService.createAndReturnDraft(null, DraftType.CLAIM, claimsText);
+        return claimDraftClient.parseDetails(raw);
     }
 }
