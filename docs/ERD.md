@@ -125,6 +125,8 @@ Table SearchResult {
   title              varchar
   ipc_code           varchar
   similarity_score   float
+  is_relevant        boolean
+  updated_at         datetime
 }
 
 Table OpinionNotice {
