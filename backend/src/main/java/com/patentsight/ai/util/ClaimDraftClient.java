@@ -1,7 +1,7 @@
 package com.patentsight.ai.util;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.patentsight.ai.dto.ClaimDraftDetails;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -46,24 +46,15 @@ public class ClaimDraftClient {
     }
 
     /**
-     * 응답 JSON에서 claims 배열만 추출해 하나의 문자열로 합쳐서 반환한다.
+     * 응답 JSON을 {@link ClaimDraftDetails} 객체로 파싱한다.
      */
-    public String extractClaims(String json) {
+    public ClaimDraftDetails parseDetails(String json) {
         try {
             ObjectMapper mapper = new ObjectMapper();
-            JsonNode root = mapper.readTree(json);
-            JsonNode claims = root.path("claims");
-            if (!claims.isArray()) {
-                return json; // 예상치 못한 응답 구조인 경우 원본 반환
-            }
-            StringBuilder sb = new StringBuilder();
-            for (JsonNode node : claims) {
-                sb.append(node.asText()).append("\n");
-            }
-            return sb.toString().trim();
+            return mapper.readValue(json, ClaimDraftDetails.class);
         } catch (Exception e) {
             log.warn("Failed to parse claim draft response", e);
-            return json;
+            return new ClaimDraftDetails();
         }
     }
 }
