@@ -1,4 +1,4 @@
-package com.patentsight.ai.client;
+package com.patentsight.ai.util;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.patentsight.ai.dto.Generate3DModelApiResponse;

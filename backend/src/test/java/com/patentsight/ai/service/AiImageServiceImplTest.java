@@ -1,6 +1,6 @@
 package com.patentsight.ai.service;
 
-import com.patentsight.ai.client.ThreeDModelApiClient;
+import com.patentsight.ai.util.ThreeDModelApiClient;
 import com.patentsight.ai.dto.ImageIdRequest;
 import com.patentsight.ai.service.impl.AiImageServiceImpl;
 import com.patentsight.file.domain.FileAttachment;
