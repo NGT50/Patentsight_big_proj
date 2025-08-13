@@ -6,6 +6,7 @@ import com.patentsight.ai.dto.DraftListResponse;
 import com.patentsight.ai.dto.DraftUpdateRequest;
 import com.patentsight.ai.service.AiService;
 import com.patentsight.ai.service.DraftService;
+import com.patentsight.ai.util.ClaimDraftClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,11 +19,13 @@ public class AiDraftController {
 
     private final AiService aiService;
     private final DraftService draftService;
+    private final ClaimDraftClient claimDraftClient;
 
     // ✅ 1. 청구항 초안 생성
     @PostMapping("/drafts/claims")
     public ClaimDraftDetails generateClaimDraft(@RequestBody ClaimDraftRequest request) {
-        return aiService.generateClaimDraft(request.getQuery(), request.getTopK());
+        String raw = aiService.generateClaimDraft(request.getQuery(), request.getTopK());
+        return claimDraftClient.parseDetails(raw);
     }
 
     // ✅ 2. 초안 생성 (거절)
