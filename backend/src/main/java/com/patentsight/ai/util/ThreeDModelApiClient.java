@@ -26,7 +26,7 @@ public class ThreeDModelApiClient {
     private final Path saveDir;
 
     public ThreeDModelApiClient(RestTemplate restTemplate,
-                                @Value("${ai.3d-model.endpoint:https://778efa9bea99.ngrok-free.app/generate}") String endpoint,
+                                @Value("${ai.3d-model.endpoint:https://4731cfc6a89a.ngrok-free.app/generate}") String endpoint,
                                 @Value("${ai.3d-model.save-dir:uploads}") String saveDir) {
         this.restTemplate = restTemplate;
         this.endpoint = endpoint;
