@@ -26,7 +26,7 @@ public class Review {
     private User examiner;  // 심사관
 
     @Enumerated(EnumType.STRING)
-    private Decision decision; // APPROVE / PENDING / REJECT
+    private Decision decision; // SUBMITTED / REVIEWING / APPROVE / REJECT
 
     private String comment;
     private LocalDateTime reviewedAt;
