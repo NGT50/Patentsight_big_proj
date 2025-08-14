@@ -41,8 +41,8 @@ dependencies {
         // Needed for MockMultipartFile
         implementation 'org.springframework:spring-test'
 
-	// ✅ DB
-	runtimeOnly 'com.h2database:h2'
+        // ✅ DB (PostgreSQL RDS)
+        implementation 'org.postgresql:postgresql:42.7.3'
 
 	// ✅ Lombok
 	compileOnly 'org.projectlombok:lombok'

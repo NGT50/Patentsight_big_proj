@@ -40,3 +40,18 @@ This repository contains a sample structure for a patent management service. The
 - [Database ERD](docs/ERD.md)
 - [Patent API Specification](docs/patent-api.md)
 
+## AWS configuration
+
+The backend stores uploaded files in Amazon S3 and persists other data in an
+RDS PostgreSQL instance. Set the following environment variables or adjust the
+config files:
+
+```
+S3_BUCKET=your-s3-bucket
+AWS_REGION=us-east-1
+```
+
+The RDS connection can be configured in
+`backend/src/main/resources/application.yml` using placeholders such as
+`jdbc:postgresql://your-rds-endpoint:5432/your_database`.
+

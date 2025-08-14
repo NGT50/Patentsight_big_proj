@@ -16,12 +16,12 @@ import software.amazon.awssdk.services.s3.model.S3Exception;
  * Utility helpers for storing uploaded files. Instead of writing to the local
  * file system this implementation stores objects in Amazon S3. The bucket name
  * and region are read from the {@code S3_BUCKET} and {@code AWS_REGION}
- * environment variables (defaults: {@code patentsight-artifacts-usea1} and
+ * environment variables (defaults: {@code your-s3-bucket} and
  * {@code us-east-1}).
  */
 public class FileUtil {
 
-    private static final String BUCKET = System.getenv().getOrDefault("S3_BUCKET", "patentsight-artifacts-usea1");
+    private static final String BUCKET = System.getenv().getOrDefault("S3_BUCKET", "your-s3-bucket");
     private static final Region REGION = Region.of(System.getenv().getOrDefault("AWS_REGION", "us-east-1"));
     private static final S3Client S3 = S3Client.builder().region(REGION).build();
 
