@@ -49,7 +49,7 @@ public class ReviewServiceImpl implements ReviewService {
         Review review = new Review();
         review.setPatent(patent);
         review.setExaminer(examiner);
-        review.setDecision(Review.Decision.PENDING);
+        review.setDecision(Review.Decision.SUBMITTED); // PENDING을 SUBMITTED로 변경
         review.setReviewedAt(null);
         review.setAutoAssigned(false);
 
@@ -59,10 +59,10 @@ public class ReviewServiceImpl implements ReviewService {
         // ✅ 5. OpinionNotice 자동 생성 (NOT_STARTED 상태)
         OpinionNotice notice = OpinionNotice.builder()
                 .review(savedReview)
-                .type(null)                     // 아직 유형 없음
-                .status(OpinionStatus.NOT_STARTED) // ✅ 핵심!
-                .content(null)                 // 내용 없음
-                .structuredContent(null)       // 구조화 없음
+                .type(null)
+                .status(OpinionStatus.NOT_STARTED)
+                .content(null)
+                .structuredContent(null)
                 .isAiDrafted(false)
                 .createdAt(LocalDateTime.now())
                 .build();
@@ -83,13 +83,13 @@ public class ReviewServiceImpl implements ReviewService {
     // 3️⃣ 심사 목록 조회 (status 필터 추가)
     @Override
     public List<ReviewListResponse> getReviewList(Long userId, String status) {
-        // status → Review.Decision 매핑
         Review.Decision decisionFilter = null;
         if (status != null && !status.isBlank()) {
             switch (status.toUpperCase()) {
-                case "REVIEWING" -> decisionFilter = Review.Decision.PENDING;
-                case "APPROVED" -> decisionFilter = Review.Decision.APPROVE;
-                case "REJECTED" -> decisionFilter = Review.Decision.REJECT;
+                case "REVIEWING" -> decisionFilter = Review.Decision.REVIEWING;
+                case "APPROVED"  -> decisionFilter = Review.Decision.APPROVE;
+                case "REJECTED"  -> decisionFilter = Review.Decision.REJECT;
+                case "SUBMITTED" -> decisionFilter = Review.Decision.SUBMITTED;
             }
         }
 
@@ -97,21 +97,26 @@ public class ReviewServiceImpl implements ReviewService {
                 ? reviewRepository.findByExaminer_UserId(userId)
                 : reviewRepository.findByExaminer_UserIdAndDecision(userId, decisionFilter);
 
-        return reviews.stream()
-                .map(r -> ReviewListResponse.builder()
-                        .reviewId(r.getReviewId())
-                        .patentTitle(r.getPatent().getTitle())
-                        .applicantName(getApplicantName(r.getPatent().getApplicantId()))
-                        .examinerName(r.getExaminer().getName())
-                        .status(convertToPatentStatus(r.getDecision()).name()) // PatentStatus 기준
-                        .build())
-                .collect(Collectors.toList());
+            return reviews.stream().map(r -> {
+                var p = r.getPatent();
+                return ReviewListResponse.builder()
+                    .reviewId(r.getReviewId())
+                    .patentTitle(p.getTitle())
+                    .applicantName(getApplicantName(p.getApplicantId()))
+                    .examinerName(r.getExaminer().getName())
+                    .status(r.getDecision().name())
+                    .submittedAt(p.getSubmittedAt() != null ? p.getSubmittedAt().toLocalDate() : null) // 리스트 카드에 바로 씀
+                    .build();
+            }).toList();
+
     }
 
     // 🔹 Review.Decision → PatentStatus 변환
     private PatentStatus convertToPatentStatus(Review.Decision decision) {
         return switch (decision) {
-            case PENDING -> PatentStatus.REVIEWING;
+            
+            case SUBMITTED -> PatentStatus.SUBMITTED;
+            case REVIEWING -> PatentStatus.REVIEWING; // PENDING을 SUBMITTED로 변경
             case APPROVE -> PatentStatus.APPROVED;
             case REJECT -> PatentStatus.REJECTED;
         };
@@ -129,18 +134,18 @@ public class ReviewServiceImpl implements ReviewService {
     public ReviewDetailResponse getReviewDetail(Long reviewId) {
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "리뷰를 찾을 수 없습니다."));
-        Patent patent = review.getPatent(); // 특허 정보
-        User examiner = review.getExaminer(); // 심사관 정보
-        String applicantName = getApplicantName(patent.getApplicantId()); // 출원인 이름 조회
+        Patent patent = review.getPatent();
+        User examiner = review.getExaminer();
+        String applicantName = getApplicantName(patent.getApplicantId());
 
         return ReviewDetailResponse.builder()
-                .reviewId(review.getReviewId()) // ✅ Review 객체 기준으로 변경
+                .reviewId(review.getReviewId())
                 .patentId(patent.getPatentId())
                 .title(patent.getTitle())
                 .applicantName(applicantName)
                 .inventor(patent.getInventor())
                 .applicationNumber(patent.getApplicationNumber())
-                .applicationDate(patent.getSubmittedAt().toLocalDate()) // LocalDateTime → LocalDate 변환
+                .applicationDate(patent.getSubmittedAt().toLocalDate())
                 .technicalField(patent.getTechnicalField())
                 .backgroundTechnology(patent.getBackgroundTechnology())
                 .problemToSolve(patent.getProblemToSolve())
@@ -149,14 +154,14 @@ public class ReviewServiceImpl implements ReviewService {
                 .summary(patent.getSummary())
                 .drawingDescription(patent.getDrawingDescription())
                 .claims(patent.getClaims())
-                .applicationContent(generateApplicationContent(patent)) // ✅ 명세서 요약 조합
+                .applicationContent(generateApplicationContent(patent))
                 .cpc(patent.getCpc())
-                .reviewStatus(patent.getStatus().name()) // PatentStatus 사용
+                .reviewStatus(patent.getStatus().name())
                 .examinerName(examiner.getName())
                 .decision(review.getDecision())
                 .comment(review.getComment())
                 .reviewedAt(review.getReviewedAt())
-                .aiChecks(List.of()) // 현재 Review에 AI 점검 결과 필드 없음 → 빈 리스트로 처리
+                .aiChecks(List.of())
                 .build();
     }
 
@@ -190,14 +195,14 @@ public class ReviewServiceImpl implements ReviewService {
         List<Review> reviews = reviewRepository.findByExaminer_UserId(userId);
 
         long total = reviews.size();
-        long reviewing = reviews.stream().filter(r -> r.getDecision() == Review.Decision.PENDING).count();
-        long completed = reviews.stream().filter(r -> r.getDecision() != Review.Decision.PENDING).count();
-        long pending = 0; // SUBMITTED 같은 별도 상태 필요 시 계산
-
+        long inReview = reviews.stream().filter(r -> r.getDecision() == Review.Decision.REVIEWING).count();
+        long submitted = reviews.stream().filter(r -> r.getDecision() == Review.Decision.SUBMITTED).count();
+        long completed = reviews.stream().filter(r -> r.getDecision() == Review.Decision.APPROVE || r.getDecision() == Review.Decision.REJECT).count();
+        
         return DashboardResponse.builder()
                 .total(total)
-                .inReview(reviewing)
-                .pending(pending)
+                .inReview(inReview)
+                .pending(submitted)
                 .completed(completed)
                 .build();
     }
@@ -205,7 +210,7 @@ public class ReviewServiceImpl implements ReviewService {
     // 7️⃣ 최근 활동 (임시)
     @Override
     public List<RecentActivityResponse> getRecentActivities() {
-        return List.of(); // TODO: Activity 테이블 구현 후 조회
+        return List.of();
     }
 
     // 8️⃣ 심사 목록 검색

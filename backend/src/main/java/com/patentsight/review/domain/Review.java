@@ -36,8 +36,11 @@ public class Review {
     private PatentType reviewType;
 
     private boolean autoAssigned; // 자동 배정 여부
-
+    
     public enum Decision {
-        APPROVE, PENDING, REJECT
+        SUBMITTED,  // 심사대기 (심사관 배정 직후)
+        REVIEWING,  // 심사중 (심사관이 의견 작성 등 작업을 시작한 상태)
+        APPROVE,    // 승인
+        REJECT      // 거절
     }
 }

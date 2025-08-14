@@ -4,9 +4,7 @@ import axios from './axiosInstance';
 export const loginUser = async ({ username, password }) => {
   try {
     console.log('심사관 로그인 요청 데이터:', { username, password });
-    let requestData = { username, password };
-    console.log('전송할 데이터:', requestData);
-    const response = await axios.post('/api/users/login', requestData);
+    const response = await axios.post('/api/users/login', { username, password });
     console.log('심사관 로그인 성공 응답:', response.data);
     return response.data;
   } catch (error) {
@@ -17,12 +15,10 @@ export const loginUser = async ({ username, password }) => {
       message: error.message
     });
     
-    // 더 자세한 에러 정보 출력
     console.error("전체 에러 객체:", error);
     console.error("에러 응답 데이터:", error.response?.data);
     console.error("에러 응답 헤더:", error.response?.headers);
     
-    // 에러 메시지 추출 로직 개선
     let errorMessage = '로그인에 실패했습니다.';
     
     if (error.response?.data) {
