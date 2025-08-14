@@ -3,44 +3,66 @@ package com.patentsight.global.util;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.UUID;
 
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.S3Exception;
+
 /**
- * Utility helpers for storing uploaded files. The implementation keeps files
- * on the local file system under the {@code uploads} directory which makes it
- * easy to run the application locally. In production the returned path can be
- * used as an S3 object key after swapping the implementation.
+ * Utility helpers for storing uploaded files. Instead of writing to the local
+ * file system this implementation stores objects in Amazon S3. The bucket name
+ * and region are read from the {@code S3_BUCKET} and {@code AWS_REGION}
+ * environment variables (defaults: {@code patentsight-artifacts-usea1} and
+ * {@code us-east-1}).
  */
 public class FileUtil {
 
-    private static final Path BASE_DIR = Path.of("uploads");
+    private static final String BUCKET = System.getenv().getOrDefault("S3_BUCKET", "patentsight-artifacts-usea1");
+    private static final Region REGION = Region.of(System.getenv().getOrDefault("AWS_REGION", "us-east-1"));
+    private static final S3Client S3 = S3Client.builder().region(REGION).build();
 
     /**
-     * Saves the provided multipart file to disk and returns the absolute
-     * path. Directories are created as necessary.
+     * Saves the provided multipart file to S3 and returns the generated object
+     * key so it can be stored in the database.
      */
     public static String saveFile(MultipartFile file) throws IOException {
         if (file == null || file.isEmpty()) {
             throw new IOException("No file provided");
         }
-        Files.createDirectories(BASE_DIR);
-        String filename = UUID.randomUUID() + "_" + file.getOriginalFilename();
-        Path target = BASE_DIR.resolve(filename).toAbsolutePath();
-        Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
-        return target.toString();
+        String key = UUID.randomUUID() + "_" + file.getOriginalFilename();
+        try {
+            PutObjectRequest req = PutObjectRequest.builder()
+                    .bucket(BUCKET)
+                    .key(key)
+                    .contentType(file.getContentType())
+                    .build();
+            S3.putObject(req, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
+            return key;
+        } catch (S3Exception e) {
+            throw new IOException("Failed to store file in S3", e);
+        }
     }
 
     /**
-     * Removes the file at the given path if it exists. This is used when a
+     * Removes the S3 object for the given key. This is used when a
      * {@link com.patentsight.file.domain.FileAttachment} is deleted or
      * replaced.
      */
-    public static void deleteFile(String path) throws IOException {
-        if (path != null) {
-            Files.deleteIfExists(Path.of(path));
+    public static void deleteFile(String key) throws IOException {
+        if (key != null && !key.isEmpty()) {
+            try {
+                DeleteObjectRequest req = DeleteObjectRequest.builder()
+                        .bucket(BUCKET)
+                        .key(key)
+                        .build();
+                S3.deleteObject(req);
+            } catch (S3Exception e) {
+                throw new IOException("Failed to delete S3 object", e);
+            }
         }
     }
 }

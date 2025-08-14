@@ -1,33 +1,33 @@
 package com.patentsight.ai.controller;
 
-import com.patentsight.ai.dto.*;
+import com.patentsight.ai.dto.Generated3DModelResponse;
+import com.patentsight.ai.dto.ImageIdRequest;
 import com.patentsight.ai.service.AiImageService;
+import com.patentsight.file.dto.FileResponse;
+import com.patentsight.file.service.FileService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("/api/ai")
+@RequiredArgsConstructor
 public class AiImageController {
 
     private final AiImageService aiImageService;
-
-    public AiImageController(AiImageService aiImageService) {
-        this.aiImageService = aiImageService;
-    }
-
-    @PostMapping("/image-similarities")
-    public ResponseEntity<List<ImageSimilarityResponse>> analyzeImageSimilarity(
-            @RequestBody ImageSimilarityRequest request) {
-        List<ImageSimilarityResponse> response = aiImageService.analyzeImageSimilarity(request);
-        return ResponseEntity.ok(response);
-    }
+    private final FileService fileService;
 
     @PostMapping("/3d-models")
-    public ResponseEntity<Generated3DModelResponse> generate3DModel(
-            @RequestBody ImageIdRequest request) {
-        Generated3DModelResponse response = aiImageService.generate3DModel(request);
-        return ResponseEntity.ok(response);
+    public Generated3DModelResponse generate3DModel(@RequestBody ImageIdRequest request) {
+        return aiImageService.generate3DModel(request);
+    }
+
+    @GetMapping("/3d-models/{id}")
+    public ResponseEntity<FileResponse> getGenerated3DModel(@PathVariable Long id) {
+        FileResponse res = fileService.get(id);
+        if (res == null) {
+            return ResponseEntity.badRequest().build();
+        }
+        return ResponseEntity.ok(res);
     }
 }
