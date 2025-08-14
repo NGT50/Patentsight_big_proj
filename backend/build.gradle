@@ -8,9 +8,9 @@ group = 'com.patentsight'
 version = '0.0.1-SNAPSHOT'
 
 java {
-	toolchain {
-		languageVersion = JavaLanguageVersion.of(17)
-	}
+        toolchain {
+                languageVersion = JavaLanguageVersion.of(21)
+        }
 }
 
 configurations {
@@ -30,9 +30,9 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 
 	// ⬇ 추가: WebClient 사용을 위해 WebFlux 의존성
-	implementation 'org.springframework.boot:spring-boot-starter-webflux'
+        implementation 'org.springframework.boot:spring-boot-starter-webflux'
 
-	// ✅ Spring Security + JWT
+        // ✅ Spring Security + JWT
         implementation 'org.springframework.boot:spring-boot-starter-security'
         implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
         runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
@@ -50,6 +50,9 @@ dependencies {
 
 	// PDFBox 라이브러리 추가
         implementation 'org.apache.pdfbox:pdfbox:2.0.30'
+
+        // AWS S3 client
+        implementation 'software.amazon.awssdk:s3:2.25.12'
 
         testImplementation 'org.springframework.boot:spring-boot-starter-test'
 }
