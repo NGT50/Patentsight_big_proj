@@ -47,7 +47,7 @@ RDS PostgreSQL instance. Set the following environment variables or adjust the
 config files:
 
 ```
-S3_BUCKET=your-s3-bucket
+S3_BUCKET=patentsight-artifacts-usea1
 AWS_REGION=us-east-1
 ```
 
