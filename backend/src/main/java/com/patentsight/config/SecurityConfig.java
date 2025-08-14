@@ -22,9 +22,12 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
-import javax.servlet.http.HttpServletResponse;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Optional;
+import java.util.Set;
 
 @Configuration
 @EnableWebSecurity
@@ -39,7 +42,7 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
-    // CORS 설정
+    // CORS
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
@@ -53,12 +56,12 @@ public class SecurityConfig {
         return source;
     }
 
-    // JWT → 권한 매핑
+    // JWT → 권한 매핑 (role/roles 클레임을 ROLE_* 권한으로)
     @Bean
     public JwtAuthenticationConverter jwtAuthenticationConverter() {
         JwtGrantedAuthoritiesConverter delegate = new JwtGrantedAuthoritiesConverter();
         delegate.setAuthorityPrefix("ROLE_");
-        delegate.setAuthoritiesClaimName("roles"); // ex) roles: ["EXAMINER"]
+        delegate.setAuthoritiesClaimName("roles"); // roles: ["EXAMINER"] 우선
 
         JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
         converter.setJwtGrantedAuthoritiesConverter(jwt -> {
@@ -74,7 +77,7 @@ public class SecurityConfig {
         return converter;
     }
 
-    // HS256 디코더 설정
+    // HS256 디코더: 발급에 쓰는 secret과 반드시 같아야 함
     @Bean
     public JwtDecoder jwtDecoder() {
         SecretKey key = new SecretKeySpec(jwtSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
@@ -98,16 +101,9 @@ public class SecurityConfig {
                     "/api/users/verify-code",
                     "/h2-console/**"
                 ).permitAll()
-                .requestMatchers("/api/**").authenticated()
-                .anyRequest().permitAll()
+                .anyRequest().authenticated()
             )
-            // 인증 실패 시 index.html 대신 오류 코드 반환
-            .exceptionHandling(exception -> exception
-                .authenticationEntryPoint((request, response, authException) ->
-                    response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized"))
-                .accessDeniedHandler((request, response, accessDeniedException) ->
-                    response.sendError(HttpServletResponse.SC_FORBIDDEN, "Forbidden"))
-            )
+            // ★ Bearer 토큰을 인증으로 처리
             .oauth2ResourceServer(oauth -> oauth
                 .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter))
             );
