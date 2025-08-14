@@ -56,7 +56,8 @@ public class ReviewServiceImpl implements ReviewService {
         Review review = new Review();
         review.setPatent(patent);
         review.setExaminer(examiner);
-        review.setDecision(Review.Decision.SUBMITTED); // PENDING을 SUBMITTED로 변경
+        // 초기 상태는 SUBMITTED로 설정
+        review.setDecision(Review.Decision.SUBMITTED);
         review.setReviewedAt(null);
         review.setAutoAssigned(false);
 
@@ -105,7 +106,8 @@ public class ReviewServiceImpl implements ReviewService {
         Review review = new Review();
         review.setPatent(patent);
         review.setExaminer(examiner);
-        review.setDecision(Review.Decision.PENDING);
+        // 자동 배정된 리뷰도 초기 상태는 SUBMITTED
+        review.setDecision(Review.Decision.SUBMITTED);
         review.setAutoAssigned(true);
 
         reviewRepository.save(review);
@@ -169,7 +171,7 @@ public class ReviewServiceImpl implements ReviewService {
         return switch (decision) {
 
             case SUBMITTED -> PatentStatus.SUBMITTED;
-            case REVIEWING -> PatentStatus.REVIEWING; // PENDING을 SUBMITTED로 변경
+            case REVIEWING -> PatentStatus.REVIEWING;
             case APPROVE -> PatentStatus.APPROVED;
             case REJECT -> PatentStatus.REJECTED;
         };
