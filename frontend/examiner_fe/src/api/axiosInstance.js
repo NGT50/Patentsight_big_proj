@@ -1,20 +1,20 @@
 // src/api/axiosInstance.js
 import axios from 'axios';
 
-const getBaseURL = () => {
-  if (import.meta.env.DEV) return '';
-  if (import.meta.env.PROD) return 'http://35.175.253.22:8080';
-  return '';
-};
+// 필요하면 .env에서 덮어쓸 수 있게
+// .env.development / .env.production 에서 VITE_API_BASE_URL=/api 로 두는 걸 권장
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
 const axiosInstance = axios.create({
-  baseURL: getBaseURL(),
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
     Accept: 'application/json',
     'X-Requested-With': 'XMLHttpRequest',
   },
   timeout: 15000,
+  // 쿠키 세션 안 쓰면 false 유지
+  withCredentials: false,
 });
 
 // JWT 자동 첨부
@@ -30,6 +30,13 @@ axiosInstance.interceptors.response.use(
   (res) => res,
   (error) => {
     const status = error?.response?.status;
+
+    // status가 없으면(프리플라이트/네트워크/CORS 실패) 콘솔에 힌트 남김
+    if (!status) {
+      console.error('Network/CORS error:', error?.message || error);
+      return Promise.reject(error);
+    }
+
     if (status === 401) {
       const path = window.location.pathname;
       const onAuthPage = path.startsWith('/login') || path.startsWith('/signup');
