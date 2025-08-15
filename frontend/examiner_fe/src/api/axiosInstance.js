@@ -3,6 +3,7 @@ import axios from 'axios';
 
 // 필요하면 .env에서 덮어쓸 수 있게
 // .env.development / .env.production 에서 VITE_API_BASE_URL=/api 로 두는 걸 권장
+// ※ /api는 nginx에서 백엔드 프록시 경로이므로, API 호출 함수에서는 /api를 또 쓰지 않도록 주의!
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
 /**
@@ -21,7 +22,7 @@ const BASENAME =
   : '';
 
 const axiosInstance = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: API_BASE_URL, // 여기서 이미 '/api' 붙음 → API 함수에서는 '/users/...'처럼 작성
   headers: {
     'Content-Type': 'application/json',
     Accept: 'application/json',
@@ -84,4 +85,3 @@ axiosInstance.interceptors.response.use(
 );
 
 export default axiosInstance;
-
