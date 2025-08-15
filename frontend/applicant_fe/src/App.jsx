@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom'; // Router 제거, Routes만 남김
 import styled from 'styled-components';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
@@ -60,9 +60,10 @@ const MainContent = styled.main`
 `;
 
 function App() {
-  // 상태 관리를 useState -> Zustand로 변경
+  // Zustand 상태 관리
   const { isLoggedIn, user, logout, initialize } = useAuthStore();
-  // 알림 팝업 상태를 App.jsx에서 관리합니다.
+  
+  // 알림 팝업 상태를 App.jsx에서 관리
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const toggleNotifications = () => setIsNotificationOpen(prev => !prev);
 
@@ -73,40 +74,38 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Router>
-        <AppContainer>
-          <Navigation
-            isLoggedIn={isLoggedIn}
-            onLogout={logout}
-            userInfo={user}
-            onNotificationClick={toggleNotifications} // onNotificationClick 함수를 prop으로 전달
-          />
-          {isNotificationOpen && <NotificationPanel />}
-          <SubNavigation isLoggedIn={isLoggedIn} />
-          <MainContent>
-            <Routes>
-              {/* 기본 경로로 접속하면 랜딩 페이지로 이동 */}
-              <Route path="/" element={<LandingPage />} />
-              <Route path="/login" element={<ApplicantLogin />} />
-              <Route path="/signup" element={<ApplicantSignup />} />
-              <Route path="/signup-complete" element={<ApplicantSignupComplete />} />
-              <Route path="/terms" element={<TermsAgreement />} />
-              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-              <Route path="/admin" element={<ApplicantAdmin />} />
-              
-              {/* 보호 라우트 (로그인 해야만 접근 가능) */}
-              <Route path="/mypage" element={<MyPage />} />
-              <Route path="/search" element={<SearchResult />} />
-              <Route path="/new-patent-choice" element={<NewPatentChoicePage />} />
-              <Route path="/check/patents" element={<PatentCheckListPage />} />
-              <Route path="/check/designs" element={<DesignCheckListPage />} />
-              <Route path="/patent/:id" element={<DocumentEditor />} />
-              <Route path="/submit/:id" element={<FinalSubmitPage />} />
-            </Routes>
-          </MainContent>
-          <Footer />
-        </AppContainer>
-      </Router>
+      <AppContainer>
+        <Navigation
+          isLoggedIn={isLoggedIn}
+          onLogout={logout}
+          userInfo={user}
+          onNotificationClick={toggleNotifications} // onNotificationClick 함수를 prop으로 전달
+        />
+        {isNotificationOpen && <NotificationPanel />}
+        <SubNavigation isLoggedIn={isLoggedIn} />
+        <MainContent>
+          <Routes>
+            {/* 기본 경로 → 랜딩 페이지 */}
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/login" element={<ApplicantLogin />} />
+            <Route path="/signup" element={<ApplicantSignup />} />
+            <Route path="/signup-complete" element={<ApplicantSignupComplete />} />
+            <Route path="/terms" element={<TermsAgreement />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/admin" element={<ApplicantAdmin />} />
+            
+            {/* 보호 라우트 */}
+            <Route path="/mypage" element={<MyPage />} />
+            <Route path="/search" element={<SearchResult />} />
+            <Route path="/new-patent-choice" element={<NewPatentChoicePage />} />
+            <Route path="/check/patents" element={<PatentCheckListPage />} />
+            <Route path="/check/designs" element={<DesignCheckListPage />} />
+            <Route path="/patent/:id" element={<DocumentEditor />} />
+            <Route path="/submit/:id" element={<FinalSubmitPage />} />
+          </Routes>
+        </MainContent>
+        <Footer />
+      </AppContainer>
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   );
