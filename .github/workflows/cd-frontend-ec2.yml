@@ -1,7 +1,8 @@
 name: CD frontends → EC2
+
 on:
   push:
-    branches: ["CICD"]        # 원하는 배포 브랜치
+    branches: ["CICD"]           # 배포 브랜치
     paths:
       - "frontend/**"
   workflow_dispatch:
@@ -9,36 +10,34 @@ on:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+
     strategy:
       matrix:
         fe: [applicant_fe, examiner_fe]
+
     defaults:
       run:
         working-directory: frontend/${{ matrix.fe }}
-    steps:
-      - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: "npm"
+          cache: npm
           cache-dependency-path: frontend/${{ matrix.fe }}/package-lock.json
 
-      - run: npm ci
-      - run: npm run build            # dev 대신 build 후 dist 사용
+      - name: Install deps
+        run: npm ci
 
-      - name: Upload to EC2
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USERNAME }}
-          key: ${{ secrets.KEY }}
-          source: "frontend/${{ matrix.fe }}/dist/*"
-          target: "/home/${{ secrets.USERNAME }}/fe/${{ matrix.fe }}/"
-          strip_components: 3
-          overwrite: true
+      - name: Build (Vite)
+        run: npm run build
 
-      - name: Restart pm2 (no tail)
+      # (선행) 원격에 목적지 폴더 보장
+      - name: Ensure remote dirs
         uses: appleboy/ssh-action@v1.1.0
         with:
           host: ${{ secrets.HOST }}
@@ -46,18 +45,44 @@ jobs:
           key: ${{ secrets.KEY }}
           script: |
             set -e
-            # nvm / npm-global 경로 로드 (pm2 못 찾는 문제 예방)
-            if [ -s "$HOME/.nvm/nvm.sh" ]; then . "$HOME/.nvm/nvm.sh"; nvm use 18 >/dev/null 2>&1 || true; fi
-            export PATH="$HOME/.npm-global/bin:$PATH"
-      
+            mkdir -p /home/${{ secrets.USERNAME }}/fe/applicant_fe
+            mkdir -p /home/${{ secrets.USERNAME }}/fe/examiner_fe
+
+      # dist 업로드 (정적 파일만)
+      - name: Upload dist to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.KEY }}
+          # dist/** 로 해야 하위폴더(assets 등) 포함
+          source: frontend/${{ matrix.fe }}/dist/**
+          target: /home/${{ secrets.USERNAME }}/fe/${{ matrix.fe }}/
+          strip_components: 3
+          overwrite: true
+
+      # 권한/접근 + Nginx reload + 헬스체크
+      - name: Fix perms & reload Nginx
+        uses: appleboy/ssh-action@v1.1.0
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.KEY }}
+          script: |
+            set -e
             APP_NAME="${{ matrix.fe }}"
             APP_DIR="/home/${{ secrets.USERNAME }}/fe/${APP_NAME}"
-            PORT=$([ "$APP_NAME" = "applicant_fe" ] && echo 3000 || echo 3001)
-      
-            # pm2 재시작(없으면 최초 serve) + 저장
-            pm2 reload "$APP_NAME" || pm2 serve "$APP_DIR" "$PORT" --spa --name "$APP_NAME"
-            pm2 save
-      
-            # 상태 한 줄 + 간단 헬스체크 (tail 금지)
-            pm2 list | grep "$APP_NAME" || true
-            curl -Is "http://127.0.0.1:${PORT}" | head -n1 || true
+
+            # 상위경로 traversal 권한(o+x) & 파일 읽기(o+r)
+            chmod o+x /home/${{ secrets.USERNAME }} || true
+            chmod o+x /home/${{ secrets.USERNAME }}/fe || true
+            chmod -R o+r "$APP_DIR" || true
+
+            # Nginx 설정 검사 후 무중단 reload
+            sudo nginx -t
+            sudo systemctl reload nginx
+
+            # 간단 헬스체크 (로컬에서 80으로 확인)
+            URL_PATH=$([ "$APP_NAME" = "applicant_fe" ] && echo "/applicant/" || echo "/examiner/")
+            curl -Is "http://127.0.0.1${URL_PATH}" | head -n1 || true
+
