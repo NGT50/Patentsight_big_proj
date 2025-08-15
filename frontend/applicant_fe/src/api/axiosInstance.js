@@ -7,17 +7,20 @@ const getBaseURL = () => {
     return ''; // 프록시를 통해 /api 요청이 백엔드로 전달됨
   }
   
-  // 프로덕션 환경: 실제 배포된 서버 사용
+  // 프로덕션 환경: Nginx 프록시 사용 (절대 경로 제거)
+  //  - 기존: 'http://35.175.253.22:8080'
+  //  - 수정: '' (상대 경로) → Nginx /api 프록시로 전달됨
   if (import.meta.env.PROD) {
-    return 'http://35.175.253.22:8080';
+    return '';
   }
   
   // 기본값
   return '';
 };
 
+// Axios 인스턴스 생성
 const instance = axios.create({
-  baseURL: getBaseURL(),
+  baseURL: getBaseURL(), // 환경별 baseURL 적용
   headers: {
     'Content-Type': 'application/json',
   },
@@ -28,7 +31,7 @@ instance.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+      config.headers.Authorization = `Bearer ${token}`; // Bearer 토큰 추가
     }
     return config;
   },
@@ -44,14 +47,14 @@ instance.interceptors.response.use(
   },
   (error) => {
     if (error.response?.status === 401) {
-      // 토큰이 만료되었거나 유효하지 않은 경우
+      // 토큰이 만료되었거나 유효하지 않은 경우 → 로컬 스토리지 초기화
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       localStorage.removeItem('isLoggedIn');
-      window.location.href = '/login';
+      window.location.href = '/login'; // 로그인 페이지로 이동
     }
     return Promise.reject(error);
   }
 );
 
-export default instance; 
+export default instance;
