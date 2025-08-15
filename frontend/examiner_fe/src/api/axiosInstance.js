@@ -5,6 +5,21 @@ import axios from 'axios';
 // .env.development / .env.production 에서 VITE_API_BASE_URL=/api 로 두는 걸 권장
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
+/**
+ * 배포가 서브 경로(/applicant, /examiner)인 경우를 위해
+ * 현재 URL에서 베이스 경로를 자동 감지한다.
+ *  - /applicant/... → BASENAME = /applicant
+ *  - /examiner/...  → BASENAME = /examiner
+ *  - 그 외(루트 배포) → ''
+ *
+ * 이 값은 401 시 로그인 리다이렉트에 사용된다.
+ */
+const _path = typeof window !== 'undefined' ? window.location.pathname : '';
+const BASENAME =
+  _path.startsWith('/applicant') ? '/applicant'
+  : _path.startsWith('/examiner') ? '/examiner'
+  : '';
+
 const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -39,7 +54,12 @@ axiosInstance.interceptors.response.use(
 
     if (status === 401) {
       const path = window.location.pathname;
-      const onAuthPage = path.startsWith('/login') || path.startsWith('/signup');
+      // 현재 베이스 경로 기준으로 로그인/회원가입 페이지 인지 체크
+      const onAuthPage =
+        path === `${BASENAME}/login` ||
+        path === `${BASENAME}/signup` ||
+        path.startsWith(`${BASENAME}/login?`) ||
+        path.startsWith(`${BASENAME}/signup?`);
 
       // 세션 정리
       localStorage.removeItem('token');
@@ -50,7 +70,8 @@ axiosInstance.interceptors.response.use(
       if (!_redirecting && !onAuthPage) {
         _redirecting = true;
         const next = path + window.location.search;
-        window.location.replace(`/login?next=${encodeURIComponent(next)}`);
+        // 서브 경로 배포 대응: 베이스 경로 + /login 로 보낸다
+        window.location.replace(`${BASENAME}/login?next=${encodeURIComponent(next)}`);
       }
       return Promise.reject(error);
     }
@@ -63,3 +84,4 @@ axiosInstance.interceptors.response.use(
 );
 
 export default axiosInstance;
+
