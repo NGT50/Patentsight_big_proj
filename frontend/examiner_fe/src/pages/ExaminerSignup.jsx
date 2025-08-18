@@ -477,6 +477,30 @@ function ExaminerSignup() {
       }
     }
     
+    // 생년월일 자동 포맷팅 (YYYY-MM-DD 형식)
+    if (name === 'birthDate') {
+      // 숫자만 추출
+      const numbers = value.replace(/[^0-9]/g, '');
+      
+      // 8자리까지만 허용
+      if (numbers.length <= 8) {
+        let formatted = '';
+        if (numbers.length <= 4) {
+          formatted = numbers;
+        } else if (numbers.length <= 6) {
+          formatted = `${numbers.slice(0, 4)}-${numbers.slice(4)}`;
+        } else {
+          formatted = `${numbers.slice(0, 4)}-${numbers.slice(4, 6)}-${numbers.slice(6)}`;
+        }
+        
+        setFormData(prev => ({
+          ...prev,
+          [name]: formatted
+        }));
+        return;
+      }
+    }
+    
     // 비밀번호 검증
     if (name === 'password') {
       const password = value;
@@ -691,10 +715,12 @@ function ExaminerSignup() {
             <FormGroup>
               <Label>생년월일 *</Label>
               <Input
-                type="date"
+                type="text"
                 name="birthDate"
                 value={formData.birthDate}
                 onChange={handleInputChange}
+                placeholder="YYYY-MM-DD"
+                maxLength="10"
                 required
               />
             </FormGroup>
@@ -703,24 +729,14 @@ function ExaminerSignup() {
           <Row>
             <FormGroup>
               <Label>부서 *</Label>
-              <select
+              <Input
+                type="text"
                 name="department"
                 value={formData.department}
                 onChange={handleInputChange}
+                placeholder="부서명을 입력하세요"
                 required
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  backgroundColor: 'white'
-                }}
-              >
-                <option value="PATENT">특허</option>
-                <option value="DESIGN">디자인</option>
-                <option value="TRADEMARK">상표</option>
-              </select>
+              />
             </FormGroup>
             <FormGroup>
               <Label>직급 *</Label>
@@ -734,30 +750,18 @@ function ExaminerSignup() {
             </FormGroup>
           </Row>
 
-                     <Row>
-             <FormGroup>
-               <Label>사원번호 *</Label>
-               <Input
-                 type="text"
-                 name="employeeNumber"
-                 value={formData.employeeNumber}
-                 onChange={handleInputChange}
-                 required
-               />
-             </FormGroup>
-             <FormGroup>
-               <Label>연락처 *</Label>
-               <Input
-                 type="tel"
-                 name="phone"
-                 value={formData.phone}
-                 onChange={handleInputChange}
-                 placeholder="010-1234-5678"
-                 maxLength="13"
-                 required
-               />
-             </FormGroup>
-           </Row>
+          <Row>
+            <FormGroup>
+              <Label>사원번호 *</Label>
+              <Input
+                type="text"
+                name="employeeNumber"
+                value={formData.employeeNumber}
+                onChange={handleInputChange}
+                required
+              />
+            </FormGroup>
+          </Row>
 
           <FormGroup>
             <Label>심사 분야 *</Label>
