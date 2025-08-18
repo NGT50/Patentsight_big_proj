@@ -1,6 +1,7 @@
 package com.patentsight.config;
 
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -19,13 +20,13 @@ import java.util.List;
 @Configuration
 public class CorsConfig {
 
-    private static final List<String> ALLOWED_ORIGINS =
-            List.of("http://35.175.253.22:3000", "http://35.175.253.22:3001");
+    @Value("${cors.allowed-origins}")
+    private List<String> allowedOrigins;
 
     private CorsConfiguration buildConfig() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowCredentials(true);
-        config.setAllowedOrigins(ALLOWED_ORIGINS);
+        config.setAllowedOrigins(allowedOrigins);
         config.setAllowedHeaders(List.of(
             "Authorization",
             "Cache-Control",
