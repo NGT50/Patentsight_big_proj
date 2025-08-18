@@ -43,18 +43,17 @@ public class SecurityConfig {
 
     // CORS
     @Bean
-
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowCredentials(false);
-        config.addAllowedOriginPattern("*");
+        config.setAllowCredentials(true);
+        config.addAllowedOrigin("http://35.175.253.22:3001");
+        config.addAllowedOrigin("http://35.175.253.22:3000");
         config.addAllowedHeader("*");
         config.addAllowedMethod("*");
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return source;
-
     }
 
     // JWT → 권한 매핑 (role/roles 클레임을 ROLE_* 권한으로)
