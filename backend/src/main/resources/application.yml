@@ -54,7 +54,7 @@ ai:
   draft:
     url: http://13.236.174.54:8000/analyze/
   ipc:
-    url: http://127.0.0.1:5000/predict
+    url: http://54.161.26.140:8000/predict
   3d-model:
     endpoint: https://4731cfc6a89a.ngrok-free.app/generate
     save-dir: uploads
