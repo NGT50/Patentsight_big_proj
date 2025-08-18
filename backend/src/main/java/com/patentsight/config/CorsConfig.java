@@ -1,5 +1,6 @@
 package com.patentsight.config;
 
+
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -24,6 +25,7 @@ public class CorsConfig {
     private CorsConfiguration buildConfig() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowCredentials(true);
+
         config.setAllowedOrigins(ALLOWED_ORIGINS);
         config.setAllowedHeaders(List.of("*"));
         config.setAllowedMethods(List.of("*"));
@@ -45,7 +47,9 @@ public class CorsConfig {
      * also return the necessary headers.
      */
     @Bean
+
     public FilterRegistrationBean<CorsFilter> corsFilter() {
+
         FilterRegistrationBean<CorsFilter> bean =
                 new FilterRegistrationBean<>(new CorsFilter(corsConfigurationSource()));
         bean.setOrder(Ordered.HIGHEST_PRECEDENCE);
