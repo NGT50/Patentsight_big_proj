@@ -1,9 +1,11 @@
 import axios from './axiosInstance';
 
 // 알림 목록 조회
-export const getNotifications = async () => {
+export const getNotifications = async (userId) => {
   try {
-    const response = await axios.get('/api/notifications');
+    const response = await axios.get('/api/notifications', {
+      params: { userId },
+    });
     return response.data;
   } catch (error) {
     console.error('알림 목록 조회 실패:', error);
@@ -12,9 +14,11 @@ export const getNotifications = async () => {
 };
 
 // 미확인 알림 조회
-export const getUnreadNotifications = async () => {
+export const getUnreadNotifications = async (userId) => {
   try {
-    const response = await axios.get('/api/notifications/unread');
+    const response = await axios.get('/api/notifications/unread', {
+      params: { userId },
+    });
     return response.data;
   } catch (error) {
     console.error('미확인 알림 조회 실패:', error);

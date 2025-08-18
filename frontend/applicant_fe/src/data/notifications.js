@@ -1,5 +1,8 @@
 // 알림 데이터 관리 (API 연동 + Fallback)
-import { getNotifications as fetchNotifications, getUnreadNotifications as fetchUnreadNotifications } from '../api/notifications';
+import {
+  getNotifications as fetchNotifications,
+  getUnreadNotifications as fetchUnreadNotifications,
+} from '../api/notifications';
 
 // Fallback 데이터 (API 실패 시 사용)
 const fallbackNotifications = [
@@ -46,9 +49,9 @@ const transformNotification = (notification) => {
 };
 
 // 알림 목록 조회 (API 우선, 실패 시 Fallback)
-export const getNotifications = async () => {
+export const getNotifications = async (userId) => {
   try {
-    const response = await fetchNotifications();
+    const response = await fetchNotifications(userId);
     return response.map(transformNotification);
   } catch (error) {
     console.warn('API 호출 실패, Fallback 데이터 사용:', error);
@@ -57,13 +60,13 @@ export const getNotifications = async () => {
 };
 
 // 미확인 알림 개수 조회
-export const getUnreadCount = async () => {
+export const getUnreadCount = async (userId) => {
   try {
-    const response = await fetchUnreadNotifications();
+    const response = await fetchUnreadNotifications(userId);
     return response.length;
   } catch (error) {
     console.warn('미확인 알림 API 호출 실패, Fallback 데이터 사용:', error);
-    return fallbackNotifications.filter(notification => !notification.is_read).length;
+    return fallbackNotifications.filter((notification) => !notification.is_read).length;
   }
 };
 
@@ -85,19 +88,17 @@ export const markAsRead = async (notificationId) => {
 };
 
 // 모든 알림 읽음 처리
-export const markAllAsRead = async () => {
+export const markAllAsRead = async (userId) => {
   try {
-    const notifications = await getNotifications();
-    const unreadNotifications = notifications.filter(n => !n.read);
-    
+    const notifications = await getNotifications(userId);
+    const unreadNotifications = notifications.filter((n) => !n.read);
+
     // 모든 미확인 알림을 읽음 처리
-    await Promise.all(
-      unreadNotifications.map(notification => markAsRead(notification.id))
-    );
+    await Promise.all(unreadNotifications.map((notification) => markAsRead(notification.id)));
   } catch (error) {
     console.warn('모든 알림 읽음 처리 실패:', error);
     // Fallback: 로컬에서 모든 알림을 읽음 처리
-    fallbackNotifications.forEach(notification => {
+    fallbackNotifications.forEach((notification) => {
       notification.is_read = true;
     });
   }

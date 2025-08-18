@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { getMyPatents } from '../api/patents';
@@ -13,6 +13,7 @@ import {
   Bell
 } from 'lucide-react';
 import { getNotifications } from '../data/notifications';
+import useAuthStore from '../stores/authStore';
 
 // 병합된 컴포넌트들을 import 합니다.
 import SearchNavLink from '../components/SearchNavLink';
@@ -20,6 +21,7 @@ import PatentListModal from '../components/PatentListModal';
 
 const MyPage = () => {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
   const [notifications, setNotifications] = useState([]);
   const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -54,14 +56,10 @@ const MyPage = () => {
   const error = null;
 
   // 알림 데이터 로드
-  useEffect(() => {
-    loadNotifications();
-  }, []);
-
-  const loadNotifications = async () => {
+  const loadNotifications = useCallback(async () => {
     setIsLoadingNotifications(true);
     try {
-      const notificationData = await getNotifications();
+      const notificationData = await getNotifications(user?.id);
       setNotifications(notificationData);
     } catch (error) {
       console.error('알림 데이터 로드 실패:', error);
@@ -69,7 +67,11 @@ const MyPage = () => {
     } finally {
       setIsLoadingNotifications(false);
     }
-  };
+  }, [user?.id]);
+
+  useEffect(() => {
+    loadNotifications();
+  }, [loadNotifications]);
 
   const handleCardClick = (patentId) => {
     navigate(`/patent/${patentId}`);

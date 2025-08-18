@@ -4,7 +4,7 @@ import { AxiosError } from 'axios';
 import axios from './axiosInstance';
 
 // 각 함수를 async/await와 try...catch로 감싸 에러 핸들링을 추가합니다.
-export const createPatent = async (patentData) => {
+export const createPatent = async (patentData = {}) => {
   try {
     const res = await axios.post('/api/patents', patentData);
     return res.data; // { patentId, ... } 를 반환
@@ -36,7 +36,7 @@ export const updateFileContent = async (fileId, content) => {
 
 export const submitPatent = async (patentId) => {
   try {
-    const res = await axios.post(`/api/patents/${patentId}/submit`);
+    const res = await axios.post(`/api/patents/${patentId}/submit`, {});
     return res.data;
   } catch (error) {
     console.error('최종 제출 실패:', error);
