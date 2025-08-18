@@ -35,6 +35,8 @@ localStorage.setItem('registeredUsers', JSON.stringify({
 
 This repository contains a sample structure for a patent management service. The backend is implemented with Spring Boot and organized under the `com.patentsight` package. A minimal frontend directory is also included.
 
+**Updated: Fixed examiner_fe deployment issue**
+
 ## Documentation
 
 - [Database ERD](docs/ERD.md)
