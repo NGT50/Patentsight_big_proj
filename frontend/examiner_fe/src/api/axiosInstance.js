@@ -1,12 +1,24 @@
 // src/api/axiosInstance.js
 import axios from 'axios';
 
-// 필요하면 .env에서 덮어쓸 수 있게
-// .env.development / .env.production 에서 VITE_API_BASE_URL=/api 로 두는 걸 권장
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+// 환경별 백엔드 서버 주소 설정
+const getBaseURL = () => {
+  // 개발 환경: 프록시 사용 (상대 경로)
+  if (import.meta.env.DEV) {
+    return '/api'; // 프록시를 통해 /api 요청이 백엔드로 전달됨
+  }
+  
+  // 프로덕션 환경: 실제 배포된 서버 사용
+  if (import.meta.env.PROD) {
+    return 'http://35.175.253.22:8080';
+  }
+  
+  // 기본값
+  return '/api';
+};
 
 const axiosInstance = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: getBaseURL(),
   headers: {
     'Content-Type': 'application/json',
     Accept: 'application/json',
