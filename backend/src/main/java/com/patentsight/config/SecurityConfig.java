@@ -80,7 +80,11 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers(HttpMethod.POST,
                     "/api/users/login",
+                    "/api/users/signup",
                     "/api/users/applicant",
+                    "/api/users/examiner",
+                    "/api/users/verify-code",
+                    "/h2-console/**",
                     "/api/users/examiner"
                 ).permitAll()
                 .anyRequest().authenticated()
