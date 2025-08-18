@@ -24,7 +24,7 @@ public class CorsProperties {
      * HTTP methods permitted for cross origin requests.
      */
     private List<String> allowedMethods = new ArrayList<>(
-            Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+            Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"));
 
     /**
      * Headers allowed in cross origin requests.
