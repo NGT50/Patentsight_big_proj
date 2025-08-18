@@ -22,6 +22,10 @@ import com.patentsight.patent.repository.PatentRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate; // RestTemplate 추가
+import org.springframework.web.client.RestClientException;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 // ✅ [알림] 추가 import
 import com.patentsight.notification.service.NotificationService;
@@ -35,6 +39,8 @@ import java.util.stream.Collectors;
 @Service
 @Transactional
 public class PatentService {
+
+    private static final Logger log = LoggerFactory.getLogger(PatentService.class);
 
     private final PatentRepository patentRepository;
     private final ReviewService reviewService;
@@ -214,13 +220,15 @@ public class PatentService {
         String firstClaim = patent.getClaims() != null && !patent.getClaims().isEmpty() ? patent.getClaims().get(0) : "";
         PredictRequest requestBody = new PredictRequest(firstClaim);
 
-        // 2. FastAPI 호출
-        PredictResponse predictResponse = restTemplate.postForObject(fastApiIpcUrl, requestBody, PredictResponse.class);
-
-        // 3. AI 모델로 받은 IPC 코드 사용
+        // 2. FastAPI 호출 및 IPC 코드 추출
         String ipcCode = "N/A";
-        if (predictResponse != null && !predictResponse.getTopIpcResults().isEmpty()) {
-            ipcCode = predictResponse.getTopIpcResults().get(0).getMaingroup();
+        try {
+            PredictResponse predictResponse = restTemplate.postForObject(fastApiIpcUrl, requestBody, PredictResponse.class);
+            if (predictResponse != null && !predictResponse.getTopIpcResults().isEmpty()) {
+                ipcCode = predictResponse.getTopIpcResults().get(0).getMaingroup();
+            }
+        } catch (RestClientException e) {
+            log.error("FastAPI IPC prediction failed", e);
         }
 
         // 4. 특허 정보 업데이트

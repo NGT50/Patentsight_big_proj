@@ -9,13 +9,18 @@ import com.patentsight.patent.domain.PatentStatus;
 import com.patentsight.patent.domain.PatentType;
 import com.patentsight.patent.dto.PatentRequest;
 import com.patentsight.patent.dto.PatentResponse;
+import com.patentsight.patent.dto.SubmitPatentResponse;
+import com.patentsight.ai.dto.PredictResponse;
 import com.patentsight.patent.repository.PatentRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestTemplate;
+import com.patentsight.notification.service.NotificationService;
+import com.patentsight.review.service.ReviewService;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -37,12 +42,27 @@ class PatentServiceTest {
     @Mock
     private SpecVersionRepository specVersionRepository;
 
-    @InjectMocks
+    @Mock
+    private RestTemplate restTemplate;
+
+    @Mock
+    private NotificationService notificationService;
+
+    @Mock
+    private ReviewService reviewService;
+
     private PatentService patentService;
 
     @BeforeEach
     void setup() {
-        patentService = new PatentService(patentRepository, fileRepository, specVersionRepository);
+        patentService = new PatentService(
+                patentRepository,
+                fileRepository,
+                specVersionRepository,
+                restTemplate,
+                notificationService,
+                reviewService
+        );
     }
 
     @Test
@@ -164,7 +184,10 @@ class PatentServiceTest {
         when(patentRepository.findById(1L)).thenReturn(Optional.of(patent));
         when(patentRepository.save(any(Patent.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        PatentResponse res = patentService.submitPatent(1L);
+        when(restTemplate.postForObject(anyString(), any(), eq(PredictResponse.class)))
+                .thenThrow(new RestClientException("fail"));
+
+        SubmitPatentResponse res = patentService.submitPatent(1L);
 
         assertNotNull(res);
         assertEquals(PatentStatus.SUBMITTED, res.getStatus());
@@ -173,6 +196,7 @@ class PatentServiceTest {
         String expectedPrefix = "10" + java.time.LocalDate.now().getYear();
         assertTrue(res.getApplicationNumber().startsWith(expectedPrefix));
         assertEquals(13, res.getApplicationNumber().length());
+        assertEquals("N/A", res.getIpcCode());
     }
 
     @Test
@@ -184,7 +208,10 @@ class PatentServiceTest {
         when(patentRepository.findById(2L)).thenReturn(Optional.of(patent));
         when(patentRepository.save(any(Patent.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        PatentResponse res = patentService.submitPatent(2L);
+        when(restTemplate.postForObject(anyString(), any(), eq(PredictResponse.class)))
+                .thenThrow(new RestClientException("fail"));
+
+        SubmitPatentResponse res = patentService.submitPatent(2L);
 
         assertNotNull(res);
         assertEquals(200L, res.getApplicantId());
