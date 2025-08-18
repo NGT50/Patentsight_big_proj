@@ -18,6 +18,7 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtGra
 import org.springframework.http.HttpMethod;
 import org.springframework.security.web.SecurityFilterChain;
 
+
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
@@ -84,8 +85,7 @@ public class SecurityConfig {
                     "/api/users/applicant",
                     "/api/users/examiner",
                     "/api/users/verify-code",
-                    "/h2-console/**",
-                    "/api/users/examiner"
+                    "/h2-console/**"
                 ).permitAll()
                 .anyRequest().authenticated()
             )
