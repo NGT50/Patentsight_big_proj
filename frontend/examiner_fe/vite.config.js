@@ -9,7 +9,7 @@ export default defineConfig({
   },
   server: {
     port: 3001,
-    strictPort: true,
+    strictPort: false,
     proxy: {
       '/api': {
         target: 'http://35.175.253.22:8080',
