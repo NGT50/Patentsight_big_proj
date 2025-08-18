@@ -25,10 +25,23 @@ public class CorsConfig {
     private CorsConfiguration buildConfig() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowCredentials(true);
-
         config.setAllowedOrigins(ALLOWED_ORIGINS);
-        config.setAllowedHeaders(List.of("*"));
-        config.setAllowedMethods(List.of("*"));
+        config.setAllowedHeaders(List.of(
+            "Authorization",
+            "Cache-Control",
+            "Content-Type",
+            "X-Requested-With",
+            "Origin",
+            "Accept"
+        ));
+        config.setAllowedMethods(List.of(
+            "GET",
+            "POST",
+            "PUT",
+            "DELETE",
+            "OPTIONS",
+            "PATCH"
+        ));
         return config;
     }
 
