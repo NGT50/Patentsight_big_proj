@@ -41,3 +41,20 @@ cors:
     - http://localhost:3001
     - http://localhost:3002
     - http://localhost:3003
+
+ai:
+  search:
+    base-url: http://43.201.66.246:8000
+  similar-search:
+    base-url: http://127.0.0.1:8000
+  validation:
+    url: http://3.26.101.212:8000/api/ai/validations
+  claim-draft:
+    url: https://neil-gordon-georgia-thumbnail.trycloudflare.com/generate
+  draft:
+    url: http://13.236.174.54:8000/analyze/
+  ipc:
+    url: http://127.0.0.1:5000/predict
+  3d-model:
+    endpoint: https://4731cfc6a89a.ngrok-free.app/generate
+    save-dir: uploads

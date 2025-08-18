@@ -1,5 +1,6 @@
 package com.patentsight.ai.util;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -15,15 +16,15 @@ import java.time.Duration;
 @Component
 public class SimilarSearchApiClient {
 
-    /** ✅ 여기서 주소를 직접 관리 */
-    private static final String BASE_URL    = "http://127.0.0.1:8000"; // FastAPI 서버
     private static final String SEARCH_PATH = "/search";               // 엔드포인트
     private static final long   TIMEOUT_MS  = 5000;
 
-    /** WebClient 생성 */
-    private final WebClient webClient = WebClient.builder()
-            .baseUrl(BASE_URL)
-            .build();
+    private final WebClient webClient;
+
+    public SimilarSearchApiClient(WebClient.Builder builder,
+                                  @Value("${ai.similar-search.base-url}") String baseUrl) {
+        this.webClient = builder.baseUrl(baseUrl).build();
+    }
 
     /**
      * 텍스트 질의로 유사 특허 검색

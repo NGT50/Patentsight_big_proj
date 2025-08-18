@@ -6,6 +6,7 @@ import com.patentsight.ai.dto.ClaimDraftDetails;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -26,7 +27,8 @@ public class ClaimDraftClient {
     @Qualifier("externalAiWebClient")
     private final WebClient webClient;
 
-    private static final String CLAIM_API_URL = "https://neil-gordon-georgia-thumbnail.trycloudflare.com/generate";
+    @Value("${ai.claim-draft.url}")
+    private String claimApiUrl;
 
     /**
      * 외부 청구항 생성 API 호출 후 raw JSON 응답을 반환한다.
@@ -39,7 +41,7 @@ public class ClaimDraftClient {
         }
 
         String response = webClient.post()
-                .uri(URI.create(CLAIM_API_URL + "?minimal=true&include_rag_meta=true&rag_format=meta"))
+                .uri(URI.create(claimApiUrl + "?minimal=true&include_rag_meta=true&rag_format=meta"))
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(body)
                 .retrieve()
