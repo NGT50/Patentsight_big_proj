@@ -27,3 +27,17 @@ security:
     secret: "change-this-to-your-256-bit-secret_______________________"
   # 선택: 유효기간(ms). JwtTokenProvider에서 @Value로 쓰거나 하드코딩해도 됨
   jwt-validity-ms: 86400000
+
+cors:
+  allowed-origins:
+    - http://35.175.253.22
+    - http://35.175.253.22:3000
+    - http://35.175.253.22:3001
+    - http://35.175.253.22:3002
+    - http://35.175.253.22:3003
+    - http://35.175.253.22:5173
+    - http://localhost:5173
+    - http://localhost:3000
+    - http://localhost:3001
+    - http://localhost:3002
+    - http://localhost:3003

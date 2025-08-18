@@ -8,6 +8,8 @@ export default defineConfig({
     postcss: './postcss.config.js',
   },
   server: {
+    port: 3001,
+    strictPort: true,
     proxy: {
       '/api': {
         target: 'http://35.175.253.22:8080',
