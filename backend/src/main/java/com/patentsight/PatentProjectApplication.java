@@ -7,6 +7,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 
+
 import com.patentsight.ai.service.AiService;
 import com.patentsight.file.service.FileService;
 import com.patentsight.notification.service.NotificationService;
