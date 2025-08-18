@@ -9,7 +9,10 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
+@CrossOrigin(
+    origins = {"http://35.175.253.22:3000", "http://35.175.253.22:3001"},
+    allowCredentials = "true"
+)
 public class UserController {
 
     private final UserService userService;
