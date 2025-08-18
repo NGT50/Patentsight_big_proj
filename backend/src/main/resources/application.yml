@@ -41,6 +41,8 @@ cors:
     - http://localhost:3001
     - http://localhost:3002
     - http://localhost:3003
+  allowed-methods: "GET,POST,PUT,DELETE,OPTIONS"
+  allowed-headers: "*"
 
 ai:
   search:
