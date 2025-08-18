@@ -25,6 +25,8 @@ public class CorsConfig {
     private CorsConfiguration buildConfig() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowCredentials(true);
+        // Explicitly list allowed origins instead of patterns to ensure
+        // Access-Control-Allow-Origin returns the exact origin.
         config.setAllowedOrigins(ALLOWED_ORIGINS);
         config.setAllowedHeaders(List.of("*"));
         config.setAllowedMethods(List.of("*"));
