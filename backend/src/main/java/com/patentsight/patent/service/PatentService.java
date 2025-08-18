@@ -30,6 +30,7 @@ import org.slf4j.LoggerFactory;
 // ✅ [알림] 추가 import
 import com.patentsight.notification.service.NotificationService;
 import com.patentsight.notification.dto.NotificationRequest;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -48,7 +49,9 @@ public class PatentService {
     private final SpecVersionRepository specVersionRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final RestTemplate restTemplate; // RestTemplate 필드 추가
-    private final String fastApiIpcUrl = "http://127.0.0.1:5000/predict"; // AI 모델 IPC 엔드포인트
+
+    @Value("${ai.ipc.url}")
+    private String fastApiIpcUrl; // AI 모델 IPC 엔드포인트
 
     // ✅ [알림] 서비스 필드 추가
     private final NotificationService notificationService;
