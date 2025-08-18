@@ -2,9 +2,10 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Palette, Info, Image, MessageSquare, Copy, FlaskConical,
-  CheckCircle, Send, Bot, Lightbulb, GanttChart, Scale, X, FileText, ScrollText, Check, Upload
+  CheckCircle, Send, Bot, Lightbulb, GanttChart, Scale, X, FileText, ScrollText, Check, Upload, File as FileIcon
 } from 'lucide-react';
 
+import axiosInstance from '../api/axiosInstance';
 import { submitReview, getReviewDetail } from '../api/review';
 import {
   startChatSession,
@@ -15,40 +16,39 @@ import {
   searchDesignImage
 } from '../api/ai';
 
+// 파일 API (이미지/비이미지 분리 유틸)
+import { getImageUrlsByIds, getNonImageFilesByIds, toAbsoluteFileUrl } from '../api/files';
+
 /* ------------------------- 유틸 & 보조 컴포넌트 ------------------------- */
 
 // 문자열/JSON배열/콤마/개행/단일 URL 모두 파싱
 function extractDrawingUrls(raw) {
   if (!raw) return [];
   const isUrl = (s) => /^(https?:\/\/|\/|data:image\/)/i.test((s || '').trim());
-
   try {
     const j = JSON.parse(raw);
     if (Array.isArray(j)) return j.map(String).filter(isUrl);
   } catch {}
-
   const candidates = String(raw).split(/[\s,;\n\r]+/).map(s => s.trim()).filter(Boolean);
   const urls = candidates.filter(isUrl);
   if (urls.length) return urls;
-
   if (isUrl(raw)) return [String(raw).trim()];
   return [];
 }
 
-// /api/files → 실패 시 /files 로 자동 폴백하는 이미지
+// /api/files → 실패 시 /files 로 자동 폴백하는 이미지 (한글 파일명 인코딩)
 function SmartImage({ source, className, alt }) {
   const [idx, setIdx] = React.useState(0);
-
   const sources = React.useMemo(() => {
     if (typeof source === 'string') return [source];
     if (source && source.patentId && source.fileName) {
-      const a = `/api/files/${source.patentId}/${source.fileName}`;
-      const b = `/files/${source.patentId}/${source.fileName}`;
+      const enc = encodeURIComponent(source.fileName);
+      const a = `/api/files/${source.patentId}/${enc}`;
+      const b = `/files/${source.patentId}/${enc}`;
       return [a, b];
     }
     return [];
   }, [source]);
-
   if (sources.length === 0) {
     return (
       <div className="w-full h-32 bg-gray-50 border border-gray-200 flex items-center justify-center text-xs text-gray-500">
@@ -56,16 +56,14 @@ function SmartImage({ source, className, alt }) {
       </div>
     );
   }
-
   return (
     <img
       alt={alt}
       src={sources[idx]}
       className={className}
       onError={(e) => {
-        if (idx < sources.length - 1) {
-          setIdx(idx + 1);
-        } else {
+        if (idx < sources.length - 1) setIdx(idx + 1);
+        else {
           e.currentTarget.onerror = null;
           e.currentTarget.src = 'https://placehold.co/400x300/e2e8f0/94a3b8?text=Image+Not+Found';
         }
@@ -79,13 +77,20 @@ function buildDesignDrawingSources(d) {
   if (!d) return [];
   const list = [];
 
-  // 1) drawingDescription에 들어있는 URL 우선
+  // drawingDescription 내 URL
   list.push(...extractDrawingUrls(d.drawingDescription));
 
-  // 2) 대표 이미지
-  if (d.drawingImageUrl) list.push(d.drawingImageUrl);
+  // review API가 drawings 배열을 줄 수도 있음(가정)
+  if (Array.isArray(d.drawings) && d.drawings.length > 0) {
+    list.push(
+      ...d.drawings.map((s) => typeof s === 'string' ? toAbsoluteFileUrl(s) : s)
+    );
+  }
 
-  // 3) 저장된 파일명들
+  // 대표 이미지
+  if (d.drawingImageUrl) list.push(toAbsoluteFileUrl(d.drawingImageUrl));
+
+  // 저장된 파일명 배열(특허 상세에 있을 수 있음)
   if (Array.isArray(d.drawingFileNames) && d.drawingFileNames.length > 0) {
     list.push(...d.drawingFileNames.map(fn => ({ patentId: d.patentId, fileName: fn })));
   }
@@ -95,7 +100,8 @@ function buildDesignDrawingSources(d) {
   const out = [];
   for (const it of list) {
     if (typeof it === 'string') {
-      if (!seen.has(it)) { seen.add(it); out.push(it); }
+      const abs = toAbsoluteFileUrl(it);
+      if (!seen.has(abs)) { seen.add(abs); out.push(abs); }
     } else {
       out.push(it);
     }
@@ -105,9 +111,10 @@ function buildDesignDrawingSources(d) {
 
 // 실제 호출용 URL로 변환
 function resolveToUrl(srcLike) {
-  if (typeof srcLike === 'string') return srcLike;
+  if (typeof srcLike === 'string') return toAbsoluteFileUrl(srcLike);
   if (srcLike && srcLike.patentId && srcLike.fileName) {
-    return `/api/files/${srcLike.patentId}/${srcLike.fileName}`;
+    const encoded = encodeURIComponent(srcLike.fileName);
+    return `/api/files/${srcLike.patentId}/${encoded}`;
   }
   return null;
 }
@@ -167,8 +174,24 @@ export default function DesignReview() {
   const [isSearchingSimilarity, setIsSearchingSimilarity] = useState(false);
   const [uploadedImage, setUploadedImage] = useState(null);
 
-  // 도면 목록/선택
-  const drawingSources = useMemo(() => buildDesignDrawingSources(design), [design]);
+  // 첨부 이미지/비이미지
+  const [attachmentImageUrls, setAttachmentImageUrls] = useState([]);
+  const [attachmentOtherFiles, setAttachmentOtherFiles] = useState([]); // {id,name,url}[]
+
+  // 도면 목록/선택 (첨부 이미지 + 기존 소스)
+  const drawingSources = useMemo(() => {
+    const fromDesign = buildDesignDrawingSources(design);
+    // 중복 제거
+    const merged = [...attachmentImageUrls, ...fromDesign];
+    const seen = new Set();
+    return merged.filter((v) => {
+      const k = typeof v === 'string' ? v : `${v.patentId}/${v.fileName}`;
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
+  }, [design, attachmentImageUrls]);
+
   const contextImageUrls = useMemo(
     () => drawingSources.map(resolveToUrl).filter(Boolean),
     [drawingSources]
@@ -183,15 +206,28 @@ export default function DesignReview() {
     { id: 'q4', text: '심사 기준', icon: GanttChart, query: '디자인 심사 기준에 대해 알려줘' },
   ];
 
+  // 특허 상세(첨부 ID 포함) 보조 호출
+  const fetchPatentDetail = async (patentId) => {
+    try {
+      const { data } = await axiosInstance.get(`/api/patents/${patentId}`);
+      return data || null;
+    } catch (e) {
+      console.warn('특허 상세 조회 실패:', e);
+      return null;
+    }
+  };
+
+  // 리뷰 상세 + 첨부 파생 데이터 로드
   useEffect(() => {
-    const fetchReviewData = async () => {
+    const run = async () => {
       if (!id) return;
       setLoading(true);
       try {
+        // 1) 리뷰 상세
         const data = await getReviewDetail(id);
         setDesign(data);
 
-        // 상태 매핑
+        // 2) 상태 매핑
         let translatedStatus = '';
         switch (data.decision) {
           case 'APPROVE':
@@ -214,6 +250,39 @@ export default function DesignReview() {
             break;
         }
         setStatus(translatedStatus);
+
+        // 3) 첨부 파일 로드
+        let attachmentIds = Array.isArray(data.attachmentIds) ? data.attachmentIds : [];
+
+        // 리뷰 상세에 첨부가 없으면 특허 상세에서 보완
+        if ((!attachmentIds || attachmentIds.length === 0) && data.patentId) {
+          const patentDetail = await fetchPatentDetail(data.patentId);
+          if (patentDetail && Array.isArray(patentDetail.attachmentIds)) {
+            attachmentIds = patentDetail.attachmentIds;
+            // 특허 상세에서 도면 파일명(drawingFileNames)이 있으면 design에 병합
+            if (Array.isArray(patentDetail.drawingFileNames)) {
+              setDesign(prev => prev ? { ...prev, drawingFileNames: patentDetail.drawingFileNames } : prev);
+            }
+          }
+        }
+
+        if (attachmentIds && attachmentIds.length > 0) {
+          try {
+            const [images, others] = await Promise.all([
+              getImageUrlsByIds(attachmentIds),
+              getNonImageFilesByIds(attachmentIds)
+            ]);
+            setAttachmentImageUrls(images);
+            setAttachmentOtherFiles(others);
+          } catch (e) {
+            console.warn('첨부 로드 실패:', e);
+            setAttachmentImageUrls([]);
+            setAttachmentOtherFiles([]);
+          }
+        } else {
+          setAttachmentImageUrls([]);
+          setAttachmentOtherFiles([]);
+        }
       } catch (error) {
         console.error('심사 상세 정보 조회 실패:', error);
         showMessageBox('심사 정보를 불러오는 데 실패했습니다.');
@@ -221,7 +290,7 @@ export default function DesignReview() {
         setLoading(false);
       }
     };
-    fetchReviewData();
+    run();
   }, [id, navigate]);
 
   // 첫 도면 자동 유사분석 (CORS 허용 필요)
@@ -234,7 +303,8 @@ export default function DesignReview() {
       try {
         const res = await fetch(url);
         const blob = await res.blob();
-        const file = new File([blob], `design_${design.patentId}.${(blob.type.split('/')[1] || 'png')}`, { type: blob.type || 'image/png' });
+        const ext = (blob.type.split('/')[1] || 'png');
+        const file = new File([blob], `design_${design.patentId}.${ext}`, { type: blob.type || 'image/png' });
         await handleSimilaritySearch(file);
       } catch { /* noop */ }
     })();
@@ -262,16 +332,12 @@ export default function DesignReview() {
     setInputMessage('');
     setIsTyping(true);
 
-    // 특허페이지와 동일 포맷(권장): { message, context }
-    const messagePayload = {
-      message,
-      context: { image_urls: contextImageUrls }
-    };
+    const messagePayload = { message, context: { image_urls: contextImageUrls } };
 
     try {
       let currentSessionId = chatSessionId;
       if (!currentSessionId) {
-        const userId = getCurrentUserId(); // 필요 시 서버에서 사용
+        const userId = getCurrentUserId();
         const sessionResponse = await startChatSession(design.patentId, userId);
         const sid = sessionResponse?.session_id || sessionResponse?.id;
         if (!sid) throw new Error('Failed to get a valid session_id from the server.');
@@ -435,11 +501,9 @@ ${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getD
       showMessageBox('사용할 도면 이미지가 없습니다.');
       return;
     }
-
     setIsGenerating3D(true);
     setThreeDModelPath('');
     try {
-      // 선택한 도면으로 생성 (백엔드가 image_url 무시하면 image_id만 사용)
       const result = await generate3DModel(design.patentId, { image_id: selectedDrawingIdx + 1, image_url: targetUrl });
       setThreeDModelPath(result.file_path);
       showMessageBox(`3D 모델 생성 완료!\n경로: ${result.file_path}`);
@@ -476,7 +540,6 @@ ${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getD
       showMessageBox('이 기능은 이미지 파일 업로드가 필요합니다.');
       return;
     }
-
     setIsSearchingSimilarity(true);
     setSimilarityResults([]);
     try {
@@ -691,7 +754,7 @@ ${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getD
                 )}
               </div>
 
-              {/* 요약 (2D 도면 위) */}
+              {/* 요약 */}
               <div className="mb-4">
                 <h4 className="font-medium text-lg mb-2 text-gray-800 flex items-center gap-1">
                   <FileText className="w-4 h-4 text-indigo-400" /> 요약
@@ -701,7 +764,7 @@ ${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getD
                 </div>
               </div>
 
-              {/* 2D 도면 (선택 가능) */}
+              {/* 2D 도면 */}
               <div className="flex flex-col lg:flex-row gap-6 mb-4">
                 <div className="flex-1 w-full">
                   <div className="flex items-center justify-between mb-2">
@@ -747,6 +810,31 @@ ${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getD
                       </p>
                     )}
                   </div>
+
+                  {/* 이미지가 하나도 없고, 비이미지 첨부가 있을 때 다운로드 리스트 표시 */}
+                  {drawingSources.length === 0 && attachmentOtherFiles.length > 0 && (
+                    <div className="mt-3 bg-gray-50 border border-gray-200 rounded-lg p-3">
+                      <p className="text-sm font-medium text-gray-800 mb-2 flex items-center gap-2">
+                        <FileIcon className="w-4 h-4 text-gray-600" />
+                        이미지가 아닌 첨부 파일
+                      </p>
+                      <ul className="text-sm text-gray-700 space-y-1 max-h-32 overflow-y-auto">
+                        {attachmentOtherFiles.map(f => (
+                          <li key={f.id} className="flex items-center justify-between gap-2">
+                            <span className="truncate">{f.name}</span>
+                            <a
+                              href={f.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-indigo-600 hover:underline text-xs flex-shrink-0"
+                            >
+                              열기
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -766,7 +854,7 @@ ${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getD
                 </div>
 
                 {drawingSources.length === 0 && (
-                  <p className="text-xs text-gray-500 mb-2">3D 모델 생성을 위해 2D 도면이 필요합니다.</p>
+                  <p className="text-xs text-gray-500 mb-2">3D 모델 생성을 위해 2D 도면(이미지)이 필요합니다.</p>
                 )}
 
                 <div className="w-full h-72 bg-gray-100 rounded-lg flex items-center justify-center border border-gray-200">
@@ -860,6 +948,7 @@ ${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getD
         </div>
       </main>
 
+
       {/* 사이드 챗봇 패널 */}
       <div className={`fixed right-0 top-0 h-full w-[450px] bg-white shadow-2xl border-l border-gray-200 transform transition-transform duration-300 ease-in-out z-40 flex flex-col ${isChatOpen ? 'translate-x-0' : 'translate-x-full'}`}>
         <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-purple-50 flex-shrink-0">
@@ -882,7 +971,12 @@ ${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getD
         <div className="p-4 border-b border-gray-100 flex-shrink-0">
           <p className="text-sm font-medium text-gray-700 mb-3">빠른 질문</p>
           <div className="grid grid-cols-2 gap-2">
-            {quickQuestions.map((q) => (
+            {[
+              { id: 'q1', text: '유사 디자인', icon: Copy, query: '이 디자인과 유사한 디자인을 찾아줘' },
+              { id: 'q2', text: '심미성 분석', icon: Lightbulb, query: '이 디자인의 심미성에 대해 분석해줘' },
+              { id: 'q3', text: '법적 근거', icon: Scale, query: '디자인 등록 거절에 대한 법적 근거는 뭐야?' },
+              { id: 'q4', text: '심사 기준', icon: GanttChart, query: '디자인 심사 기준에 대해 알려줘' }
+            ].map((q) => (
               <button
                 key={q.id}
                 onClick={() => handleQuickQuestion(q.query)}
