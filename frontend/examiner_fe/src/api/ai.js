@@ -34,7 +34,7 @@ export const startChatSession = async (patentId, userId) => {
     async () => {
       const query = new URLSearchParams({ patentId: String(patentId) });
       if (userId != null) query.set('userId', String(userId));
-      const res = await axiosInstance.post(`/api/ai/chat/sessions?${query.toString()}`);
+      const res = await axiosInstance.post(`/ai/chat/sessions?${query.toString()}`);
       return res.data;
     },
     { id: crypto.randomUUID(), startedAt: new Date().toISOString(), status: 'ACTIVE', mock: true }
@@ -50,7 +50,7 @@ export const sendChatMessageToServer = async (sessionId, payload) => {
   };
   return swallow404(
     async () => {
-      const res = await axiosInstance.post(`/api/ai/chat/sessions/${sessionId}/messages`, body);
+      const res = await axiosInstance.post(`/ai/chat/sessions/${sessionId}/messages`, body);
       return res.data;
     },
     {
@@ -71,7 +71,7 @@ export const sendChatMessageToServer = async (sessionId, payload) => {
 export const validatePatentDocument = async (patentId) => {
   return swallow404(
     async () => {
-      const res = await axiosInstance.post(`/api/ai/patents/${encodeURIComponent(patentId)}/validate`);
+      const res = await axiosInstance.post(`/ai/patents/${encodeURIComponent(patentId)}/validate`);
       return res.data;
     },
     [] // 더미: 문제 없음
@@ -87,9 +87,9 @@ export const searchDesignImageByFile = async (file) => {
       const form = new FormData();
       form.append('file', file);
       const { data } = await axiosInstance.post(
-      '/api/ai/search/design/image',
-       form,
-       { headers: { 'Content-Type': 'multipart/form-data' } }
+        '/ai/search/design/image',
+        form,
+        { headers: { 'Content-Type': 'multipart/form-data' } }
       );
       return data;
     },
@@ -117,7 +117,7 @@ export const searchTrademarkImage = async (input) => {
     async () => {
       const form = new FormData();
       form.append('file', file);
-      const { data } = await axiosInstance.post('/api/ai/search/trademark/image', form, {
+      const { data } = await axiosInstance.post('/ai/search/trademark/image', form, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       return data;
@@ -170,7 +170,7 @@ export const generate3DModel = async (patentId, imageRef = {}) => {
   // imageRef: { image_id?: number, image_url?: string }
   return swallow404(
     async () => {
-      const res = await axiosInstance.post('/api/ai/3d-models', {
+      const res = await axiosInstance.post('/ai/3d-models', {
         patent_id: patentId,
         ...imageRef,
       });
@@ -186,7 +186,7 @@ export const generate3DModel = async (patentId, imageRef = {}) => {
 export const generateRejectionDraft = async (patentId, fileId) => {
   return swallow404(
     async () => {
-      const res = await axiosInstance.post('/api/ai/drafts/rejections', {
+      const res = await axiosInstance.post('/ai/drafts/rejections', {
         patentId, // 스펙 표기가 camelCase
         fileId,   // 선택값
       });

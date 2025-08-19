@@ -1,7 +1,7 @@
 // src/api/files.js
 import axiosInstance from './axiosInstance';
 
-const API_ROOT = '/api/files';
+const API_ROOT = '/files';
 
 const isHttpUrl = (u) => /^https?:\/\//i.test(u);
 
@@ -16,6 +16,9 @@ export function toAbsoluteFileUrl(u) {
   // prod에선 절대 baseURL을 붙여주고, dev에선 프록시/동일오리진 가정
   if (base && isHttpUrl(base)) {
     return base.replace(/\/+$/, '') + normalized;
+  }
+  if (base) {
+    return `${base.replace(/\/+$/, '')}${normalized}`;
   }
   return normalized;
 }
@@ -49,7 +52,7 @@ export async function getImageUrlsByIds(fileIds = []) {
       if (primary) return toAbsoluteFileUrl(primary);
       if (m.patentId && m.fileName) {
         const enc = encodeURIComponent(m.fileName);
-        return toAbsoluteFileUrl(`/api/files/${m.patentId}/${enc}`);
+        return toAbsoluteFileUrl(`${API_ROOT}/${m.patentId}/${enc}`);
       }
       return '';
     })
@@ -65,7 +68,7 @@ export async function getNonImageFilesByIds(fileIds = []) {
     .map((m) => {
       const fallback =
         m.patentId && m.fileName
-          ? `/api/files/${m.patentId}/${encodeURIComponent(m.fileName)}`
+          ? `${API_ROOT}/${m.patentId}/${encodeURIComponent(m.fileName)}`
           : '';
       const url = toAbsoluteFileUrl(m.fileUrl || m.url || fallback);
       return url

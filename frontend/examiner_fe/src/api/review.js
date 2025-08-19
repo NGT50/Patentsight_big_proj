@@ -63,7 +63,7 @@ async function _listWithParams(userId, paramsCandidates) {
   let lastErr;
   for (const params of paramsCandidates) {
     try {
-      const { data } = await axiosInstance.get(`/api/reviews/list/${userId}`, {
+      const { data } = await axiosInstance.get(`/reviews/list/${userId}`, {
         params,
         validateStatus: okOrClientErr,
       });
@@ -80,7 +80,7 @@ async function _searchWithParams(examinerId, paramsCandidates) {
   let lastErr;
   for (const params of paramsCandidates) {
     try {
-      const { data } = await axiosInstance.get(`/api/reviews/search/${examinerId}`, {
+      const { data } = await axiosInstance.get(`/reviews/search/${examinerId}`, {
         params,
         validateStatus: okOrClientErr,
       });
@@ -97,7 +97,7 @@ async function _searchWithParams(examinerId, paramsCandidates) {
  * @param {object} requestData - { applicationNumber: number, examinerId: number }
  */
 export const assignReviewer = async (requestData) => {
-  const response = await axiosInstance.post('/api/reviews/assign', requestData);
+  const response = await axiosInstance.post('/reviews/assign', requestData);
   return response.data;
 };
 
@@ -106,7 +106,7 @@ export const assignReviewer = async (requestData) => {
  * @param {string} type - 'PATENT' | 'DESIGN'
  */
 export const autoAssign = async (type) => {
-  const response = await axiosInstance.post(`/api/reviews/assign/auto`, null, {
+  const response = await axiosInstance.post(`/reviews/assign/auto`, null, {
     params: { type },
   });
   return response.data;
@@ -136,7 +136,7 @@ export const getReviewList = async (userId, opts) => {
     }
     // ✅ 그 외는 status로 처리
     if (STATUS_SET.has(v)) {
-      const { data } = await axiosInstance.get(`/api/reviews/list/${userId}`, {
+      const { data } = await axiosInstance.get(`/reviews/list/${userId}`, {
         params: { status: v },
         validateStatus: okOrClientErr,
       });
@@ -163,7 +163,7 @@ export const getReviewList = async (userId, opts) => {
 
     // 타입이 없고 상태만 있는 경우
     if (status && STATUS_SET.has(status)) {
-      const { data } = await axiosInstance.get(`/api/reviews/list/${userId}`, {
+      const { data } = await axiosInstance.get(`/reviews/list/${userId}`, {
         params: { status },
         validateStatus: okOrClientErr,
       });
@@ -171,14 +171,14 @@ export const getReviewList = async (userId, opts) => {
     }
 
     // 필터 없음
-    const { data } = await axiosInstance.get(`/api/reviews/list/${userId}`, {
+    const { data } = await axiosInstance.get(`/reviews/list/${userId}`, {
       validateStatus: okOrClientErr,
     });
     return asArray(data);
   }
 
   // 파라미터가 아예 없으면 전체
-  const { data } = await axiosInstance.get(`/api/reviews/list/${userId}`, {
+  const { data } = await axiosInstance.get(`/reviews/list/${userId}`, {
     validateStatus: okOrClientErr,
   });
   return asArray(data);
@@ -188,7 +188,7 @@ export const getReviewList = async (userId, opts) => {
  * 4. 심사 상세 조회
  */
 export const getReviewDetail = async (reviewId) => {
-  const response = await axiosInstance.get(`/api/reviews/${reviewId}`, {
+  const response = await axiosInstance.get(`/reviews/${reviewId}`, {
     validateStatus: okOrClientErr,
   });
   return response.data; // 상세는 객체 그대로
@@ -199,7 +199,7 @@ export const getReviewDetail = async (reviewId) => {
  * @param {{ patentId:number, decision:string, comment:string }} requestData
  */
 export const submitReview = async (requestData) => {
-  const response = await axiosInstance.post('/api/reviews/submit', requestData);
+  const response = await axiosInstance.post('/reviews/submit', requestData);
   return response.data;
 };
 
@@ -208,7 +208,7 @@ export const submitReview = async (requestData) => {
  */
 export const createOpinionNotice = async (reviewId, requestData) => {
   const response = await axiosInstance.post(
-    `/api/reviews/${reviewId}/opinion-notices`,
+    `/reviews/${reviewId}/opinion-notices`,
     requestData
   );
   return response.data;
@@ -218,7 +218,7 @@ export const createOpinionNotice = async (reviewId, requestData) => {
  * 7. 의견서 목록 조회 (항상 배열)
  */
 export const getOpinionNotices = async (reviewId) => {
-  const { data } = await axiosInstance.get(`/api/reviews/${reviewId}/opinion-notices`, {
+  const { data } = await axiosInstance.get(`/reviews/${reviewId}/opinion-notices`, {
     validateStatus: okOrClientErr,
   });
   return asArray(data);
@@ -228,7 +228,7 @@ export const getOpinionNotices = async (reviewId) => {
  * 8. 심사 대시보드 요약 (항상 객체)
  */
 export const getDashboard = async (userId) => {
-  const { data } = await axiosInstance.get(`/api/reviews/dashboard/${userId}`, {
+  const { data } = await axiosInstance.get(`/reviews/dashboard/${userId}`, {
     validateStatus: okOrClientErr,
   });
   return asObject(data);
@@ -238,7 +238,7 @@ export const getDashboard = async (userId) => {
  * 9. 심사관 최근 활동 (항상 배열)
  */
 export const getRecentActivities = async () => {
-  const { data } = await axiosInstance.get('/api/reviews/recent-activities', {
+  const { data } = await axiosInstance.get('/reviews/recent-activities', {
     validateStatus: okOrClientErr,
   });
   return asArray(data);
@@ -252,7 +252,7 @@ export const getRecentActivities = async () => {
 export const searchReviews = async (examinerId, params = {}) => {
   const { type, ...rest } = params || {};
   if (!type) {
-    const { data } = await axiosInstance.get(`/api/reviews/search/${examinerId}`, {
+    const { data } = await axiosInstance.get(`/reviews/search/${examinerId}`, {
       params: rest,
       validateStatus: okOrClientErr,
     });
@@ -260,7 +260,7 @@ export const searchReviews = async (examinerId, params = {}) => {
   }
   const t = String(type).toUpperCase();
   if (!TYPE_SET.has(t)) {
-    const { data } = await axiosInstance.get(`/api/reviews/search/${examinerId}`, {
+    const { data } = await axiosInstance.get(`/reviews/search/${examinerId}`, {
       params,
       validateStatus: okOrClientErr,
     });

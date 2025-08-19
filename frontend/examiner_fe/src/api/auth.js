@@ -4,7 +4,7 @@ import axios from './axiosInstance';
 export const loginUser = async ({ username, password }) => {
   try {
     console.log('심사관 로그인 요청 데이터:', { username, password });
-    const response = await axios.post('/api/users/login', { username, password });
+    const response = await axios.post('/users/login', { username, password });
     console.log('심사관 로그인 성공 응답:', response.data);
     return response.data;
   } catch (error) {
@@ -48,7 +48,7 @@ export const signupExaminer = async ({ username, password, name, birthDate, depa
   try {
     console.log('심사관 회원가입 요청 데이터:', { username, password, name, birthDate, department, employeeNumber, position });
     
-    const response = await axios.post('/api/users/examiner', {
+    const response = await axios.post('/users/examiner', {
       username,
       password,
       name,
@@ -93,7 +93,7 @@ export const verifyExaminerCode = async ({ authCode }) => {
   try {
     console.log('심사관 인증 코드 검증 요청:', { authCode });
     
-    const response = await axios.post('/api/users/verify-code', {
+    const response = await axios.post('/users/verify-code', {
       authCode,
     });
     console.log('심사관 인증 코드 검증 성공 응답:', response.data);
