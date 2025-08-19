@@ -1,3 +1,4 @@
+
 package com.patentsight.config;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -38,17 +39,16 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
-    // ✅ CORS (yml 불필요, 하드코딩)
+    // ✅ cors.allowed-origins 제거 → 하드코딩 방식만 사용
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(Arrays.asList(
             "http://35.175.253.22",
             "http://35.175.253.22:3000",
-            "http://35.175.253.22:3001",
             "http://35.175.253.22:5173",
-            "http://localhost:5173",
-            "http://localhost:3000"
+            "http://localhost:3000",
+            "http://localhost:5173"
         ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Collections.singletonList("*"));
@@ -59,7 +59,6 @@ public class SecurityConfig {
         return source;
     }
 
-    // ✅ JWT → ROLE 변환
     @Bean
     public JwtAuthenticationConverter jwtAuthenticationConverter() {
         JwtGrantedAuthoritiesConverter delegate = new JwtGrantedAuthoritiesConverter();
@@ -69,8 +68,7 @@ public class SecurityConfig {
         JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
         converter.setJwtGrantedAuthoritiesConverter(jwt -> {
             Set<org.springframework.security.core.GrantedAuthority> grants =
-                new HashSet<>(Optional.ofNullable(delegate.convert(jwt)).orElseGet(Collections::emptySet));
-
+                    new HashSet<>(Optional.ofNullable(delegate.convert(jwt)).orElseGet(Collections::emptySet));
             Object role = jwt.getClaim("role");
             if (role instanceof String s && !s.isBlank()) {
                 grants.add(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_" + s));
@@ -80,14 +78,12 @@ public class SecurityConfig {
         return converter;
     }
 
-    // ✅ HS256 Decoder
     @Bean
     public JwtDecoder jwtDecoder() {
         SecretKey key = new SecretKeySpec(jwtSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
         return NimbusJwtDecoder.withSecretKey(key).macAlgorithm(MacAlgorithm.HS256).build();
     }
 
-    // ✅ Spring Security 필터체인
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http,
                                            JwtAuthenticationConverter jwtAuthenticationConverter) throws Exception {
