@@ -1,5 +1,5 @@
 name: CD backend → EC2 (CICD)
-
+ 
 on:
   push:
     branches: [ "CICD" ]      # CICD 브랜치에 푸시될 때만
