@@ -12,11 +12,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
-import org.springframework.mock.web.MockMultipartFile;
+import com.patentsight.file.util.FileMultipartFile;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
 
 @Service
 @RequiredArgsConstructor
@@ -39,16 +37,8 @@ public class AiImageServiceImpl implements AiImageService {
             throw new RuntimeException("Failed to generate 3D model");
         }
 
-        try (FileInputStream fis = new FileInputStream(glbFile)) {
-            MultipartFile multipartFile = new MockMultipartFile(
-                    glbFile.getName(),
-                    glbFile.getName(),
-                    "model/gltf-binary",
-                    fis);
-            FileResponse saved = fileService.create(multipartFile, null, request.getPatentId());
-            return new Generated3DModelResponse(saved.getFileId(), saved.getFileUrl());
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to store generated model", e);
-        }
+        MultipartFile multipartFile = new FileMultipartFile(glbFile, "model/gltf-binary");
+        FileResponse saved = fileService.create(multipartFile, null, request.getPatentId());
+        return new Generated3DModelResponse(saved.getFileId(), saved.getFileUrl());
     }
 }
