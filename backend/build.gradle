@@ -42,8 +42,9 @@ dependencies {
         // Needed for MockMultipartFile
         implementation 'org.springframework:spring-test'
 
-	// ✅ DB
-	runtimeOnly 'com.h2database:h2'
+        // ✅ DB
+        // runtimeOnly 'com.h2database:h2'
+        runtimeOnly 'com.mysql:mysql-connector-j'
 
 	// ✅ Lombok
 	compileOnly 'org.projectlombok:lombok'
