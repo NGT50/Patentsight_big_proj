@@ -19,13 +19,13 @@ management:
       exposure:
         include: "health,info"
 
-# ★ JWT 서명/검증에 사용할 고정 비밀키 (32바이트 이상)
+# JWT 관련 설정
 security:
   jwt:
-    secret: "change-this-to-your-256-bit-secret_______________________"
-  jwt-validity-ms: 86400000   # 토큰 유효기간(ms)
+    secret: "change-this-to-your-256-bit-secret_______________________"  # 32바이트 이상
+    validity-ms: 86400000   # 토큰 유효기간(ms)
 
-# 외부 API 엔드포인트를 한 곳에서 관리
+# 외부 API 엔드포인트
 external-api:
   fastapi-ipc-url: "http://54.161.26.140:8000/predict"
   draft-url: "http://13.236.174.54:8000/analyze/"
