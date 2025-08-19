@@ -34,4 +34,3 @@ external-api:
   claim-url: "https://neil-gordon-georgia-thumbnail.trycloudflare.com/generate"
   similar-search-base-url: "http://127.0.0.1:8000"
   three-d-model-endpoint: "https://4731cfc6a89a.ngrok-free.app/generate"
-
