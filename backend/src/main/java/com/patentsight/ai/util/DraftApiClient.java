@@ -2,6 +2,7 @@ package com.patentsight.ai.util;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -17,13 +18,14 @@ public class DraftApiClient {
 
     private final WebClient webClient;
 
-    private final String FASTAPI_URL = "http://13.236.174.54:8000/analyze/";
+    @Value("${external-api.draft-url}")
+    private String fastapiUrl;
 
     public String requestOpinion(File file) {
         FileSystemResource resource = new FileSystemResource(file);
 
         return webClient.post()
-                .uri(FASTAPI_URL)
+                .uri(fastapiUrl)
                 .contentType(MediaType.MULTIPART_FORM_DATA)
                 .body(BodyInserters.fromMultipartData("file", resource))
                 .retrieve()

@@ -19,6 +19,7 @@ import com.patentsight.patent.dto.SubmitPatentResponse; // 새로 추가된 DTO
 import com.patentsight.ai.dto.PredictRequest; // 추가
 import com.patentsight.ai.dto.PredictResponse; // 추가
 import com.patentsight.patent.repository.PatentRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate; // RestTemplate 추가
@@ -42,7 +43,9 @@ public class PatentService {
     private final SpecVersionRepository specVersionRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final RestTemplate restTemplate; // RestTemplate 필드 추가
-    private final String fastApiIpcUrl = "http://127.0.0.1:5000/predict"; // AI 모델 IPC 엔드포인트
+
+    @Value("${external-api.fastapi-ipc-url}")
+    private String fastApiIpcUrl; // AI 모델 IPC 엔드포인트
 
     // ✅ [알림] 서비스 필드 추가
     private final NotificationService notificationService;

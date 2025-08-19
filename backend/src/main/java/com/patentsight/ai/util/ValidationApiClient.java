@@ -3,6 +3,7 @@ package com.patentsight.ai.util;
 import com.patentsight.ai.dto.AiCheckRequest;
 import com.patentsight.ai.dto.AiCheckResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
@@ -12,12 +13,14 @@ import reactor.core.publisher.Mono;
 public class ValidationApiClient {
 
     private final WebClient webClient;
-    private final String VALIDATION_API_URL = "http://3.26.101.212:8000/api/ai/validations";
+
+    @Value("${external-api.validation-url}")
+    private String validationApiUrl;
 
     public AiCheckResponse requestValidation(AiCheckRequest requestDto) {
         try {
             return webClient.post()
-                    .uri(VALIDATION_API_URL)
+                    .uri(validationApiUrl)
                     .body(Mono.just(requestDto), AiCheckRequest.class)
                     .retrieve()
                     .bodyToMono(AiCheckResponse.class) // 다시 DTO로 바로 받도록 수정
