@@ -4,7 +4,7 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     username: admin
     password: tab20200782!
-
+    
   jpa:
     hibernate:
       ddl-auto: update   # 개발 단계는 update, 운영 배포는 validate 권장
