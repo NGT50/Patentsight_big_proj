@@ -27,7 +27,7 @@ security:
 
 # 외부 API 엔드포인트를 한 곳에서 관리
 external-api:
-  fastapi-ipc-url: "http://127.0.0.1:5000/predict"
+  fastapi-ipc-url: "http://54.161.26.140:8000/predict"
   draft-url: "http://13.236.174.54:8000/analyze/"
   search-base-url: "http://43.201.66.246:8000"
   validation-url: "http://3.26.101.212:8000/api/ai/validations"
