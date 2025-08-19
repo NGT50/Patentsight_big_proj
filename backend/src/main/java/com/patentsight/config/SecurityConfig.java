@@ -42,7 +42,7 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
-    // CORS
+    // ✅ CORS - 하드코딩 방식
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
@@ -68,19 +68,19 @@ public class SecurityConfig {
         return source;
     }
 
-    // JWT → 권한 매핑 (role/roles 클레임을 ROLE_* 권한으로)
+    // ✅ JWT → 권한 매핑
     @Bean
     public JwtAuthenticationConverter jwtAuthenticationConverter() {
         JwtGrantedAuthoritiesConverter delegate = new JwtGrantedAuthoritiesConverter();
         delegate.setAuthorityPrefix("ROLE_");
-        delegate.setAuthoritiesClaimName("roles"); // roles: ["EXAMINER"] 우선
+        delegate.setAuthoritiesClaimName("roles"); // roles: ["EXAMINER"]
 
         JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
         converter.setJwtGrantedAuthoritiesConverter(jwt -> {
             Set<org.springframework.security.core.GrantedAuthority> grants =
                     new HashSet<>(Optional.ofNullable(delegate.convert(jwt)).orElseGet(Collections::emptySet));
 
-            Object role = jwt.getClaim("role"); // role: "EXAMINER" 지원
+            Object role = jwt.getClaim("role");
             if (role instanceof String s && !s.isBlank()) {
                 grants.add(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_" + s));
             }
@@ -89,13 +89,14 @@ public class SecurityConfig {
         return converter;
     }
 
-    // HS256 디코더: 발급에 쓰는 secret과 반드시 같아야 함
+    // ✅ HS256 디코더
     @Bean
     public JwtDecoder jwtDecoder() {
         SecretKey key = new SecretKeySpec(jwtSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
         return NimbusJwtDecoder.withSecretKey(key).macAlgorithm(MacAlgorithm.HS256).build();
     }
 
+    // ✅ Security FilterChain
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http,
                                            JwtAuthenticationConverter jwtAuthenticationConverter) throws Exception {
@@ -115,7 +116,6 @@ public class SecurityConfig {
                 ).permitAll()
                 .anyRequest().authenticated()
             )
-            // ★ Bearer 토큰을 인증으로 처리
             .oauth2ResourceServer(oauth -> oauth
                 .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter))
             );
