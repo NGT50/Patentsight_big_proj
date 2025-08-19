@@ -1,19 +1,17 @@
 spring:
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
-      settings:
-        web-allow-others: true
   datasource:
-    url: jdbc:h2:mem:testdb
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
+    url: jdbc:mysql://patent-db-new.c05iwwo0ip8e.us-east-1.rds.amazonaws.com:3306/your_db_name?useSSL=false&serverTimezone=UTC&characterEncoding=UTF-8
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: admin
+    password: tab20200782!
+
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: update   # 개발 단계는 update, 운영 배포는 validate 권장
     show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
 
 management:
   endpoints:
@@ -25,8 +23,7 @@ management:
 security:
   jwt:
     secret: "change-this-to-your-256-bit-secret_______________________"
-  # 선택: 유효기간(ms). JwtTokenProvider에서 @Value로 쓰거나 하드코딩해도 됨
-  jwt-validity-ms: 86400000
+  jwt-validity-ms: 86400000   # 토큰 유효기간(ms)
 
 cors:
   allowed-origins:
