@@ -25,20 +25,6 @@ security:
     secret: "change-this-to-your-256-bit-secret_______________________"
   jwt-validity-ms: 86400000   # 토큰 유효기간(ms)
 
-cors:
-  allowed-origins:
-    - http://35.175.253.22
-    - http://35.175.253.22:3000
-    - http://35.175.253.22:3001
-    - http://35.175.253.22:3002
-    - http://35.175.253.22:3003
-    - http://35.175.253.22:5173
-    - http://localhost:5173
-    - http://localhost:3000
-    - http://localhost:3001
-    - http://localhost:3002
-    - http://localhost:3003
-
 # 외부 API 엔드포인트를 한 곳에서 관리
 external-api:
   fastapi-ipc-url: "http://127.0.0.1:5000/predict"
@@ -48,3 +34,4 @@ external-api:
   claim-url: "https://neil-gordon-georgia-thumbnail.trycloudflare.com/generate"
   similar-search-base-url: "http://127.0.0.1:8000"
   three-d-model-endpoint: "https://4731cfc6a89a.ngrok-free.app/generate"
+
