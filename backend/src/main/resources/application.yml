@@ -1,5 +1,5 @@
 spring:
-  datasource:
+  datasource: 
     url: jdbc:mysql://patent-db-new.c05iwow0ip8e.us-east-1.rds.amazonaws.com:3306/patent_db?useSSL=false&serverTimezone=UTC&characterEncoding=UTF-8
     driver-class-name: com.mysql.cj.jdbc.Driver
     username: admin
