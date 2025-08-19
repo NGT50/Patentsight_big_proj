@@ -23,15 +23,11 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity // @PreAuthorize 사용 시 필요
+@EnableMethodSecurity
 public class SecurityConfig {
 
     @Value("${security.jwt.secret}")
@@ -42,7 +38,7 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
-    // ✅ CORS - 하드코딩 방식
+    // ✅ CORS (yml 불필요, 하드코딩)
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
@@ -50,14 +46,9 @@ public class SecurityConfig {
             "http://35.175.253.22",
             "http://35.175.253.22:3000",
             "http://35.175.253.22:3001",
-            "http://35.175.253.22:3002",
-            "http://35.175.253.22:3003",
             "http://35.175.253.22:5173",
             "http://localhost:5173",
-            "http://localhost:3000",
-            "http://localhost:3001",
-            "http://localhost:3002",
-            "http://localhost:3003"
+            "http://localhost:3000"
         ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Collections.singletonList("*"));
@@ -68,17 +59,17 @@ public class SecurityConfig {
         return source;
     }
 
-    // ✅ JWT → 권한 매핑
+    // ✅ JWT → ROLE 변환
     @Bean
     public JwtAuthenticationConverter jwtAuthenticationConverter() {
         JwtGrantedAuthoritiesConverter delegate = new JwtGrantedAuthoritiesConverter();
         delegate.setAuthorityPrefix("ROLE_");
-        delegate.setAuthoritiesClaimName("roles"); // roles: ["EXAMINER"]
+        delegate.setAuthoritiesClaimName("roles");
 
         JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
         converter.setJwtGrantedAuthoritiesConverter(jwt -> {
             Set<org.springframework.security.core.GrantedAuthority> grants =
-                    new HashSet<>(Optional.ofNullable(delegate.convert(jwt)).orElseGet(Collections::emptySet));
+                new HashSet<>(Optional.ofNullable(delegate.convert(jwt)).orElseGet(Collections::emptySet));
 
             Object role = jwt.getClaim("role");
             if (role instanceof String s && !s.isBlank()) {
@@ -89,14 +80,14 @@ public class SecurityConfig {
         return converter;
     }
 
-    // ✅ HS256 디코더
+    // ✅ HS256 Decoder
     @Bean
     public JwtDecoder jwtDecoder() {
         SecretKey key = new SecretKeySpec(jwtSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
         return NimbusJwtDecoder.withSecretKey(key).macAlgorithm(MacAlgorithm.HS256).build();
     }
 
-    // ✅ Security FilterChain
+    // ✅ Spring Security 필터체인
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http,
                                            JwtAuthenticationConverter jwtAuthenticationConverter) throws Exception {
