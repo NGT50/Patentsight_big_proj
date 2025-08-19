@@ -38,18 +38,17 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
-    // ✅ CORS 설정
+    // ✅ CORS 설정 (allowedOriginPatterns 사용)
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList(
-            "http://35.175.253.22",        // 기본 도메인
-            "http://35.175.253.22:3000",  // 출원인 프론트엔드
-            "http://35.175.253.22:3001",  // 심사관 프론트엔드 ✅ 추가
-            "http://35.175.253.22:5173",  // Vite 기본 포트
-            "http://localhost:3000",      // 로컬 출원인
-            "http://localhost:3001",      // 로컬 심사관 ✅ 추가
-            "http://localhost:5173"       // 로컬 vite
+        configuration.setAllowedOriginPatterns(Arrays.asList(
+            "http://35.175.253.22:3000",   // 출원인 프론트
+            "http://35.175.253.22:3001",   // 심사관 프론트
+            "http://localhost:3000",       // 로컬 출원인
+            "http://localhost:3001",       // 로컬 심사관
+            "http://35.175.253.22:5173",   // Vite 기본 포트
+            "http://localhost:5173"        // 로컬 vite
         ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Collections.singletonList("*"));
@@ -89,7 +88,7 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http,
                                            JwtAuthenticationConverter jwtAuthenticationConverter) throws Exception {
         http
-            .cors(Customizer.withDefaults()) // ✅ CORS 설정 활성화
+            .cors(Customizer.withDefaults()) // ✅ CORS 활성화
             .csrf(csrf -> csrf.disable())
             .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
