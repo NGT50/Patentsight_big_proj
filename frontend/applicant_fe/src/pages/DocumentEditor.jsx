@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getLatestDocument, updateDocument, validatePatentDocument } from '../api/patents';
+import { uploadFile } from '../api/files';
 import { 
   FileText, Save, Download, Send, Bot, Box, CheckCircle, AlertCircle, X,
   Plus, Trash2, Eye, Edit3, AlertTriangle
@@ -83,13 +84,21 @@ const DocumentEditor = () => {
       setDocument(prev => ({ ...prev, claims: newClaims }));
     }
   };
-  const handleDrawingUpload = (event) => {
+  const handleDrawingUpload = async (event) => {
     const files = Array.from(event.target.files);
-    const newFiles = files.map(file => ({
-      file,
-      preview: URL.createObjectURL(file),
-    }));
-    setDrawingFiles(prev => [...prev, ...newFiles]);
+    const previews = [];
+    for (const file of files) {
+      try {
+        await uploadFile({ file, patentId });
+        previews.push({ file, preview: URL.createObjectURL(file) });
+      } catch (err) {
+        console.error('도면 업로드 실패:', err);
+        alert('도면 업로드에 실패했습니다.');
+      }
+    }
+    if (previews.length > 0) {
+      setDrawingFiles(prev => [...prev, ...previews]);
+    }
   };
 
   const saveMutation = useMutation({

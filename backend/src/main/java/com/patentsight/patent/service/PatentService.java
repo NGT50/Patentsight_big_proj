@@ -97,13 +97,6 @@ public class PatentService {
         );
 
         List<FileAttachment> attachments = java.util.Collections.emptyList();
-        if (request.getFileIds() != null && !request.getFileIds().isEmpty()) {
-            attachments = fileRepository.findAllById(request.getFileIds());
-            for (FileAttachment attachment : attachments) {
-                attachment.setPatent(patent);
-            }
-            fileRepository.saveAll(attachments);
-        }
 
         PatentResponse response = toPatentResponse(patent, attachments);
 
