@@ -134,11 +134,19 @@ public class PatentService {
     }
 
     // ------------------- SUBMIT -------------------
-    public SubmitPatentResponse submitPatent(Long patentId) {
+    public SubmitPatentResponse submitPatent(Long patentId, PatentRequest latestRequest) {
         Patent patent = patentRepository.findById(patentId).orElse(null);
         if (patent == null) return null;
 
-        String firstClaim = patent.getClaims() != null && !patent.getClaims().isEmpty() ? patent.getClaims().get(0) : "";
+        // ✅ 최신 데이터가 들어온 경우 DB 업데이트
+        if (latestRequest != null) {
+            updatePatent(patentId, latestRequest);
+            patent = patentRepository.findById(patentId).orElse(null);
+        }
+
+        // FastAPI 호출
+        String firstClaim = patent.getClaims() != null && !patent.getClaims().isEmpty()
+                ? patent.getClaims().get(0) : "";
         PredictRequest requestBody = new PredictRequest(firstClaim);
 
         PredictResponse predictResponse = restTemplate.postForObject(fastApiIpcUrl, requestBody, PredictResponse.class);
@@ -148,6 +156,7 @@ public class PatentService {
             ipcCode = predictResponse.getTopIpcResults().get(0).getMaingroup();
         }
 
+        // 특허 상태 및 IPC 업데이트
         patent.setStatus(PatentStatus.SUBMITTED);
         patent.setSubmittedAt(LocalDateTime.now());
         if (patent.getApplicationNumber() == null) {
@@ -156,8 +165,10 @@ public class PatentService {
         patent.setIpc(ipcCode);
         patentRepository.save(patent);
 
+        // 심사관 자동 할당
         reviewService.autoAssignWithSpecialty(patent);
 
+        // 알림
         notificationService.createNotification(
                 NotificationRequest.builder()
                         .userId(patent.getApplicantId())
@@ -242,36 +253,6 @@ public class PatentService {
         return toPatentResponse(patent, null);
     }
 
-    public DocumentContentResponse updateDocument(Long patentId, PatentRequest document) {
-        PatentResponse updated = updatePatent(patentId, document);
-        if (updated == null) return null;
-
-        Patent patent = patentRepository.findById(patentId).orElse(null);
-        if (patent == null) return null;
-
-        SpecVersion current = specVersionRepository.findFirstByPatent_PatentIdAndIsCurrentTrue(patentId);
-        if (current == null) {
-            current = new SpecVersion();
-            current.setPatent(patent);
-            current.setVersionNo(1);
-            current.setApplicantId(patent.getApplicantId());
-            current.setCurrent(true);
-            current.setCreatedAt(LocalDateTime.now());
-        }
-        try {
-            current.setDocument(objectMapper.writeValueAsString(updated));
-        } catch (Exception e) {
-            current.setDocument(null);
-        }
-        current.setUpdatedAt(LocalDateTime.now());
-        specVersionRepository.save(current);
-
-        DocumentContentResponse res = new DocumentContentResponse();
-        res.setVersionNo(current.getVersionNo());
-        res.setDocument(updated);
-        res.setUpdatedAt(current.getUpdatedAt());
-        return res;
-    }
 
     // ------------------- DELETE -------------------
     public boolean deletePatent(Long patentId) {
