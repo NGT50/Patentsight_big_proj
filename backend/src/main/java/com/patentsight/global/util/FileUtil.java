@@ -8,6 +8,9 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
+import software.amazon.awssdk.core.exception.SdkClientException;
+
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -29,7 +32,15 @@ public class FileUtil {
     private static final String BUCKET = System.getenv().getOrDefault("S3_BUCKET", "patentsight-artifacts-usea1");
     private static final Region REGION = Region.of(System.getenv().getOrDefault("AWS_REGION", "us-east-1"));
     private static final S3Client S3 = S3Client.builder().region(REGION).build();
-    private static final boolean USE_S3 = System.getenv("AWS_ACCESS_KEY_ID") != null;
+
+    private static void ensureAwsCredentials(String action) throws IOException {
+        try {
+            DefaultCredentialsProvider.create().resolveCredentials();
+        } catch (SdkClientException e) {
+            log.warn("AWS credentials not configured; cannot {}", action);
+            throw new IOException(e.getMessage(), e);
+        }
+    }
 
     /**
      * Saves the provided multipart file to S3 and returns the generated object
@@ -39,10 +50,7 @@ public class FileUtil {
         if (file == null || file.isEmpty()) {
             throw new IOException("No file provided");
         }
-        if (!USE_S3) {
-            log.warn("AWS credentials not configured; cannot upload file '{}'", file.getOriginalFilename());
-            throw new IOException("AWS credentials not configured");
-        }
+        ensureAwsCredentials("upload file '" + file.getOriginalFilename() + "'");
         String key = UUID.randomUUID() + "_" + file.getOriginalFilename();
         try {
             PutObjectRequest req = PutObjectRequest.builder()
@@ -64,10 +72,7 @@ public class FileUtil {
      */
     public static void deleteFile(String key) throws IOException {
         if (key != null && !key.isEmpty()) {
-            if (!USE_S3) {
-                log.warn("AWS credentials not configured; cannot delete object '{}'", key);
-                return;
-            }
+            ensureAwsCredentials("delete object '" + key + "'");
             try {
                 DeleteObjectRequest req = DeleteObjectRequest.builder()
                         .bucket(BUCKET)
