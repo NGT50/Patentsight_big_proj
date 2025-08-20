@@ -429,12 +429,9 @@ function ExaminerSignup() {
     birthDate: '',
     email: '',
     phone: '',
-    department: 'PATENT',
+    department: '',
     position: '',
-    employeeNumber: '',
-    examinerField: 'patent',
-    agreeTerms: false,
-    agreePrivacy: false
+    employeeNumber: ''
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -763,74 +760,7 @@ function ExaminerSignup() {
             </FormGroup>
           </Row>
 
-          <FormGroup>
-            <Label>심사 분야 *</Label>
-            <RadioGroup>
-              <RadioItem>
-                <input
-                  type="radio"
-                  name="examinerField"
-                  value="patent"
-                  checked={formData.examinerField === 'patent'}
-                  onChange={handleInputChange}
-                />
-                <span>특허</span>
-              </RadioItem>
-              <RadioItem>
-                <input
-                  type="radio"
-                  name="examinerField"
-                  value="utility"
-                  checked={formData.examinerField === 'utility'}
-                  onChange={handleInputChange}
-                />
-                <span>실용신안</span>
-              </RadioItem>
-              <RadioItem>
-                <input
-                  type="radio"
-                  name="examinerField"
-                  value="design"
-                  checked={formData.examinerField === 'design'}
-                  onChange={handleInputChange}
-                />
-                <span>디자인</span>
-              </RadioItem>
-              <RadioItem>
-                <input
-                  type="radio"
-                  name="examinerField"
-                  value="trademark"
-                  checked={formData.examinerField === 'trademark'}
-                  onChange={handleInputChange}
-                />
-                <span>상표</span>
-              </RadioItem>
-            </RadioGroup>
-          </FormGroup>
 
-          <CheckboxGroup>
-            <CheckboxItem>
-              <input
-                type="checkbox"
-                name="agreeTerms"
-                checked={formData.agreeTerms}
-                onChange={handleInputChange}
-                required
-              />
-              <span>이용약관에 동의합니다 *</span>
-            </CheckboxItem>
-            <CheckboxItem>
-              <input
-                type="checkbox"
-                name="agreePrivacy"
-                checked={formData.agreePrivacy}
-                onChange={handleInputChange}
-                required
-              />
-              <span>개인정보처리방침에 동의합니다 *</span>
-            </CheckboxItem>
-          </CheckboxGroup>
 
           {/* 에러 메시지 */}
           {error && (

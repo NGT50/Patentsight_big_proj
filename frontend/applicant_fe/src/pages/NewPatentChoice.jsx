@@ -48,12 +48,12 @@ const NewPatentChoicePage = () => {
     fileInputRef.current.click();
   };
 
-  const handleFileChange = (event) => {
+  const handleFileChange = async (event) => {
     const file = event.target.files[0];
     if (file) {
       parsePdfMutation.mutate(file);
     }
-    event.target.value = null; 
+    event.target.value = null;
   };
   
   const isLoading = createPatentMutation.isPending || parsePdfMutation.isPending;

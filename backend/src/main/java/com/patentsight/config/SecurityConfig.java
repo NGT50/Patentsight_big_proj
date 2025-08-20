@@ -23,15 +23,11 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity // @PreAuthorize 사용 시 필요
+@EnableMethodSecurity
 public class SecurityConfig {
 
     @Value("${security.jwt.secret}")
@@ -42,24 +38,22 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
-    // CORS
+    // ✅ CORS 설정 (allowedOriginPatterns 사용)
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList(
-            "http://35.175.253.22",
-            "http://35.175.253.22:3000",
-            "http://35.175.253.22:3001",
-            "http://35.175.253.22:3002",
-            "http://35.175.253.22:3003",
-            "http://35.175.253.22:5173",
-            "http://localhost:5173",
-            "http://localhost:3000",
-            "http://localhost:3001",
-            "http://localhost:3002",
-            "http://localhost:3003"
+        configuration.setAllowedOriginPatterns(Arrays.asList(
+                "http://35.175.253.22:3000",   // 출원인 프론트
+                "http://35.175.253.22:3001",   // 심사관 프론트
+                "http://localhost:3000",       // 로컬 출원인
+                "http://localhost:3001",       // 로컬 심사관
+                "http://35.175.253.22:5173",   // Vite 기본 포트
+                "http://localhost:5173"        // 로컬 vite
         ));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        
+        // ✅ "PATCH"가 추가된 부분
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+        
         configuration.setAllowedHeaders(Collections.singletonList("*"));
         configuration.setAllowCredentials(true);
 
@@ -67,20 +61,18 @@ public class SecurityConfig {
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }
-
-    // JWT → 권한 매핑 (role/roles 클레임을 ROLE_* 권한으로)
+    
     @Bean
     public JwtAuthenticationConverter jwtAuthenticationConverter() {
         JwtGrantedAuthoritiesConverter delegate = new JwtGrantedAuthoritiesConverter();
         delegate.setAuthorityPrefix("ROLE_");
-        delegate.setAuthoritiesClaimName("roles"); // roles: ["EXAMINER"] 우선
+        delegate.setAuthoritiesClaimName("roles");
 
         JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
         converter.setJwtGrantedAuthoritiesConverter(jwt -> {
             Set<org.springframework.security.core.GrantedAuthority> grants =
                     new HashSet<>(Optional.ofNullable(delegate.convert(jwt)).orElseGet(Collections::emptySet));
-
-            Object role = jwt.getClaim("role"); // role: "EXAMINER" 지원
+            Object role = jwt.getClaim("role");
             if (role instanceof String s && !s.isBlank()) {
                 grants.add(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_" + s));
             }
@@ -89,7 +81,6 @@ public class SecurityConfig {
         return converter;
     }
 
-    // HS256 디코더: 발급에 쓰는 secret과 반드시 같아야 함
     @Bean
     public JwtDecoder jwtDecoder() {
         SecretKey key = new SecretKeySpec(jwtSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
@@ -100,7 +91,7 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http,
                                            JwtAuthenticationConverter jwtAuthenticationConverter) throws Exception {
         http
-            .cors(Customizer.withDefaults())
+            .cors(Customizer.withDefaults()) // ✅ CORS 활성화
             .csrf(csrf -> csrf.disable())
             .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -115,7 +106,6 @@ public class SecurityConfig {
                 ).permitAll()
                 .anyRequest().authenticated()
             )
-            // ★ Bearer 토큰을 인증으로 처리
             .oauth2ResourceServer(oauth -> oauth
                 .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter))
             );
@@ -123,3 +113,4 @@ public class SecurityConfig {
         return http.build();
     }
 }
+

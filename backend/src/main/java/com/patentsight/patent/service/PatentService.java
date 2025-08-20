@@ -11,19 +11,19 @@ import com.patentsight.file.dto.RestoreVersionResponse;
 import com.patentsight.file.repository.FileRepository;
 import com.patentsight.file.repository.SpecVersionRepository;
 import com.patentsight.patent.domain.Patent;
-import com.patentsight.review.service.ReviewService; //추가
+import com.patentsight.review.service.ReviewService;
 import com.patentsight.patent.domain.PatentStatus;
 import com.patentsight.patent.dto.PatentRequest;
 import com.patentsight.patent.dto.PatentResponse;
-import com.patentsight.patent.dto.SubmitPatentResponse; // 새로 추가된 DTO
-import com.patentsight.ai.dto.PredictRequest; // 추가
-import com.patentsight.ai.dto.PredictResponse; // 추가
+import com.patentsight.patent.dto.SubmitPatentResponse;
+import com.patentsight.ai.dto.PredictRequest;
+import com.patentsight.ai.dto.PredictResponse;
 import com.patentsight.patent.repository.PatentRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.client.RestTemplate; // RestTemplate 추가
+import org.springframework.web.client.RestTemplate;
 
-// ✅ [알림] 추가 import
 import com.patentsight.notification.service.NotificationService;
 import com.patentsight.notification.dto.NotificationRequest;
 
@@ -41,10 +41,11 @@ public class PatentService {
     private final FileRepository fileRepository;
     private final SpecVersionRepository specVersionRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private final RestTemplate restTemplate; // RestTemplate 필드 추가
-    private final String fastApiIpcUrl = "http://127.0.0.1:5000/predict"; // AI 모델 IPC 엔드포인트
+    private final RestTemplate restTemplate;
 
-    // ✅ [알림] 서비스 필드 추가
+    @Value("${external-api.fastapi-ipc-url}")
+    private String fastApiIpcUrl;
+
     private final NotificationService notificationService;
 
     public PatentService(PatentRepository patentRepository,
@@ -52,15 +53,16 @@ public class PatentService {
                          SpecVersionRepository specVersionRepository,
                          RestTemplate restTemplate,
                          NotificationService notificationService,
-                         ReviewService reviewService) { // ✅ [알림] 주입
+                         ReviewService reviewService) {
         this.patentRepository = patentRepository;
         this.fileRepository = fileRepository;
         this.specVersionRepository = specVersionRepository;
         this.restTemplate = restTemplate;
-        this.notificationService = notificationService; // ✅
+        this.notificationService = notificationService;
         this.reviewService = reviewService;
     }
 
+    // ------------------- CREATE -------------------
     public PatentResponse createPatent(PatentRequest request, Long applicantId) {
         Patent patent = new Patent();
         patent.setTitle(request.getTitle());
@@ -71,17 +73,19 @@ public class PatentService {
         patent.setInventor(request.getInventor());
         patent.setTechnicalField(request.getTechnicalField());
         patent.setBackgroundTechnology(request.getBackgroundTechnology());
+
         if (request.getInventionDetails() != null) {
             patent.setProblemToSolve(request.getInventionDetails().getProblemToSolve());
             patent.setSolution(request.getInventionDetails().getSolution());
             patent.setEffect(request.getInventionDetails().getEffect());
         }
+
         patent.setSummary(request.getSummary());
         patent.setDrawingDescription(request.getDrawingDescription());
         patent.setClaims(request.getClaims());
         patentRepository.save(patent);
 
-        // ✅ [알림] 특허 생성 알림
+        // 알림
         notificationService.createNotification(
                 NotificationRequest.builder()
                         .userId(applicantId)
@@ -93,36 +97,8 @@ public class PatentService {
         );
 
         List<FileAttachment> attachments = java.util.Collections.emptyList();
-        if (request.getFileIds() != null && !request.getFileIds().isEmpty()) {
-            attachments = fileRepository.findAllById(request.getFileIds());
-            for (FileAttachment attachment : attachments) {
-                attachment.setPatent(patent);
-            }
-            fileRepository.saveAll(attachments);
-        }
 
-        PatentResponse response = new PatentResponse();
-        response.setPatentId(patent.getPatentId());
-        response.setApplicantId(patent.getApplicantId());
-        response.setTitle(patent.getTitle());
-        response.setType(patent.getType());
-        response.setStatus(patent.getStatus());
-        response.setAttachmentIds(attachments.stream()
-                .map(FileAttachment::getFileId)
-                .collect(Collectors.toList()));
-        response.setCpc(patent.getCpc());
-        response.setApplicationNumber(patent.getApplicationNumber());
-        response.setInventor(patent.getInventor());
-        response.setTechnicalField(patent.getTechnicalField());
-        response.setBackgroundTechnology(patent.getBackgroundTechnology());
-        PatentResponse.InventionDetails details = new PatentResponse.InventionDetails();
-        details.setProblemToSolve(patent.getProblemToSolve());
-        details.setSolution(patent.getSolution());
-        details.setEffect(patent.getEffect());
-        response.setInventionDetails(details);
-        response.setSummary(patent.getSummary());
-        response.setDrawingDescription(patent.getDrawingDescription());
-        response.setClaims(patent.getClaims());
+        PatentResponse response = toPatentResponse(patent, attachments);
 
         try {
             SpecVersion initial = new SpecVersion();
@@ -141,89 +117,46 @@ public class PatentService {
         return response;
     }
 
+    // ------------------- READ -------------------
     @Transactional(readOnly = true)
     public PatentResponse getPatentDetail(Long patentId) {
         Patent patent = patentRepository.findById(patentId).orElse(null);
         if (patent == null) return null;
-        PatentResponse res = new PatentResponse();
-        res.setPatentId(patent.getPatentId());
-        res.setApplicantId(patent.getApplicantId());
-        res.setTitle(patent.getTitle());
-        res.setType(patent.getType());
-        res.setStatus(patent.getStatus());
-        res.setCpc(patent.getCpc());
-        res.setApplicationNumber(patent.getApplicationNumber());
-        res.setInventor(patent.getInventor());
-        res.setTechnicalField(patent.getTechnicalField());
-        res.setBackgroundTechnology(patent.getBackgroundTechnology());
-        PatentResponse.InventionDetails details = new PatentResponse.InventionDetails();
-        details.setProblemToSolve(patent.getProblemToSolve());
-        details.setSolution(patent.getSolution());
-        details.setEffect(patent.getEffect());
-        res.setInventionDetails(details);
-        res.setSummary(patent.getSummary());
-        res.setDrawingDescription(patent.getDrawingDescription());
-        res.setClaims(patent.getClaims());
-        List<Long> attachmentIds = fileRepository.findAll().stream()
-                .filter(f -> f.getPatent() != null && f.getPatent().getPatentId().equals(patentId))
-                .map(FileAttachment::getFileId)
-                .collect(Collectors.toList());
-        res.setAttachmentIds(attachmentIds);
-        return res;
+        return toPatentResponse(patent, null);
     }
 
     @Transactional(readOnly = true)
     public List<PatentResponse> getMyPatents(Long applicantId) {
         return patentRepository.findAll().stream()
                 .filter(p -> applicantId.equals(p.getApplicantId()))
-                .map(p -> {
-                    PatentResponse r = new PatentResponse();
-                    r.setPatentId(p.getPatentId());
-                    r.setApplicantId(p.getApplicantId());
-                    r.setTitle(p.getTitle());
-                    r.setType(p.getType());
-                    r.setStatus(p.getStatus());
-                    r.setCpc(p.getCpc());
-                    r.setApplicationNumber(p.getApplicationNumber());
-                    r.setInventor(p.getInventor());
-                    r.setTechnicalField(p.getTechnicalField());
-                    r.setBackgroundTechnology(p.getBackgroundTechnology());
-                    PatentResponse.InventionDetails details = new PatentResponse.InventionDetails();
-                    details.setProblemToSolve(p.getProblemToSolve());
-                    details.setSolution(p.getSolution());
-                    details.setEffect(p.getEffect());
-                    r.setInventionDetails(details);
-                    r.setSummary(p.getSummary());
-                    r.setDrawingDescription(p.getDrawingDescription());
-                    r.setClaims(p.getClaims());
-                    List<Long> attachmentIds = fileRepository.findAll().stream()
-                            .filter(f -> f.getPatent() != null && f.getPatent().getPatentId().equals(p.getPatentId()))
-                            .map(FileAttachment::getFileId)
-                            .collect(Collectors.toList());
-                    r.setAttachmentIds(attachmentIds);
-                    return r;
-                })
+                .map(p -> toPatentResponse(p, null))
                 .collect(Collectors.toList());
     }
 
-    public SubmitPatentResponse submitPatent(Long patentId) {
+    // ------------------- SUBMIT -------------------
+    public SubmitPatentResponse submitPatent(Long patentId, PatentRequest latestRequest) {
         Patent patent = patentRepository.findById(patentId).orElse(null);
         if (patent == null) return null;
 
-        // 1. FastAPI에 보낼 요청 본문 생성
-        String firstClaim = patent.getClaims() != null && !patent.getClaims().isEmpty() ? patent.getClaims().get(0) : "";
+        // ✅ 최신 데이터가 들어온 경우 DB 업데이트
+        if (latestRequest != null) {
+            updatePatent(patentId, latestRequest);
+            patent = patentRepository.findById(patentId).orElse(null);
+        }
+
+        // FastAPI 호출
+        String firstClaim = patent.getClaims() != null && !patent.getClaims().isEmpty()
+                ? patent.getClaims().get(0) : "";
         PredictRequest requestBody = new PredictRequest(firstClaim);
 
-        // 2. FastAPI 호출
         PredictResponse predictResponse = restTemplate.postForObject(fastApiIpcUrl, requestBody, PredictResponse.class);
 
-        // 3. AI 모델로 받은 IPC 코드 사용
         String ipcCode = "N/A";
         if (predictResponse != null && !predictResponse.getTopIpcResults().isEmpty()) {
             ipcCode = predictResponse.getTopIpcResults().get(0).getMaingroup();
         }
 
-        // 4. 특허 정보 업데이트
+        // 특허 상태 및 IPC 업데이트
         patent.setStatus(PatentStatus.SUBMITTED);
         patent.setSubmittedAt(LocalDateTime.now());
         if (patent.getApplicationNumber() == null) {
@@ -231,10 +164,11 @@ public class PatentService {
         }
         patent.setIpc(ipcCode);
         patentRepository.save(patent);
+
+        // 심사관 자동 할당
         reviewService.autoAssignWithSpecialty(patent);
 
-
-        // ✅ [알림] 특허 제출 알림
+        // 알림
         notificationService.createNotification(
                 NotificationRequest.builder()
                         .userId(patent.getApplicantId())
@@ -245,7 +179,6 @@ public class PatentService {
                         .build()
         );
 
-        // 6. 응답 DTO
         return new SubmitPatentResponse(
                 patent.getPatentId(),
                 patent.getApplicantId(),
@@ -269,13 +202,13 @@ public class PatentService {
         return typeCode + year + serial;
     }
 
+    // ------------------- UPDATE -------------------
     public PatentResponse updatePatentStatus(Long patentId, PatentStatus status) {
         Patent patent = patentRepository.findById(patentId).orElse(null);
         if (patent == null) return null;
         patent.setStatus(status);
         patentRepository.save(patent);
 
-        // ✅ [알림] 상태 변경 알림
         notificationService.createNotification(
                 NotificationRequest.builder()
                         .userId(patent.getApplicantId())
@@ -296,111 +229,38 @@ public class PatentService {
     public PatentResponse updatePatent(Long patentId, PatentRequest request) {
         Patent patent = patentRepository.findById(patentId).orElse(null);
         if (patent == null) return null;
-        if (request.getTitle() != null) {
-            patent.setTitle(request.getTitle());
-        }
-        if (request.getType() != null) {
-            patent.setType(request.getType());
-        }
-        if (request.getCpc() != null) {
-            patent.setCpc(request.getCpc());
-        }
-        if (request.getInventor() != null) {
-            patent.setInventor(request.getInventor());
-        }
-        if (request.getTechnicalField() != null) {
-            patent.setTechnicalField(request.getTechnicalField());
-        }
-        if (request.getBackgroundTechnology() != null) {
-            patent.setBackgroundTechnology(request.getBackgroundTechnology());
-        }
+
+        if (request.getTitle() != null) patent.setTitle(request.getTitle());
+        if (request.getType() != null) patent.setType(request.getType());
+        if (request.getCpc() != null) patent.setCpc(request.getCpc());
+        if (request.getInventor() != null) patent.setInventor(request.getInventor());
+        if (request.getTechnicalField() != null) patent.setTechnicalField(request.getTechnicalField());
+        if (request.getBackgroundTechnology() != null) patent.setBackgroundTechnology(request.getBackgroundTechnology());
+
         if (request.getInventionDetails() != null) {
             PatentRequest.InventionDetails d = request.getInventionDetails();
             if (d.getProblemToSolve() != null) patent.setProblemToSolve(d.getProblemToSolve());
             if (d.getSolution() != null) patent.setSolution(d.getSolution());
             if (d.getEffect() != null) patent.setEffect(d.getEffect());
         }
-        if (request.getSummary() != null) {
-            patent.setSummary(request.getSummary());
-        }
-        if (request.getDrawingDescription() != null) {
-            patent.setDrawingDescription(request.getDrawingDescription());
-        }
-        if (request.getClaims() != null) {
-            patent.setClaims(request.getClaims());
-        }
+
+        if (request.getSummary() != null) patent.setSummary(request.getSummary());
+        if (request.getDrawingDescription() != null) patent.setDrawingDescription(request.getDrawingDescription());
+        if (request.getClaims() != null) patent.setClaims(request.getClaims());
+
         patentRepository.save(patent);
-        PatentResponse res = new PatentResponse();
-        res.setPatentId(patent.getPatentId());
-        res.setApplicantId(patent.getApplicantId());
-        res.setTitle(patent.getTitle());
-        res.setType(patent.getType());
-        res.setStatus(patent.getStatus());
-        res.setCpc(patent.getCpc());
-        res.setApplicationNumber(patent.getApplicationNumber());
-        res.setInventor(patent.getInventor());
-        res.setTechnicalField(patent.getTechnicalField());
-        res.setBackgroundTechnology(patent.getBackgroundTechnology());
-        PatentResponse.InventionDetails details = new PatentResponse.InventionDetails();
-        details.setProblemToSolve(patent.getProblemToSolve());
-        details.setSolution(patent.getSolution());
-        details.setEffect(patent.getEffect());
-        res.setInventionDetails(details);
-        res.setSummary(patent.getSummary());
-        res.setDrawingDescription(patent.getDrawingDescription());
-        res.setClaims(patent.getClaims());
-        return res;
+
+        return toPatentResponse(patent, null);
     }
 
-    public boolean deletePatent(Long patentId) {
-        Patent patent = patentRepository.findById(patentId).orElse(null);
-        if (patent == null) return false;
-
-        // ✅ [알림] 삭제 알림 (삭제 전에 title/userId 사용)
-        Long userId = patent.getApplicantId();
-        String title = patent.getTitle();
-        Long targetId = patent.getPatentId();
-        notificationService.createNotification(
-                NotificationRequest.builder()
-                        .userId(userId)
-                        .notificationType("PATENT_DELETED")
-                        .message("특허가 삭제되었습니다: " + title)
-                        .targetType("PATENT")
-                        .targetId(targetId)
-                        .build()
-        );
-
-        patentRepository.delete(patent);
-        return true;
-    }
-
-    @Transactional(readOnly = true)
-    public List<FileVersionResponse> getDocumentVersions(Long patentId) {
-        List<SpecVersion> versions = specVersionRepository.findByPatent_PatentIdOrderByVersionNoDesc(patentId);
-        return versions.stream().map(this::toFileVersionResponse).collect(Collectors.toList());
-    }
-
-    @Transactional(readOnly = true)
-    public DocumentContentResponse getLatestDocument(Long patentId) {
-        SpecVersion latest = specVersionRepository.findFirstByPatent_PatentIdAndIsCurrentTrue(patentId);
-        if (latest == null) return null;
-        DocumentContentResponse res = new DocumentContentResponse();
-        res.setVersionNo(latest.getVersionNo());
-        try {
-            PatentResponse doc = objectMapper.readValue(latest.getDocument(), PatentResponse.class);
-            res.setDocument(doc);
-        } catch (Exception e) {
-            res.setDocument(null);
-        }
-        res.setUpdatedAt(latest.getUpdatedAt());
-        return res;
-    }
-
+    // ✅ 빠져있던 updateDocument 추가
     public DocumentContentResponse updateDocument(Long patentId, PatentRequest document) {
         PatentResponse updated = updatePatent(patentId, document);
         if (updated == null) return null;
+
         Patent patent = patentRepository.findById(patentId).orElse(null);
         if (patent == null) return null;
+
         SpecVersion current = specVersionRepository.findFirstByPatent_PatentIdAndIsCurrentTrue(patentId);
         if (current == null) {
             current = new SpecVersion();
@@ -417,6 +277,7 @@ public class PatentService {
         }
         current.setUpdatedAt(LocalDateTime.now());
         specVersionRepository.save(current);
+
         DocumentContentResponse res = new DocumentContentResponse();
         res.setVersionNo(current.getVersionNo());
         res.setDocument(updated);
@@ -424,16 +285,66 @@ public class PatentService {
         return res;
     }
 
+    // ------------------- DELETE -------------------
+    public boolean deletePatent(Long patentId) {
+        Patent patent = patentRepository.findById(patentId).orElse(null);
+        if (patent == null) return false;
+
+        Long userId = patent.getApplicantId();
+        String title = patent.getTitle();
+        Long targetId = patent.getPatentId();
+
+        notificationService.createNotification(
+                NotificationRequest.builder()
+                        .userId(userId)
+                        .notificationType("PATENT_DELETED")
+                        .message("특허가 삭제되었습니다: " + title)
+                        .targetType("PATENT")
+                        .targetId(targetId)
+                        .build()
+        );
+
+        patentRepository.delete(patent);
+        return true;
+    }
+
+    // ------------------- VERSION 관리 -------------------
+    @Transactional(readOnly = true)
+    public List<FileVersionResponse> getDocumentVersions(Long patentId) {
+        List<SpecVersion> versions = specVersionRepository.findByPatent_PatentIdOrderByVersionNoDesc(patentId);
+        return versions.stream().map(this::toFileVersionResponse).collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public DocumentContentResponse getLatestDocument(Long patentId) {
+        SpecVersion latest = specVersionRepository.findFirstByPatent_PatentIdAndIsCurrentTrue(patentId);
+        if (latest == null) return null;
+
+        DocumentContentResponse res = new DocumentContentResponse();
+        res.setVersionNo(latest.getVersionNo());
+        try {
+            PatentResponse doc = objectMapper.readValue(latest.getDocument(), PatentResponse.class);
+            res.setDocument(doc);
+        } catch (Exception e) {
+            res.setDocument(null);
+        }
+        res.setUpdatedAt(latest.getUpdatedAt());
+        return res;
+    }
+
     public FileVersionResponse createDocumentVersion(Long patentId, DocumentVersionRequest request) {
         PatentResponse updated = updatePatent(patentId, request.getNewDocument());
         if (updated == null) return null;
+
         Patent patent = patentRepository.findById(patentId).orElse(null);
         if (patent == null) return null;
+
         List<SpecVersion> existing = specVersionRepository.findByPatent_PatentIdOrderByVersionNoDesc(patentId);
         for (SpecVersion v : existing) {
             v.setCurrent(false);
         }
         specVersionRepository.saveAll(existing);
+
         SpecVersion version = new SpecVersion();
         version.setPatent(patent);
         version.setApplicantId(request.getApplicantId());
@@ -449,6 +360,7 @@ public class PatentService {
         version.setCreatedAt(LocalDateTime.now());
         version.setUpdatedAt(LocalDateTime.now());
         specVersionRepository.save(version);
+
         return toFileVersionResponse(version);
     }
 
@@ -474,6 +386,7 @@ public class PatentService {
     public RestoreVersionResponse restoreDocumentVersion(Long versionId) {
         SpecVersion source = specVersionRepository.findById(versionId).orElse(null);
         if (source == null) return null;
+
         Patent patent = source.getPatent();
         List<SpecVersion> versions = specVersionRepository.findByPatent_PatentIdOrderByVersionNoDesc(patent.getPatentId());
         for (SpecVersion v : versions) {
@@ -508,6 +421,44 @@ public class PatentService {
         return true;
     }
 
+    // ------------------- HELPER -------------------
+    private PatentResponse toPatentResponse(Patent patent, List<FileAttachment> attachments) {
+        PatentResponse response = new PatentResponse();
+        response.setPatentId(patent.getPatentId());
+        response.setApplicantId(patent.getApplicantId());
+        response.setTitle(patent.getTitle());
+        response.setType(patent.getType());
+        response.setStatus(patent.getStatus());
+        response.setCpc(patent.getCpc());
+        response.setApplicationNumber(patent.getApplicationNumber());
+        response.setInventor(patent.getInventor());
+        response.setTechnicalField(patent.getTechnicalField());
+        response.setBackgroundTechnology(patent.getBackgroundTechnology());
+
+        PatentResponse.InventionDetails details = new PatentResponse.InventionDetails();
+        details.setProblemToSolve(patent.getProblemToSolve());
+        details.setSolution(patent.getSolution());
+        details.setEffect(patent.getEffect());
+        response.setInventionDetails(details);
+
+        response.setSummary(patent.getSummary());
+        response.setDrawingDescription(patent.getDrawingDescription());
+        response.setClaims(patent.getClaims());
+
+        if (attachments != null) {
+            response.setAttachmentIds(attachments.stream()
+                    .map(FileAttachment::getFileId)
+                    .collect(Collectors.toList()));
+        } else {
+            List<Long> attachmentIds = fileRepository.findAll().stream()
+                    .filter(f -> f.getPatent() != null && f.getPatent().getPatentId().equals(patent.getPatentId()))
+                    .map(FileAttachment::getFileId)
+                    .collect(Collectors.toList());
+            response.setAttachmentIds(attachmentIds);
+        }
+        return response;
+    }
+
     private FileVersionResponse toFileVersionResponse(SpecVersion v) {
         FileVersionResponse res = new FileVersionResponse();
         res.setPatentId(v.getPatent().getPatentId());
@@ -521,3 +472,4 @@ public class PatentService {
         return res;
     }
 }
+       

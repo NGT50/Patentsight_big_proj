@@ -2,7 +2,9 @@ package com.patentsight.file.controller;
 
 import com.patentsight.config.JwtTokenProvider;
 import com.patentsight.file.dto.FileResponse;
+import com.patentsight.file.exception.S3UploadException;
 import com.patentsight.file.service.FileService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -54,6 +56,12 @@ public class FileController {
             return ResponseEntity.noContent().build();
         }
         return ResponseEntity.notFound().build();
+    }
+
+    @ExceptionHandler(S3UploadException.class)
+    public ResponseEntity<String> handleS3UploadException(S3UploadException ex) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ex.getMessage());
     }
 }
 

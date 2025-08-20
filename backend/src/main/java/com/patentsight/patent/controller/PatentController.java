@@ -1,20 +1,20 @@
 package com.patentsight.patent.controller;
 
-import com.patentsight.file.dto.DocumentContentRequest;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.patentsight.file.dto.DocumentContentResponse;
 import com.patentsight.file.dto.DocumentVersionRequest;
 import com.patentsight.file.dto.FileVersionResponse;
 import com.patentsight.patent.domain.PatentStatus;
 import com.patentsight.patent.dto.PatentRequest;
 import com.patentsight.patent.dto.PatentResponse;
-import com.patentsight.patent.dto.SubmitPatentRequest;
-import com.patentsight.patent.dto.SubmitPatentResponse; // 새로 추가된 DTO
+import com.patentsight.patent.dto.SubmitPatentResponse;
 import com.patentsight.patent.service.PatentService;
 import com.patentsight.config.JwtTokenProvider;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/patents")
@@ -22,12 +22,14 @@ public class PatentController {
 
     private final PatentService patentService;
     private final JwtTokenProvider jwtTokenProvider;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public PatentController(PatentService patentService, JwtTokenProvider jwtTokenProvider) {
         this.patentService = patentService;
         this.jwtTokenProvider = jwtTokenProvider;
     }
 
+    // ------------------- CREATE -------------------
     @PostMapping
     public ResponseEntity<PatentResponse> createPatent(@RequestBody PatentRequest request,
                                                        @RequestHeader("Authorization") String authorization) {
@@ -36,6 +38,7 @@ public class PatentController {
         return ResponseEntity.ok(response);
     }
 
+    // ------------------- READ -------------------
     @GetMapping("/{id}")
     public ResponseEntity<PatentResponse> getPatent(@PathVariable("id") Long id) {
         PatentResponse res = patentService.getPatentDetail(id);
@@ -49,13 +52,21 @@ public class PatentController {
         return ResponseEntity.ok(list);
     }
 
+    // ------------------- SUBMIT -------------------
     @PostMapping("/{id}/submit")
     public ResponseEntity<SubmitPatentResponse> submit(@PathVariable("id") Long id,
-                                                       @RequestBody(required = false) SubmitPatentRequest request) {
-        SubmitPatentResponse res = patentService.submitPatent(id);
+                                                       @RequestBody(required = false) Map<String, Object> body) {
+        // 프론트에서 전체 특허 데이터를 보내온 경우 → 최신 데이터 반영
+        PatentRequest latestRequest = null;
+        if (body != null && body.containsKey("documentData")) {
+            latestRequest = objectMapper.convertValue(body.get("documentData"), PatentRequest.class);
+        }
+
+        SubmitPatentResponse res = patentService.submitPatent(id, latestRequest);
         return ResponseEntity.ok(res);
     }
 
+    // ------------------- UPDATE -------------------
     @PatchMapping("/{id}/status")
     public ResponseEntity<PatentResponse> updateStatus(@PathVariable("id") Long id,
                                                        @RequestBody PatentStatus status) {
@@ -70,6 +81,19 @@ public class PatentController {
         return ResponseEntity.ok(res);
     }
 
+    @PatchMapping("/{id}/document")
+    public ResponseEntity<DocumentContentResponse> updateDocumentContent(
+            @PathVariable("id") Long id,
+            @RequestBody Map<String, Object> body) {
+    
+        // 프론트에서 오는 { "documentData": {...} } 구조 풀기
+        PatentRequest request = objectMapper.convertValue(body.get("documentData"), PatentRequest.class);
+    
+        DocumentContentResponse res = patentService.updateDocument(id, request);  // ✅ PatentRequest 넘김
+        return ResponseEntity.ok(res);
+    }
+
+    // ------------------- VERSION -------------------
     @GetMapping("/{id}/document-versions")
     public ResponseEntity<List<FileVersionResponse>> getDocumentVersions(@PathVariable("id") Long id) {
         List<FileVersionResponse> versions = patentService.getDocumentVersions(id);
@@ -79,13 +103,6 @@ public class PatentController {
     @GetMapping("/{id}/document/latest")
     public ResponseEntity<DocumentContentResponse> getLatestDocument(@PathVariable("id") Long id) {
         DocumentContentResponse res = patentService.getLatestDocument(id);
-        return ResponseEntity.ok(res);
-    }
-
-    @PatchMapping("/{id}/document")
-    public ResponseEntity<DocumentContentResponse> updateDocumentContent(@PathVariable("id") Long id,
-                                                                         @RequestBody DocumentContentRequest request) {
-        DocumentContentResponse res = patentService.updateDocument(id, request.getDocument());
         return ResponseEntity.ok(res);
     }
 
@@ -99,6 +116,7 @@ public class PatentController {
         return ResponseEntity.ok(res);
     }
 
+    // ------------------- DELETE -------------------
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletePatent(@PathVariable("id") Long id) {
         boolean deleted = patentService.deletePatent(id);
