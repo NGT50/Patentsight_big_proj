@@ -104,6 +104,7 @@ public class SecurityConfig {
                     "/api/users/verify-code",
                     "/h2-console/**"
                 ).permitAll()
+                .requestMatchers(HttpMethod.PATCH, "/api/opinions/**").hasRole("EXAMINER")     
                 .anyRequest().authenticated()
             )
             .oauth2ResourceServer(oauth -> oauth
