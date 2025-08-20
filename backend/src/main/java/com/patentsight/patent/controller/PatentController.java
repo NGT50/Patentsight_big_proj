@@ -7,7 +7,6 @@ import com.patentsight.file.dto.FileVersionResponse;
 import com.patentsight.patent.domain.PatentStatus;
 import com.patentsight.patent.dto.PatentRequest;
 import com.patentsight.patent.dto.PatentResponse;
-import com.patentsight.patent.dto.SubmitPatentRequest;
 import com.patentsight.patent.dto.SubmitPatentResponse;
 import com.patentsight.patent.service.PatentService;
 import com.patentsight.config.JwtTokenProvider;
@@ -56,8 +55,14 @@ public class PatentController {
     // ------------------- SUBMIT -------------------
     @PostMapping("/{id}/submit")
     public ResponseEntity<SubmitPatentResponse> submit(@PathVariable("id") Long id,
-                                                       @RequestBody(required = false) SubmitPatentRequest request) {
-        SubmitPatentResponse res = patentService.submitPatent(id);
+                                                       @RequestBody(required = false) Map<String, Object> body) {
+        // 프론트에서 전체 특허 데이터를 보내온 경우 → 최신 데이터 반영
+        PatentRequest latestRequest = null;
+        if (body != null && body.containsKey("documentData")) {
+            latestRequest = objectMapper.convertValue(body.get("documentData"), PatentRequest.class);
+        }
+
+        SubmitPatentResponse res = patentService.submitPatent(id, latestRequest);
         return ResponseEntity.ok(res);
     }
 
@@ -79,7 +84,6 @@ public class PatentController {
     @PatchMapping("/{id}/document")
     public ResponseEntity<DocumentContentResponse> updateDocumentContent(@PathVariable("id") Long id,
                                                                          @RequestBody Map<String, Object> body) {
-        // 프론트에서 오는 { "documentData": {...} } 구조 풀기
         PatentRequest request = objectMapper.convertValue(body.get("documentData"), PatentRequest.class);
         DocumentContentResponse res = patentService.updateDocument(id, request);
         return ResponseEntity.ok(res);
