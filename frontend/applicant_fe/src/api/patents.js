@@ -157,7 +157,10 @@ export const sendMessageToChatSession = async (sessionId, message) => {
 // 문서 내용 수정(임시저장) API
 export const updateDocument = async ({ patentId, documentData }) => {
   try {
-    const res = await axios.patch(`/api/patents/${patentId}/document`, documentData);
+    // ✅ 수정됨: documentData를 감싸서 보내야 백엔드에서 인식 가능
+    const res = await axios.patch(`/api/patents/${patentId}/document`, {
+      documentData,   // <-- 이 부분을 추가/수정
+    });
     return res.data;
   } catch (error) {
     console.error('문서 임시저장 실패:', error);
