@@ -2,6 +2,7 @@ package com.patentsight.file.service;
 
 import com.patentsight.file.domain.FileAttachment;
 import com.patentsight.file.dto.FileResponse;
+import com.patentsight.file.domain.FileType;
 import com.patentsight.file.exception.S3UploadException;
 import com.patentsight.file.repository.FileRepository;
 import com.patentsight.global.util.FileUtil;
@@ -37,6 +38,7 @@ public class FileService {
             attachment.setUploaderId(uploaderId);
             attachment.setFileName(file.getOriginalFilename());
             attachment.setFileUrl(path);
+            attachment.setFileType(determineFileType(file.getOriginalFilename()));
             attachment.setUpdatedAt(LocalDateTime.now());
 
             Patent patent = patentRepository.findById(patentId)
@@ -65,6 +67,7 @@ public class FileService {
             String path = FileUtil.saveFile(file);
             attachment.setFileName(file.getOriginalFilename());
             attachment.setFileUrl(path);
+            attachment.setFileType(determineFileType(file.getOriginalFilename()));
             attachment.setUpdatedAt(LocalDateTime.now());
             fileRepository.save(attachment);
             return toResponse(attachment);
@@ -91,9 +94,21 @@ public class FileService {
         res.setUploaderId(attachment.getUploaderId());
         res.setFileName(attachment.getFileName());
         res.setFileUrl(attachment.getFileUrl());
+        res.setFileType(attachment.getFileType());
         res.setContent(attachment.getContent());
         res.setUpdatedAt(attachment.getUpdatedAt());
         return res;
+    }
+
+    private FileType determineFileType(String name) {
+        if (name == null) return null;
+        String ext = name.contains(".") ? name.substring(name.lastIndexOf('.') + 1).toLowerCase() : "";
+        return switch (ext) {
+            case "png", "jpg", "jpeg", "gif", "bmp" -> FileType.IMAGE;
+            case "glb" -> FileType.GLB;
+            case "pdf" -> FileType.PDF;
+            default -> null;
+        };
     }
 
     public FileAttachment findById(Long id) {

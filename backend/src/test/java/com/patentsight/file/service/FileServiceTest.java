@@ -1,6 +1,7 @@
 package com.patentsight.file.service;
 
 import com.patentsight.file.domain.FileAttachment;
+import com.patentsight.file.domain.FileType;
 import com.patentsight.file.dto.FileResponse;
 import com.patentsight.file.repository.FileRepository;
 import com.patentsight.global.util.FileUtil;
@@ -38,7 +39,7 @@ class FileServiceTest {
     @Test
     void createStoresFileAndReturnsMetadata() throws Exception {
         MockMultipartFile multipartFile = new MockMultipartFile(
-                "file", "hello.txt", "text/plain", "hello".getBytes());
+                "file", "hello.pdf", "application/pdf", "hello".getBytes());
 
         when(fileRepository.save(any(FileAttachment.class))).thenAnswer(invocation -> {
             FileAttachment att = invocation.getArgument(0);
@@ -56,7 +57,8 @@ class FileServiceTest {
         assertEquals(1L, res.getFileId());
         assertEquals(99L, res.getUploaderId());
         assertEquals(10L, res.getPatentId());
-        assertEquals("hello.txt", res.getFileName());
+        assertEquals("hello.pdf", res.getFileName());
+        assertEquals(FileType.PDF, res.getFileType());
         assertNotNull(res.getFileUrl());
         verify(fileRepository).save(any(FileAttachment.class));
 
