@@ -157,9 +157,10 @@ export const sendMessageToChatSession = async (sessionId, message) => {
 // 문서 내용 수정(임시저장) API
 export const updateDocument = async ({ patentId, documentData }) => {
   try {
-    // ✅ 수정됨: documentData를 감싸서 보내야 백엔드에서 인식 가능
+    // 프론트에서 받은 documentData 내부 필드를 최상단으로 펼쳐서 전송합니다.
+    // 백엔드가 body.title 등을 직접 기대하므로, 중첩된 구조를 제거합니다.
     const res = await axios.patch(`/api/patents/${patentId}/document`, {
-      documentData,   // <-- 이 부분을 추가/수정
+      ...documentData,
     });
     return res.data;
   } catch (error) {
