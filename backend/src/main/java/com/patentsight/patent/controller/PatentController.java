@@ -53,19 +53,15 @@ public class PatentController {
     }
 
     // ------------------- SUBMIT -------------------
+    // PatentController.java
     @PostMapping("/{id}/submit")
     public ResponseEntity<SubmitPatentResponse> submit(@PathVariable("id") Long id,
-                                                       @RequestBody(required = false) Map<String, Object> body) {
-        // 프론트에서 전체 특허 데이터를 보내온 경우 → 최신 데이터 반영
-        PatentRequest latestRequest = null;
-        if (body != null && body.containsKey("documentData")) {
-            latestRequest = objectMapper.convertValue(body.get("documentData"), PatentRequest.class);
-        }
-
+                                                       @RequestBody(required = false) PatentRequest latestRequest) {
+        // 프론트에서 보낸 JSON이 PatentRequest 구조와 동일해야 함 (title, technicalField 등 최상단에 위치)
         SubmitPatentResponse res = patentService.submitPatent(id, latestRequest);
         return ResponseEntity.ok(res);
     }
-
+    
     // ------------------- UPDATE -------------------
     @PatchMapping("/{id}/status")
     public ResponseEntity<PatentResponse> updateStatus(@PathVariable("id") Long id,
