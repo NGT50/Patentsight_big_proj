@@ -31,6 +31,9 @@ public class FileAttachment {
      */
     private String fileUrl;
 
+    @Enumerated(EnumType.STRING)
+    private FileType fileType;
+
     /**
      * All patent documents are stored as raw JSON text rather than as binary
      * files on disk. The content column keeps the latest text for the
@@ -52,6 +55,8 @@ public class FileAttachment {
     public void setFileName(String fileName) { this.fileName = fileName; }
     public String getFileUrl() { return fileUrl; }
     public void setFileUrl(String fileUrl) { this.fileUrl = fileUrl; }
+    public FileType getFileType() { return fileType; }
+    public void setFileType(FileType fileType) { this.fileType = fileType; }
     public String getContent() { return content; }
     public void setContent(String content) { this.content = content; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
