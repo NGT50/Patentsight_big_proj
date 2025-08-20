@@ -18,11 +18,11 @@ instance.interceptors.request.use(
     const isMyApi = MY_API_PREFIXES.some(prefix => config.url.startsWith(prefix));
 
     if (isMyApi) {
-      // 우리가 만든 기능이라면, 개발자님의 AWS 서버 주소를 사용합니다.
-      config.baseURL = 'http://3.26.101.212:8000';
-    } else {
-      // 그 외 다른 기능이라면, 팀의 다른 서버 주소를 사용합니다.
+      // 우리가 만든 기능은 Spring Boot 서버로 보냄
       config.baseURL = 'http://35.175.253.22:8080';
+    } else {
+      // 그 외 다른 기능은 FastAPI 서버로 보냄
+      config.baseURL = 'http://3.26.101.212:8000';
     }
 
     // 토큰 추가 로직은 그대로 유지합니다.
