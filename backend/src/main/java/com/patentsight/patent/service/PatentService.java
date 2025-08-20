@@ -468,4 +468,8 @@ public class PatentService {
         res.setChangeSummary(v.getChangeSummary());
         res.setCurrent(v.isCurrent());
         res.setCreatedAt(v.getCreatedAt());
+        res.setUpdatedAt(v.getUpdatedAt());
+        return res;
+    }
+}
        
