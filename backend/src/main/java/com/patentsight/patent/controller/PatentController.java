@@ -80,12 +80,9 @@ public class PatentController {
     @PatchMapping("/{id}/document")
     public ResponseEntity<DocumentContentResponse> updateDocumentContent(
             @PathVariable("id") Long id,
-            @RequestBody Map<String, Object> body) {
+            @RequestBody PatentRequest request) {
     
-        // 프론트에서 오는 { "documentData": {...} } 구조 풀기
-        PatentRequest request = objectMapper.convertValue(body.get("documentData"), PatentRequest.class);
-    
-        DocumentContentResponse res = patentService.updateDocument(id, request);  // ✅ PatentRequest 넘김
+        DocumentContentResponse res = patentService.updateDocument(id, request);  // ✅ PatentRequest 직접 받음
         return ResponseEntity.ok(res);
     }
 
