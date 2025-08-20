@@ -1,6 +1,5 @@
 package com.patentsight.patent.controller;
 
-import com.patentsight.file.dto.DocumentContentRequest;
 import com.patentsight.file.dto.DocumentContentResponse;
 import com.patentsight.file.dto.DocumentVersionRequest;
 import com.patentsight.file.dto.FileVersionResponse;
@@ -8,7 +7,7 @@ import com.patentsight.patent.domain.PatentStatus;
 import com.patentsight.patent.dto.PatentRequest;
 import com.patentsight.patent.dto.PatentResponse;
 import com.patentsight.patent.dto.SubmitPatentRequest;
-import com.patentsight.patent.dto.SubmitPatentResponse; // 새로 추가된 DTO
+import com.patentsight.patent.dto.SubmitPatentResponse;
 import com.patentsight.patent.service.PatentService;
 import com.patentsight.config.JwtTokenProvider;
 import org.springframework.http.ResponseEntity;
@@ -84,8 +83,8 @@ public class PatentController {
 
     @PatchMapping("/{id}/document")
     public ResponseEntity<DocumentContentResponse> updateDocumentContent(@PathVariable("id") Long id,
-                                                                         @RequestBody DocumentContentRequest request) {
-        DocumentContentResponse res = patentService.updateDocument(id, request.getDocument());
+                                                                         @RequestBody PatentRequest request) {
+        DocumentContentResponse res = patentService.updateDocument(id, request);
         return ResponseEntity.ok(res);
     }
 
