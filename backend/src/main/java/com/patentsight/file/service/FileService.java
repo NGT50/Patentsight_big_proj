@@ -2,6 +2,7 @@ package com.patentsight.file.service;
 
 import com.patentsight.file.domain.FileAttachment;
 import com.patentsight.file.dto.FileResponse;
+import com.patentsight.file.exception.S3UploadException;
 import com.patentsight.file.repository.FileRepository;
 import com.patentsight.global.util.FileUtil;
 import com.patentsight.patent.domain.Patent;
@@ -45,7 +46,7 @@ public class FileService {
             fileRepository.save(attachment);
             return toResponse(attachment);
         } catch (IOException e) {
-            throw new RuntimeException("Could not store file", e);
+            throw new S3UploadException("Could not store file: " + e.getMessage(), e);
         }
     }
 
@@ -68,7 +69,7 @@ public class FileService {
             fileRepository.save(attachment);
             return toResponse(attachment);
         } catch (IOException e) {
-            throw new RuntimeException("Could not update file", e);
+            throw new S3UploadException("Could not update file: " + e.getMessage(), e);
         }
     }
 
