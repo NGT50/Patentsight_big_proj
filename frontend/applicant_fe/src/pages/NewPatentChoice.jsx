@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createPatent } from '../api/patents';
-import { parsePatentPdf } from '../api/files';
+import { parsePatentPdf, uploadFile } from '../api/files';
 
 const NewPatentChoicePage = () => {
   const navigate = useNavigate();
@@ -22,21 +22,7 @@ const NewPatentChoicePage = () => {
   });
 
   const parsePdfMutation = useMutation({
-    // mutationFn은 file 객체 전체를 받도록 수정합니다.
-    mutationFn: (file) => parsePatentPdf(file), 
-    onSuccess: (parsedData, file) => { // onSuccess 콜백에서 원본 file 객체도 사용
-      // 파싱된 데이터와 함께 원본 파일 이름도 state로 전달합니다.
-      navigate(`/patent/new-from-pdf`, { 
-        state: { 
-          parsedData,
-          originalFile: {
-            name: file.name,
-            size: file.size,
-          } 
-        } 
-      });
-    },
-    onError: (err) => alert(`PDF 분석에 실패했습니다: ${err.message}`),
+    mutationFn: (file) => parsePatentPdf(file),
   });
 
   const handleCreateNew = () => {
@@ -49,13 +35,27 @@ const NewPatentChoicePage = () => {
     fileInputRef.current.click();
   };
 
-  const handleFileChange = (event) => {
+  const handleFileChange = async (event) => {
     const file = event.target.files[0];
-    if (file) {
-      // API 호출 시 file 객체 전체를 넘겨줍니다.
-      parsePdfMutation.mutate(file);
+    if (!file) return;
+    try {
+      const parsedData = await parsePdfMutation.mutateAsync(file);
+      const created = await createPatent({ title: parsedData.title || '제목 없는 출원서', type: selectedType });
+      await uploadFile({ file, patentId: created.patentId });
+      queryClient.invalidateQueries({ queryKey: ['myPatents'] });
+      navigate(`/patent/${created.patentId}`, {
+        state: {
+          parsedData,
+          originalFile: {
+            name: file.name,
+            size: file.size,
+          }
+        }
+      });
+    } catch (err) {
+      alert(`PDF 분석 혹은 출원 생성에 실패했습니다: ${err.message}`);
     }
-    event.target.value = null; 
+    event.target.value = null;
   };
   
   const isLoading = createPatentMutation.isPending || parsePdfMutation.isPending;
