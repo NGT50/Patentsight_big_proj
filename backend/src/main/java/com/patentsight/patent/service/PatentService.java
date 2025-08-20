@@ -138,10 +138,9 @@ public class PatentService {
         Patent patent = patentRepository.findById(patentId).orElse(null);
         if (patent == null) return null;
 
-        // ✅ 최신 데이터가 들어온 경우 DB 업데이트
+        // ✅ 최신 데이터가 들어온 경우 DB 업데이트 (임시저장용 updatePatent → 제출 전용 updatePatentForSubmit으로 변경)
         if (latestRequest != null) {
-            updatePatent(patentId, latestRequest);
-            patent = patentRepository.findById(patentId).orElse(null);
+            patent = updatePatentForSubmit(patentId, latestRequest);  // ★ 수정됨
         }
 
         // FastAPI 호출
@@ -203,6 +202,8 @@ public class PatentService {
     }
 
     // ------------------- UPDATE -------------------
+
+    // (1) 상태 변경
     public PatentResponse updatePatentStatus(Long patentId, PatentStatus status) {
         Patent patent = patentRepository.findById(patentId).orElse(null);
         if (patent == null) return null;
@@ -226,6 +227,7 @@ public class PatentService {
         return res;
     }
 
+    // (2) 임시저장 전용 업데이트 (status 유지)
     public PatentResponse updatePatent(Long patentId, PatentRequest request) {
         Patent patent = patentRepository.findById(patentId).orElse(null);
         if (patent == null) return null;
@@ -253,7 +255,54 @@ public class PatentService {
         return toPatentResponse(patent, null);
     }
 
-    // ✅ 빠져있던 updateDocument 추가
+    // (3) 최종 제출 전용 업데이트 (status = SUBMITTED)
+    private Patent updatePatentForSubmit(Long patentId, PatentRequest request) {
+        Patent patent = patentRepository.findById(patentId).orElse(null);
+        if (patent == null) return null;
+
+        if (request.getTitle() != null) patent.setTitle(request.getTitle());
+        if (request.getType() != null) patent.setType(request.getType());
+        if (request.getCpc() != null) patent.setCpc(request.getCpc());
+        if (request.getInventor() != null) patent.setInventor(request.getInventor());
+        if (request.getTechnicalField() != null) patent.setTechnicalField(request.getTechnicalField());
+        if (request.getBackgroundTechnology() != null) patent.setBackgroundTechnology(request.getBackgroundTechnology());
+
+        if (request.getInventionDetails() != null) {
+            PatentRequest.InventionDetails d = request.getInventionDetails();
+            if (d.getProblemToSolve() != null) patent.setProblemToSolve(d.getProblemToSolve());
+            if (d.getSolution() != null) patent.setSolution(d.getSolution());
+            if (d.getEffect() != null) patent.setEffect(d.getEffect());
+        }
+
+        if (request.getSummary() != null) patent.setSummary(request.getSummary());
+        if (request.getDrawingDescription() != null) patent.setDrawingDescription(request.getDrawingDescription());
+        if (request.getClaims() != null) patent.setClaims(request.getClaims());
+
+        // ★ 최종 제출 시 상태 SUBMITTED 강제
+        patent.setStatus(PatentStatus.SUBMITTED);
+
+        patentRepository.save(patent);
+
+        // ★ 제출 시점 버전 기록
+        SpecVersion version = new SpecVersion();
+        version.setPatent(patent);
+        version.setApplicantId(patent.getApplicantId());
+        version.setChangeSummary("Submitted version");
+        try {
+            version.setDocument(objectMapper.writeValueAsString(toPatentResponse(patent, null)));
+        } catch (Exception e) {
+            version.setDocument(null);
+        }
+        version.setVersionNo(1); // 필요 시 기존 로직대로 계산 가능
+        version.setCurrent(true);
+        version.setCreatedAt(LocalDateTime.now());
+        version.setUpdatedAt(LocalDateTime.now());
+        specVersionRepository.save(version);
+
+        return patent;
+    }
+
+    // ✅ 빠져있던 updateDocument 추가 (임시저장)
     public DocumentContentResponse updateDocument(Long patentId, PatentRequest document) {
         PatentResponse updated = updatePatent(patentId, document);
         if (updated == null) return null;
@@ -472,4 +521,3 @@ public class PatentService {
         return res;
     }
 }
-       
