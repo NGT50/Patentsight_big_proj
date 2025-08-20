@@ -164,3 +164,15 @@ export const updateDocument = async ({ patentId, documentData }) => {
     throw error;
   }
 };
+
+// AI 기반 전체 문서 초안 생성 API (실제 API 호출로 변경)
+export const generateFullDraft = async ({ title }) => {
+  try {
+    // 'query' 대신 'title'을 보내도록 수정합니다.
+    const res = await axios.post('/api/ai/draft/full-document', { title });
+    return res.data;
+  } catch (error) {
+    console.error('AI 초안 생성 실패:', error);
+    throw new Error(error.response?.data?.detail || 'AI 초안 생성에 실패했습니다.');
+  }
+};

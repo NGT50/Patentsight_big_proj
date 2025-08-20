@@ -1,29 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getLatestDocument, updateDocument, validatePatentDocument } from '../api/patents';
+import { submitPatent, getLatestDocument, updateDocument, validatePatentDocument, generateFullDraft } from '../api/patents';
 import { 
   FileText, Save, Download, Send, Bot, Box, CheckCircle, AlertCircle, X,
   Plus, Trash2, Eye, Edit3, AlertTriangle
 } from 'lucide-react';
+import GenerateDraftModal from '../pages/GenerateDraftModal';
+import Button from '../components/Button';
+import { initialDocumentState } from '../utils/documentState';
 
-// 문서 데이터의 초기 구조 정의
-const initialDocumentState = {
-  title: '',
-  technicalField: '',
-  backgroundTechnology: '',
-  inventionDetails: {
-    problemToSolve: '',
-    solution: '',
-    effect: '',
-  },
-  summary: '',
-  drawingDescription: '',
-  claims: [''],
-};
 
 const DocumentEditor = () => {
-  // --- State 및 Hooks 선언 (jw-front 기능) ---
+  // --- State 및 Hooks 선언 ---
   const fieldRefs = useRef({});
   const [activeTab, setActiveTab] = useState('details');
   const navigate = useNavigate();
@@ -34,26 +23,28 @@ const DocumentEditor = () => {
   const location = useLocation();
   const [drawingFiles, setDrawingFiles] = useState([]);
   const [attachedPdf, setAttachedPdf] = useState(null);
+  const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
+  const isDataLoadedFromServerRef = useRef(false);
 
-  // --- 데이터 로딩 및 상태 초기화 (jw-front 기능) ---
+  // --- 데이터 로딩 (React Query) ---
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['patentDocument', patentId],
     queryFn: () => getLatestDocument(patentId),
     enabled: !!patentId && patentId !== 'new-from-pdf',
   });
 
+  // --- 데이터 동기화 useEffect 로직 ---
   useEffect(() => {
     const preloadedData = location.state?.parsedData;
     const originalFile = location.state?.originalFile;
-
-    if (originalFile) {
-      setAttachedPdf(originalFile);
-    }
+    if (originalFile) setAttachedPdf(originalFile);
 
     if (preloadedData) {
-      const initialState = { ...initialDocumentState, ...preloadedData };
-      setDocument(initialState);
-    } else if (data?.document) {
+      setDocument({ ...initialDocumentState, ...preloadedData });
+      isDataLoadedFromServerRef.current = true;
+      return;
+    }
+    if (data?.document && !isDataLoadedFromServerRef.current) {
       const docFromServer = data.document;
       const initialState = {
         ...initialDocumentState, ...docFromServer,
@@ -61,16 +52,18 @@ const DocumentEditor = () => {
         claims: docFromServer.claims && docFromServer.claims.length > 0 ? docFromServer.claims : [''],
       };
       setDocument(initialState);
-      if (docFromServer.originalFile) {
-        setAttachedPdf(docFromServer.originalFile);
-      }
+      if (docFromServer.originalFile) setAttachedPdf(docFromServer.originalFile);
+      isDataLoadedFromServerRef.current = true;
     }
-  }, [data, location.state]);
+  }, [data, location.state, patentId]);
 
-  // --- 핸들러 및 Mutation 함수 (jw-front 기능) ---
+  useEffect(() => {
+    isDataLoadedFromServerRef.current = false;
+  }, [patentId]);
+
+  // --- 핸들러 및 Mutation 함수 ---
   const handleInputChange = (e) => setDocument(prev => ({ ...prev, [e.target.name]: e.target.value }));
   const handleNestedInputChange = (e) => setDocument(prev => ({ ...prev, inventionDetails: { ...prev.inventionDetails, [e.target.name]: e.target.value } }));
-  
   const handleClaimChange = (index, value) => {
     const newClaims = [...document.claims];
     newClaims[index] = value;
@@ -84,38 +77,63 @@ const DocumentEditor = () => {
     }
   };
   const handleDrawingUpload = (event) => {
-    const files = Array.from(event.target.files);
-    const newFiles = files.map(file => ({
-      file,
-      preview: URL.createObjectURL(file),
-    }));
-    setDrawingFiles(prev => [...prev, ...newFiles]);
+    const files = Array.from(event.target.files).map(file => ({ file, preview: URL.createObjectURL(file) }));
+    setDrawingFiles(prev => [...prev, ...files]);
   };
 
   const saveMutation = useMutation({
     mutationFn: updateDocument,
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['myPatents'] });
       queryClient.invalidateQueries({ queryKey: ['patentDocument', patentId] });
       alert('임시저장이 완료되었습니다.');
     },
-    onError: (error) => {
-      alert('저장 중 오류가 발생했습니다: ' + error.message);
+    onError: (error) => alert('저장 중 오류가 발생했습니다: ' + error.message),
+  });
+
+  // [수정] '최종 제출' Mutation: 저장과 상태 변경을 함께 처리
+  const submitMutation = useMutation({
+    mutationFn: async ({ patentId, documentData }) => {
+      // 1. 먼저 현재 내용을 저장합니다.
+      await updateDocument({ patentId, documentData });
+      // 2. 저장이 성공하면, 최종 제출 API를 호출합니다.
+      return await submitPatent(patentId);
     },
+    onSuccess: () => {
+      // MyPage와 임시저장목록의 데이터를 모두 갱신하도록 신호를 보냅니다.
+      queryClient.invalidateQueries({ queryKey: ['myPatents'] });
+      alert('출원서가 최종 제출되었습니다. 마이페이지로 이동합니다.');
+      navigate('/mypage'); 
+    },
+    onError: (error) => alert('최종 제출 중 오류가 발생했습니다: ' + error.message),
   });
 
   const aiCheckMutation = useMutation({
     mutationFn: validatePatentDocument,
-    onSuccess: (data) => {
-      setAiResults(data);
-      alert('AI 분석이 완료되었습니다.');
-    },
-    onError: (error) => {
-      alert('AI 분석 중 오류가 발생했습니다: ' + error.message);
-    },
+    onSuccess: (data) => setAiResults(data),
+    onError: (error) => alert('AI 분석 중 오류가 발생했습니다: ' + error.message),
   });
 
+  const generateDraftMutation = useMutation({
+    mutationFn: generateFullDraft,
+    onSuccess: (generatedData) => {
+      setDocument(prev => ({ ...prev, ...generatedData }));
+      setIsGeneratorOpen(false);
+      alert('AI 초안 생성이 완료되었습니다.');
+    },
+    onError: (err) => alert(`초안 생성 중 오류가 발생했습니다: ${err.message}`),
+  });
+  
+  const handleGenerateDraft = (title) => generateDraftMutation.mutate({ title });
   const handleSaveDraft = () => saveMutation.mutate({ patentId, documentData: document });
   const handleAiCheck = () => aiCheckMutation.mutate(document);
+  
+  // [수정] '최종 제출' 핸들러: mutation에 document 데이터도 함께 전달
+  const handleSubmit = () => {
+    if (window.confirm('정말로 최종 제출하시겠습니까? 제출 후에는 수정이 어렵습니다.')) {
+      submitMutation.mutate({ patentId, documentData: document });
+    }
+  };
   
   const applyAiSuggestion = (claimIndex, suggestionText) => {
     const newClaims = [...document.claims];
@@ -132,32 +150,15 @@ const DocumentEditor = () => {
     const targetTab = fieldToTabMap[fieldName];
     if (targetTab) {
       setActiveTab(targetTab);
-      setTimeout(() => {
-        fieldRefs.current[fieldName]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }, 100);
+      setTimeout(() => fieldRefs.current[fieldName]?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
     }
   };
 
-  // --- 로딩 및 에러 UI (develop-fe2 디자인) ---
-  if (isLoading) return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-        <p className="text-gray-600">문서 데이터를 불러오는 중입니다...</p>
-      </div>
-    </div>
-  );
-  
-  if (isError) return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="text-center">
-        <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-        <p className="text-red-600">에러 발생: {error.message}</p>
-      </div>
-    </div>
-  );
+  // --- 로딩 및 에러 UI ---
+  if (isLoading) return <div className="min-h-screen bg-gray-50 flex items-center justify-center">...로딩 UI...</div>;
+  if (isError) return <div className="min-h-screen bg-gray-50 flex items-center justify-center">...에러 UI...</div>;
 
-  // --- 렌더링 JSX (develop-fe2 디자인 기반 + jw-front 기능) ---
+  // --- 렌더링 JSX ---
   const renderTabs = () => (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
       <nav className="flex space-x-8" aria-label="Tabs">
@@ -210,6 +211,13 @@ const DocumentEditor = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {isGeneratorOpen && (
+        <GenerateDraftModal
+          onClose={() => setIsGeneratorOpen(false)}
+          onGenerate={handleGenerateDraft}
+          isLoading={generateDraftMutation.isPending}
+        />
+      )}
       <div className="max-w-screen-xl mx-auto px-4 py-8">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
           <div className="flex items-center justify-between">
@@ -219,8 +227,18 @@ const DocumentEditor = () => {
             </div>
             <div className="flex items-center gap-3">
               {attachedPdf && (<div className="flex items-center p-2 text-sm text-gray-600 bg-gray-100 border rounded-md"><span>📄 {attachedPdf.name}</span><button onClick={() => alert('다운로드 기능 구현 예정')} className="ml-2 font-semibold text-blue-600 hover:underline">(다운로드)</button></div>)}
+              <Button onClick={() => setIsGeneratorOpen(true)} variant="special" className="w-auto">
+                ✨ AI로 전체 초안 생성
+              </Button>
               <button onClick={handleSaveDraft} disabled={saveMutation.isPending} className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 disabled:bg-gray-200 transition-all"><Save className="w-4 h-4" /> {saveMutation.isPending ? '저장 중...' : '임시저장'}</button>
-              <button onClick={() => navigate(`/submit/${patentId}`, { state: { documentToSubmit: document } })} className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg shadow-sm hover:bg-blue-700 transition-all"><Send className="w-4 h-4" /> 최종 제출</button>
+              <button 
+                onClick={handleSubmit} 
+                disabled={submitMutation.isPending}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg shadow-sm hover:bg-blue-700 transition-all disabled:bg-gray-400"
+              >
+                <Send className="w-4 h-4" /> 
+                {submitMutation.isPending ? '제출 중...' : '최종 제출'}
+              </button>
             </div>
           </div>
         </div>

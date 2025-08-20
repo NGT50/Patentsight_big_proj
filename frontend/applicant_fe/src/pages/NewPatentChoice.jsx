@@ -3,37 +3,32 @@ import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createPatent } from '../api/patents';
 import { parsePatentPdf } from '../api/files';
+import { initialDocumentState } from '../utils/documentState'; 
 
 const NewPatentChoicePage = () => {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
   const queryClient = useQueryClient();
-
-  // 1. 사용자가 선택한 출원 유형을 저장할 state ('PATENT' 또는 'DESIGN')
   const [selectedType, setSelectedType] = useState(null);
 
   const createPatentMutation = useMutation({
     mutationFn: createPatent,
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['myPatents'] });
+      // [FIXED] 경로 맨 앞에 '/'를 추가하여 올바른 절대 경로로 수정합니다.
       navigate(`/patent/${data.patentId}`);
     },
     onError: (err) => alert(`출원서 생성에 실패했습니다: ${err.message}`),
   });
 
+  // 'PDF 초안으로 시작'을 위한 수정된 흐름
   const parsePdfMutation = useMutation({
-    // mutationFn은 file 객체 전체를 받도록 수정합니다.
-    mutationFn: (file) => parsePatentPdf(file), 
-    onSuccess: (parsedData, file) => { // onSuccess 콜백에서 원본 file 객체도 사용
-      // 파싱된 데이터와 함께 원본 파일 이름도 state로 전달합니다.
-      navigate(`/patent/new-from-pdf`, { 
-        state: { 
-          parsedData,
-          originalFile: {
-            name: file.name,
-            size: file.size,
-          } 
-        } 
+    mutationFn: parsePatentPdf,
+    onSuccess: (parsedData) => {
+      // 파싱된 데이터로 바로 '새 특허 생성' API를 호출합니다.
+      createPatentMutation.mutate({
+        ...parsedData,
+        type: selectedType,
       });
     },
     onError: (err) => alert(`PDF 분석에 실패했습니다: ${err.message}`),
@@ -41,7 +36,11 @@ const NewPatentChoicePage = () => {
 
   const handleCreateNew = () => {
     if (createPatentMutation.isPending || !selectedType) return;
-    createPatentMutation.mutate({ title: '제목 없는 출원서', type: selectedType });
+    createPatentMutation.mutate({ 
+      ...initialDocumentState, 
+      title: '제목 없는 출원서', 
+      type: selectedType 
+    });
   };
 
   const handlePdfBoxClick = () => {
@@ -52,7 +51,6 @@ const NewPatentChoicePage = () => {
   const handleFileChange = (event) => {
     const file = event.target.files[0];
     if (file) {
-      // API 호출 시 file 객체 전체를 넘겨줍니다.
       parsePdfMutation.mutate(file);
     }
     event.target.value = null; 
@@ -60,7 +58,6 @@ const NewPatentChoicePage = () => {
   
   const isLoading = createPatentMutation.isPending || parsePdfMutation.isPending;
 
-  // 2. 렌더링 로직: 유형을 먼저 선택받고, 그 후에 생성 방식을 선택받도록 UI를 분기 처리합니다.
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50">
       <div className="max-w-3xl w-full p-8 text-center">

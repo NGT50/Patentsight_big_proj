@@ -29,7 +29,7 @@ import PatentDetail from './pages/PatentDetail';
 import PrivateRoute from './components/PrivateRoute'; // PrivateRoute 컴포넌트 import
 import LandingPage from './pages/LandingPage';
 import ApplicantAdmin from './pages/ApplicantAdmin';
-
+import DraftsListPage from './pages/DraftsListPage';
 // 우리가 만든 상태관리 및 라우팅 로직
 import useAuthStore from './stores/authStore';
 
@@ -98,7 +98,7 @@ function App() {
               <Route path="/mypage" element={<MyPage />} />
               <Route path="/search" element={<SearchResult />} />
               <Route path="/new-patent-choice" element={<NewPatentChoicePage />} />
-              <Route path="/check/patents" element={<PatentCheckListPage />} />
+              <Route path="/check/patents" element={<DraftsListPage />} />
               <Route path="/check/designs" element={<DesignCheckListPage />} />
               <Route path="/patent/:id" element={<DocumentEditor />} />
               <Route path="/submit/:id" element={<FinalSubmitPage />} />
