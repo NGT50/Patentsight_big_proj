@@ -253,6 +253,37 @@ public class PatentService {
         return toPatentResponse(patent, null);
     }
 
+    // ✅ 빠져있던 updateDocument 추가
+    public DocumentContentResponse updateDocument(Long patentId, PatentRequest document) {
+        PatentResponse updated = updatePatent(patentId, document);
+        if (updated == null) return null;
+
+        Patent patent = patentRepository.findById(patentId).orElse(null);
+        if (patent == null) return null;
+
+        SpecVersion current = specVersionRepository.findFirstByPatent_PatentIdAndIsCurrentTrue(patentId);
+        if (current == null) {
+            current = new SpecVersion();
+            current.setPatent(patent);
+            current.setVersionNo(1);
+            current.setApplicantId(patent.getApplicantId());
+            current.setCurrent(true);
+            current.setCreatedAt(LocalDateTime.now());
+        }
+        try {
+            current.setDocument(objectMapper.writeValueAsString(updated));
+        } catch (Exception e) {
+            current.setDocument(null);
+        }
+        current.setUpdatedAt(LocalDateTime.now());
+        specVersionRepository.save(current);
+
+        DocumentContentResponse res = new DocumentContentResponse();
+        res.setVersionNo(current.getVersionNo());
+        res.setDocument(updated);
+        res.setUpdatedAt(current.getUpdatedAt());
+        return res;
+    }
 
     // ------------------- DELETE -------------------
     public boolean deletePatent(Long patentId) {
@@ -437,7 +468,4 @@ public class PatentService {
         res.setChangeSummary(v.getChangeSummary());
         res.setCurrent(v.isCurrent());
         res.setCreatedAt(v.getCreatedAt());
-        res.setUpdatedAt(v.getUpdatedAt());
-        return res;
-    }
-}
+       
