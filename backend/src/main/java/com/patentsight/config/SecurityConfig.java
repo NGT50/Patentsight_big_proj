@@ -43,14 +43,17 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOriginPatterns(Arrays.asList(
-            "http://35.175.253.22:3000",   // 출원인 프론트
-            "http://35.175.253.22:3001",   // 심사관 프론트
-            "http://localhost:3000",       // 로컬 출원인
-            "http://localhost:3001",       // 로컬 심사관
-            "http://35.175.253.22:5173",   // Vite 기본 포트
-            "http://localhost:5173"        // 로컬 vite
+                "http://35.175.253.22:3000",   // 출원인 프론트
+                "http://35.175.253.22:3001",   // 심사관 프론트
+                "http://localhost:3000",       // 로컬 출원인
+                "http://localhost:3001",       // 로컬 심사관
+                "http://35.175.253.22:5173",   // Vite 기본 포트
+                "http://localhost:5173"        // 로컬 vite
         ));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        
+        // ✅ "PATCH"가 추가된 부분
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+        
         configuration.setAllowedHeaders(Collections.singletonList("*"));
         configuration.setAllowCredentials(true);
 
@@ -58,7 +61,7 @@ public class SecurityConfig {
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }
-
+    
     @Bean
     public JwtAuthenticationConverter jwtAuthenticationConverter() {
         JwtGrantedAuthoritiesConverter delegate = new JwtGrantedAuthoritiesConverter();
