@@ -2,32 +2,45 @@ import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createPatent } from '../api/patents';
-import { parsePatentPdf, uploadFile } from '../api/files';
+import { parsePatentPdf } from '../api/files';
+import { initialDocumentState } from '../utils/documentState'; 
 
 const NewPatentChoicePage = () => {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
   const queryClient = useQueryClient();
-
-  // 1. 사용자가 선택한 출원 유형을 저장할 state ('PATENT' 또는 'DESIGN')
   const [selectedType, setSelectedType] = useState(null);
 
   const createPatentMutation = useMutation({
     mutationFn: createPatent,
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['myPatents'] });
+      // [FIXED] 경로 맨 앞에 '/'를 추가하여 올바른 절대 경로로 수정합니다.
       navigate(`/patent/${data.patentId}`);
     },
     onError: (err) => alert(`출원서 생성에 실패했습니다: ${err.message}`),
   });
 
+  // 'PDF 초안으로 시작'을 위한 수정된 흐름
   const parsePdfMutation = useMutation({
-    mutationFn: (file) => parsePatentPdf(file),
+    mutationFn: parsePatentPdf,
+    onSuccess: (parsedData) => {
+      // 파싱된 데이터로 바로 '새 특허 생성' API를 호출합니다.
+      createPatentMutation.mutate({
+        ...parsedData,
+        type: selectedType,
+      });
+    },
+    onError: (err) => alert(`PDF 분석에 실패했습니다: ${err.message}`),
   });
 
   const handleCreateNew = () => {
     if (createPatentMutation.isPending || !selectedType) return;
-    createPatentMutation.mutate({ title: '제목 없는 출원서', type: selectedType });
+    createPatentMutation.mutate({ 
+      ...initialDocumentState, 
+      title: '제목 없는 출원서', 
+      type: selectedType 
+    });
   };
 
   const handlePdfBoxClick = () => {
@@ -37,30 +50,14 @@ const NewPatentChoicePage = () => {
 
   const handleFileChange = async (event) => {
     const file = event.target.files[0];
-    if (!file) return;
-    try {
-      const parsedData = await parsePdfMutation.mutateAsync(file);
-      const created = await createPatent({ title: parsedData.title || '제목 없는 출원서', type: selectedType });
-      await uploadFile({ file, patentId: created.patentId });
-      queryClient.invalidateQueries({ queryKey: ['myPatents'] });
-      navigate(`/patent/${created.patentId}`, {
-        state: {
-          parsedData,
-          originalFile: {
-            name: file.name,
-            size: file.size,
-          }
-        }
-      });
-    } catch (err) {
-      alert(`PDF 분석 혹은 출원 생성에 실패했습니다: ${err.message}`);
+    if (file) {
+      parsePdfMutation.mutate(file);
     }
     event.target.value = null;
   };
   
   const isLoading = createPatentMutation.isPending || parsePdfMutation.isPending;
 
-  // 2. 렌더링 로직: 유형을 먼저 선택받고, 그 후에 생성 방식을 선택받도록 UI를 분기 처리합니다.
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50">
       <div className="max-w-3xl w-full p-8 text-center">
