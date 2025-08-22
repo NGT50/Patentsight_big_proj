@@ -132,8 +132,7 @@ public class PatentService {
 
     @Transactional(readOnly = true)
     public List<PatentResponse> getMyPatents(Long applicantId) {
-        return patentRepository.findAll().stream()
-                .filter(p -> applicantId.equals(p.getApplicantId()))
+        return patentRepository.findByApplicantId(applicantId).stream()
                 .map(p -> toPatentResponse(p, null))
                 .collect(Collectors.toList());
     }

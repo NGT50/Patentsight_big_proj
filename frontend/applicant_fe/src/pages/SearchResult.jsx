@@ -19,7 +19,6 @@ const SearchResultPage = () => {
     onSuccess: (data) => {
       // API 응답에서 챗봇 답변과 특허 목록을 분리합니다.
       const botAnswer = data.answer || "검색 결과입니다.";
-      const patents = data.patents || [];
       
       setChatHistory(prev => [...prev, { sender: 'bot', text: botAnswer }]);
       // setQueryResults(patents); // 아래 searchMutation.data를 직접 사용

@@ -4,13 +4,17 @@ import com.patentsight.file.domain.FileAttachment;
 import com.patentsight.file.repository.FileRepository;
 import com.patentsight.file.repository.SpecVersionRepository;
 import com.patentsight.file.domain.SpecVersion;
+import com.patentsight.file.service.SpecVersionService;
+import com.patentsight.notification.service.NotificationService;
 import com.patentsight.patent.domain.Patent;
 import com.patentsight.patent.domain.PatentStatus;
 import com.patentsight.patent.domain.PatentType;
 import com.patentsight.patent.dto.PatentRequest;
 import com.patentsight.patent.dto.PatentResponse;
 import com.patentsight.patent.repository.PatentRepository;
-import org.junit.jupiter.api.BeforeEach;
+import com.patentsight.review.service.ReviewService;
+import org.springframework.web.client.RestTemplate;
+import com.patentsight.ai.dto.PredictResponse;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -37,13 +41,20 @@ class PatentServiceTest {
     @Mock
     private SpecVersionRepository specVersionRepository;
 
+    @Mock
+    private SpecVersionService specVersionService;
+
+    @Mock
+    private RestTemplate restTemplate;
+
+    @Mock
+    private NotificationService notificationService;
+
+    @Mock
+    private ReviewService reviewService;
+
     @InjectMocks
     private PatentService patentService;
-
-    @BeforeEach
-    void setup() {
-        patentService = new PatentService(patentRepository, fileRepository, specVersionRepository);
-    }
 
     @Test
     void createPatent_setsFieldsAndAttachments() {
@@ -101,7 +112,7 @@ class PatentServiceTest {
         assertEquals(2, response.getClaims().size());
         assertNotNull(file1.getPatent());
         assertEquals(1L, file1.getPatent().getPatentId());
-        verify(specVersionRepository).save(any(SpecVersion.class));
+        verify(specVersionService).save(any(SpecVersion.class));
     }
 
     @Test
@@ -163,8 +174,10 @@ class PatentServiceTest {
         patent.setType(PatentType.PATENT);
         when(patentRepository.findById(1L)).thenReturn(Optional.of(patent));
         when(patentRepository.save(any(Patent.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(restTemplate.postForObject(any(), any(), eq(PredictResponse.class))).thenReturn(null);
+        doNothing().when(reviewService).autoAssignWithSpecialty(any(Patent.class));
 
-        PatentResponse res = patentService.submitPatent(1L);
+        PatentResponse res = patentService.submitPatent(1L, null);
 
         assertNotNull(res);
         assertEquals(PatentStatus.SUBMITTED, res.getStatus());
@@ -183,8 +196,10 @@ class PatentServiceTest {
         patent.setType(PatentType.UTILITY_MODEL);
         when(patentRepository.findById(2L)).thenReturn(Optional.of(patent));
         when(patentRepository.save(any(Patent.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(restTemplate.postForObject(any(), any(), eq(PredictResponse.class))).thenReturn(null);
+        doNothing().when(reviewService).autoAssignWithSpecialty(any(Patent.class));
 
-        PatentResponse res = patentService.submitPatent(2L);
+        PatentResponse res = patentService.submitPatent(2L, null);
 
         assertNotNull(res);
         assertEquals(200L, res.getApplicantId());
@@ -212,7 +227,7 @@ class PatentServiceTest {
         patent.setTitle("T");
         patent.setType(PatentType.PATENT);
         patent.setStatus(PatentStatus.DRAFT);
-        when(patentRepository.findAll()).thenReturn(Collections.singletonList(patent));
+        when(patentRepository.findByApplicantId(1L)).thenReturn(Collections.singletonList(patent));
 
         FileAttachment file = new FileAttachment();
         file.setFileId(10L);
