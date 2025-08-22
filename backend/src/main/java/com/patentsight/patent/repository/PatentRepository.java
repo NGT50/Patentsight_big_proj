@@ -14,6 +14,9 @@ public interface PatentRepository extends JpaRepository<Patent, Long> {
 
     Optional<Patent> findByApplicationNumber(String applicationNumber);
 
+    @Query("select max(p.applicationNumber) from Patent p where p.applicationNumber like concat(:prefix, '%')")
+    String findMaxApplicationNumberWithPrefix(@Param("prefix") String prefix);
+
     // 🔹 전체 출원 단위로 미배정된 출원 조회
     @Query("""
         SELECT p FROM Patent p

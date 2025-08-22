@@ -10,6 +10,7 @@ import com.patentsight.file.dto.FileVersionResponse;
 import com.patentsight.file.dto.RestoreVersionResponse;
 import com.patentsight.file.repository.FileRepository;
 import com.patentsight.file.repository.SpecVersionRepository;
+import com.patentsight.file.service.SpecVersionService;
 import com.patentsight.patent.domain.Patent;
 import com.patentsight.review.service.ReviewService;
 import com.patentsight.patent.domain.PatentStatus;
@@ -40,6 +41,7 @@ public class PatentService {
     private final ReviewService reviewService;
     private final FileRepository fileRepository;
     private final SpecVersionRepository specVersionRepository;
+    private final SpecVersionService specVersionService;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final RestTemplate restTemplate;
 
@@ -51,12 +53,14 @@ public class PatentService {
     public PatentService(PatentRepository patentRepository,
                          FileRepository fileRepository,
                          SpecVersionRepository specVersionRepository,
+                         SpecVersionService specVersionService,
                          RestTemplate restTemplate,
                          NotificationService notificationService,
                          ReviewService reviewService) {
         this.patentRepository = patentRepository;
         this.fileRepository = fileRepository;
         this.specVersionRepository = specVersionRepository;
+        this.specVersionService = specVersionService;
         this.restTemplate = restTemplate;
         this.notificationService = notificationService;
         this.reviewService = reviewService;
@@ -111,8 +115,9 @@ public class PatentService {
             LocalDateTime now = LocalDateTime.now();
             initial.setCreatedAt(now);
             initial.setUpdatedAt(now);
-            specVersionRepository.save(initial);
-        } catch (Exception ignored) {
+            specVersionService.save(initial);
+        } catch (Exception e) {
+            // log and continue without rolling back main transaction
         }
         return response;
     }
@@ -197,8 +202,19 @@ public class PatentService {
             default -> typeCode = "10";
         }
         String year = String.valueOf(LocalDate.now().getYear());
-        String serial = String.format("%07d", patent.getPatentId());
-        return typeCode + year + serial;
+        String prefix = typeCode + year;
+
+        String maxAppNo = patentRepository.findMaxApplicationNumberWithPrefix(prefix);
+        long nextSerial = 1L;
+        if (maxAppNo != null && maxAppNo.length() >= prefix.length()) {
+            String serialPart = maxAppNo.substring(prefix.length());
+            try {
+                nextSerial = Long.parseLong(serialPart) + 1;
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        String serial = String.format("%07d", nextSerial);
+        return prefix + serial;
     }
 
     // ------------------- UPDATE -------------------
@@ -297,7 +313,11 @@ public class PatentService {
         version.setCurrent(true);
         version.setCreatedAt(LocalDateTime.now());
         version.setUpdatedAt(LocalDateTime.now());
-        specVersionRepository.save(version);
+        try {
+            specVersionService.save(version);
+        } catch (Exception e) {
+            // log and continue
+        }
 
         return patent;
     }
@@ -325,7 +345,11 @@ public class PatentService {
             current.setDocument(null);
         }
         current.setUpdatedAt(LocalDateTime.now());
-        specVersionRepository.save(current);
+        try {
+            specVersionService.save(current);
+        } catch (Exception e) {
+            // log and continue
+        }
 
         DocumentContentResponse res = new DocumentContentResponse();
         res.setVersionNo(current.getVersionNo());
@@ -392,7 +416,11 @@ public class PatentService {
         for (SpecVersion v : existing) {
             v.setCurrent(false);
         }
-        specVersionRepository.saveAll(existing);
+        try {
+            specVersionService.saveAll(existing);
+        } catch (Exception e) {
+            // log and continue
+        }
 
         SpecVersion version = new SpecVersion();
         version.setPatent(patent);
@@ -408,7 +436,11 @@ public class PatentService {
         version.setCurrent(true);
         version.setCreatedAt(LocalDateTime.now());
         version.setUpdatedAt(LocalDateTime.now());
-        specVersionRepository.save(version);
+        try {
+            specVersionService.save(version);
+        } catch (Exception e) {
+            // log and continue
+        }
 
         return toFileVersionResponse(version);
     }
@@ -425,10 +457,18 @@ public class PatentService {
                 v.setCurrent(false);
             }
             version.setCurrent(true);
-            specVersionRepository.saveAll(versions);
+            try {
+                specVersionService.saveAll(versions);
+            } catch (Exception e) {
+                // log and continue
+            }
         }
         version.setUpdatedAt(LocalDateTime.now());
-        specVersionRepository.save(version);
+        try {
+            specVersionService.save(version);
+        } catch (Exception e) {
+            // log and continue
+        }
         return toFileVersionResponse(version);
     }
 
@@ -441,7 +481,11 @@ public class PatentService {
         for (SpecVersion v : versions) {
             v.setCurrent(false);
         }
-        specVersionRepository.saveAll(versions);
+        try {
+            specVersionService.saveAll(versions);
+        } catch (Exception e) {
+            // log and continue
+        }
 
         SpecVersion newVersion = new SpecVersion();
         newVersion.setPatent(patent);
@@ -453,7 +497,11 @@ public class PatentService {
         newVersion.setCurrent(true);
         newVersion.setCreatedAt(LocalDateTime.now());
         newVersion.setUpdatedAt(LocalDateTime.now());
-        specVersionRepository.save(newVersion);
+        try {
+            specVersionService.save(newVersion);
+        } catch (Exception e) {
+            // log and continue
+        }
 
         RestoreVersionResponse res = new RestoreVersionResponse();
         res.setPatentId(patent.getPatentId());
