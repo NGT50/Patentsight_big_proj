@@ -20,7 +20,7 @@ const FinalSubmitPage = () => {
       alert(`최종 제출이 완료되었습니다. (출원번호: ${result.applicationNumber})`);
       
       // 이 한 줄만 있으면 됩니다. 마이페이지 데이터를 새로고침하라는 명령.
-      queryClient.invalidateQueries({ queryKey: ['myPatents'] });
+      queryClient.invalidateQueries(['myPatents']);
       
       navigate('/mypage');
     },

@@ -6,9 +6,11 @@ import {
   updateFileContent,
   submitPatent
 } from '../api/patents';
+import { useQueryClient } from '@tanstack/react-query';
 
 const PatentDetail = () => {
   const { id } = useParams();
+  const queryClient = useQueryClient();
 
   const [patent, setPatent] = useState(null);
   const [fileContent, setFileContent] = useState('');
@@ -24,6 +26,7 @@ const PatentDetail = () => {
     try {
       const response = await submitPatent(id);
       setPatent((prev) => ({ ...prev, status: response.status }));
+      queryClient.invalidateQueries(['myPatents']);
       setSubmitStatus('✅ 제출 완료되었습니다.');
     } catch (err) {
       console.error('제출 실패:', err);
@@ -59,6 +62,7 @@ const PatentDetail = () => {
     setSaveStatus('');
     try {
       await updateFileContent(fileId, fileContent);
+      queryClient.invalidateQueries(['myPatents']);
       setSaveStatus('✅ 임시 저장 완료');
     } catch (err) {
       console.error('임시 저장 실패:', err);
