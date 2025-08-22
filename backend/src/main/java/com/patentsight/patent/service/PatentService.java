@@ -313,11 +313,13 @@ public class PatentService {
         version.setCurrent(true);
         version.setCreatedAt(LocalDateTime.now());
         version.setUpdatedAt(LocalDateTime.now());
+
         try {
             specVersionService.save(version);
         } catch (Exception e) {
             // log and continue
         }
+
 
         return patent;
     }
@@ -345,11 +347,13 @@ public class PatentService {
             current.setDocument(null);
         }
         current.setUpdatedAt(LocalDateTime.now());
+
         try {
             specVersionService.save(current);
         } catch (Exception e) {
             // log and continue
         }
+
 
         DocumentContentResponse res = new DocumentContentResponse();
         res.setVersionNo(current.getVersionNo());
@@ -416,11 +420,13 @@ public class PatentService {
         for (SpecVersion v : existing) {
             v.setCurrent(false);
         }
+
         try {
             specVersionService.saveAll(existing);
         } catch (Exception e) {
             // log and continue
         }
+
 
         SpecVersion version = new SpecVersion();
         version.setPatent(patent);
@@ -436,11 +442,13 @@ public class PatentService {
         version.setCurrent(true);
         version.setCreatedAt(LocalDateTime.now());
         version.setUpdatedAt(LocalDateTime.now());
+
         try {
             specVersionService.save(version);
         } catch (Exception e) {
             // log and continue
         }
+
 
         return toFileVersionResponse(version);
     }
@@ -457,6 +465,7 @@ public class PatentService {
                 v.setCurrent(false);
             }
             version.setCurrent(true);
+
             try {
                 specVersionService.saveAll(versions);
             } catch (Exception e) {
@@ -469,6 +478,7 @@ public class PatentService {
         } catch (Exception e) {
             // log and continue
         }
+
         return toFileVersionResponse(version);
     }
 
@@ -481,11 +491,13 @@ public class PatentService {
         for (SpecVersion v : versions) {
             v.setCurrent(false);
         }
+
         try {
             specVersionService.saveAll(versions);
         } catch (Exception e) {
             // log and continue
         }
+
 
         SpecVersion newVersion = new SpecVersion();
         newVersion.setPatent(patent);
@@ -497,11 +509,13 @@ public class PatentService {
         newVersion.setCurrent(true);
         newVersion.setCreatedAt(LocalDateTime.now());
         newVersion.setUpdatedAt(LocalDateTime.now());
+
         try {
             specVersionService.save(newVersion);
         } catch (Exception e) {
             // log and continue
         }
+
 
         RestoreVersionResponse res = new RestoreVersionResponse();
         res.setPatentId(patent.getPatentId());
