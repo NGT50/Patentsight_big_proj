@@ -212,7 +212,7 @@ class PatentServiceTest {
         patent.setTitle("T");
         patent.setType(PatentType.PATENT);
         patent.setStatus(PatentStatus.DRAFT);
-        when(patentRepository.findAll()).thenReturn(Collections.singletonList(patent));
+        when(patentRepository.findByApplicantId(1L)).thenReturn(Collections.singletonList(patent));
 
         FileAttachment file = new FileAttachment();
         file.setFileId(10L);

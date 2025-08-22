@@ -30,4 +30,6 @@ public interface PatentRepository extends JpaRepository<Patent, Long> {
             @Param("type") PatentType type,
             @Param("status") PatentStatus status
     );
+
+    List<Patent> findByApplicantId(Long applicantId);
 }

@@ -84,8 +84,8 @@ const DocumentEditor = () => {
   const saveMutation = useMutation({
     mutationFn: updateDocument,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['myPatents'] });
-      queryClient.invalidateQueries({ queryKey: ['patentDocument', patentId] });
+      queryClient.invalidateQueries(['myPatents']);
+      queryClient.invalidateQueries(['patentDocument', patentId]);
       alert('임시저장이 완료되었습니다.');
     },
     onError: (error) => alert('저장 중 오류가 발생했습니다: ' + error.message),
@@ -101,7 +101,7 @@ const DocumentEditor = () => {
     },
     onSuccess: () => {
       // MyPage와 임시저장목록의 데이터를 모두 갱신하도록 신호를 보냅니다.
-      queryClient.invalidateQueries({ queryKey: ['myPatents'] });
+      queryClient.invalidateQueries(['myPatents']);
       alert('출원서가 최종 제출되었습니다. 마이페이지로 이동합니다.');
       navigate('/mypage'); 
     },
