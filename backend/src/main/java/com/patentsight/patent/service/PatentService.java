@@ -10,6 +10,7 @@ import com.patentsight.file.dto.FileVersionResponse;
 import com.patentsight.file.dto.RestoreVersionResponse;
 import com.patentsight.file.repository.FileRepository;
 import com.patentsight.file.repository.SpecVersionRepository;
+import com.patentsight.file.service.SpecVersionService;
 import com.patentsight.patent.domain.Patent;
 import com.patentsight.review.service.ReviewService;
 import com.patentsight.patent.domain.PatentStatus;
@@ -40,6 +41,7 @@ public class PatentService {
     private final ReviewService reviewService;
     private final FileRepository fileRepository;
     private final SpecVersionRepository specVersionRepository;
+    private final SpecVersionService specVersionService;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final RestTemplate restTemplate;
 
@@ -51,12 +53,14 @@ public class PatentService {
     public PatentService(PatentRepository patentRepository,
                          FileRepository fileRepository,
                          SpecVersionRepository specVersionRepository,
+                         SpecVersionService specVersionService,
                          RestTemplate restTemplate,
                          NotificationService notificationService,
                          ReviewService reviewService) {
         this.patentRepository = patentRepository;
         this.fileRepository = fileRepository;
         this.specVersionRepository = specVersionRepository;
+        this.specVersionService = specVersionService;
         this.restTemplate = restTemplate;
         this.notificationService = notificationService;
         this.reviewService = reviewService;
@@ -111,8 +115,9 @@ public class PatentService {
             LocalDateTime now = LocalDateTime.now();
             initial.setCreatedAt(now);
             initial.setUpdatedAt(now);
-            specVersionRepository.save(initial);
-        } catch (Exception ignored) {
+            specVersionService.save(initial);
+        } catch (Exception e) {
+            // log and continue without rolling back main transaction
         }
         return response;
     }
@@ -297,7 +302,7 @@ public class PatentService {
         version.setCurrent(true);
         version.setCreatedAt(LocalDateTime.now());
         version.setUpdatedAt(LocalDateTime.now());
-        specVersionRepository.save(version);
+        specVersionService.save(version);
 
         return patent;
     }
@@ -325,7 +330,7 @@ public class PatentService {
             current.setDocument(null);
         }
         current.setUpdatedAt(LocalDateTime.now());
-        specVersionRepository.save(current);
+        specVersionService.save(current);
 
         DocumentContentResponse res = new DocumentContentResponse();
         res.setVersionNo(current.getVersionNo());
@@ -392,7 +397,7 @@ public class PatentService {
         for (SpecVersion v : existing) {
             v.setCurrent(false);
         }
-        specVersionRepository.saveAll(existing);
+        specVersionService.saveAll(existing);
 
         SpecVersion version = new SpecVersion();
         version.setPatent(patent);
@@ -408,7 +413,7 @@ public class PatentService {
         version.setCurrent(true);
         version.setCreatedAt(LocalDateTime.now());
         version.setUpdatedAt(LocalDateTime.now());
-        specVersionRepository.save(version);
+        specVersionService.save(version);
 
         return toFileVersionResponse(version);
     }
@@ -425,10 +430,10 @@ public class PatentService {
                 v.setCurrent(false);
             }
             version.setCurrent(true);
-            specVersionRepository.saveAll(versions);
+            specVersionService.saveAll(versions);
         }
         version.setUpdatedAt(LocalDateTime.now());
-        specVersionRepository.save(version);
+        specVersionService.save(version);
         return toFileVersionResponse(version);
     }
 
@@ -441,7 +446,7 @@ public class PatentService {
         for (SpecVersion v : versions) {
             v.setCurrent(false);
         }
-        specVersionRepository.saveAll(versions);
+        specVersionService.saveAll(versions);
 
         SpecVersion newVersion = new SpecVersion();
         newVersion.setPatent(patent);
@@ -453,7 +458,7 @@ public class PatentService {
         newVersion.setCurrent(true);
         newVersion.setCreatedAt(LocalDateTime.now());
         newVersion.setUpdatedAt(LocalDateTime.now());
-        specVersionRepository.save(newVersion);
+        specVersionService.save(newVersion);
 
         RestoreVersionResponse res = new RestoreVersionResponse();
         res.setPatentId(patent.getPatentId());
