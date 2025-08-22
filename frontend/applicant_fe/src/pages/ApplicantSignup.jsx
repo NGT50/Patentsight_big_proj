@@ -586,7 +586,7 @@ function ApplicantSignup() {
       const hasLength = password.length >= 8 && password.length <= 16;
       const hasLetter = /[a-zA-Z]/.test(password);
       const hasNumber = /[0-9]/.test(password);
-      const hasSpecial = /[!@$%^*~#_\-+=?{}\[\]]/.test(password);
+      const hasSpecial = /[!@$%^*~#_\-+=?{}[\]]/.test(password);
       
       if (password.length === 0) {
         setPasswordStatus('');

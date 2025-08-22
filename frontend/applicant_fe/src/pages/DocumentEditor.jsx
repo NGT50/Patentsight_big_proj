@@ -27,7 +27,7 @@ const DocumentEditor = () => {
   const isDataLoadedFromServerRef = useRef(false);
 
   // --- 데이터 로딩 (React Query) ---
-  const { data, isLoading, isError, error } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ['patentDocument', patentId],
     queryFn: () => getLatestDocument(patentId),
     enabled: !!patentId && patentId !== 'new-from-pdf',
