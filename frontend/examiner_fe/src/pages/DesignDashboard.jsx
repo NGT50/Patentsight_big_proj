@@ -100,7 +100,7 @@ export default function DesignDashboard() {
         // 1차: list
         let listResponse;
         try {
-          listResponse = await getReviewList(userId);
+          listResponse = await getReviewList(userId, 'DESIGN');
         } catch (err) {
           if (err?.response?.status === 403) {
             // 심사관 권한 경로 문제 시 search로 폴백

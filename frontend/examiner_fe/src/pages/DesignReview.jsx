@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Palette, Info, Image, MessageSquare, Copy, FlaskConical,
-  CheckCircle, Send, Bot, Lightbulb, GanttChart, Scale, X, FileText, ScrollText, Check, Upload, File as FileIcon
+  Palette, Info, Image, MessageSquare, Copy,
+  FlaskConical, // kept for icon set compatibility (not used)
+  CheckCircle, Send, Bot, Lightbulb, GanttChart, Scale, X, FileText, ScrollText, Check, File as FileIcon
 } from 'lucide-react';
 
 import axiosInstance from '../api/axiosInstance';
@@ -11,13 +12,13 @@ import {
   startChatSession,
   sendChatMessageToServer,
   validatePatentDocument,
-  generate3DModel,
+  // generate3DModel,  // 🔥 제거: 3D 모델 생성 기능 비활성화
   generateRejectionDraft,
   searchDesignImage
 } from '../api/ai';
 
 // 파일 API (이미지/비이미지 분리 유틸)
-import { getImageUrlsByIds, getNonImageFilesByIds, toAbsoluteFileUrl } from '../api/files';
+import { getImageUrlsByIds, getNonImageFilesByIds, toAbsoluteFileUrl } from '../api/files'
 
 /* ------------------------- 유틸 & 보조 컴포넌트 ------------------------- */
 
@@ -119,12 +120,31 @@ function resolveToUrl(srcLike) {
   return null;
 }
 
-// 3D 모델 뷰어(목업)
-const ThreeDModelViewer = ({ glbPath }) => (
-  <div className="w-full h-72 bg-gray-200 rounded-lg overflow-hidden flex items-center justify-center border border-gray-300">
-    <p className="text-gray-600 text-sm font-medium">3D 모델 뷰어: {glbPath}</p>
-  </div>
-);
+// 간단한 3D 뷰어: model-viewer 사용 (미지원 브라우저/환경에선 링크 제공)
+function ModelViewer3D({ src }) {
+  useEffect(() => {
+    if (!window.customElements || !window.customElements.get('model-viewer')) {
+      const script = document.createElement('script');
+      script.type = 'module';
+      script.src = 'https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js';
+      document.head.appendChild(script);
+    }
+  }, []);
+  return (
+    <div className="w-full h-72 bg-gray-100 rounded-lg overflow-hidden border border-gray-200 flex items-center justify-center">
+      {/* @ts-ignore */}
+      <model-viewer
+        style={{ width: '100%', height: '100%' }}
+        src={src}
+        camera-controls
+        auto-rotate
+        exposure="1.0"
+        shadow-intensity="1"
+        ar
+      />
+    </div>
+  );
+}
 
 // 현재 로그인 유저 ID (옵션)
 const getCurrentUserId = () => {
@@ -168,15 +188,14 @@ export default function DesignReview() {
 
   // AI 상태
   const [similarityResults, setSimilarityResults] = useState([]);
-  const [threeDModelPath, setThreeDModelPath] = useState('');
-  const [isGenerating3D, setIsGenerating3D] = useState(false);
-  const [isGeneratingDraft, setIsGeneratingDraft] = useState(false);
   const [isSearchingSimilarity, setIsSearchingSimilarity] = useState(false);
-  const [uploadedImage, setUploadedImage] = useState(null);
 
   // 첨부 이미지/비이미지
   const [attachmentImageUrls, setAttachmentImageUrls] = useState([]);
   const [attachmentOtherFiles, setAttachmentOtherFiles] = useState([]); // {id,name,url}[]
+
+  // 첨부에서 찾은 glb 뷰어 소스
+  const [glbModelUrl, setGlbModelUrl] = useState('');
 
   // 도면 목록/선택 (첨부 이미지 + 기존 소스)
   const drawingSources = useMemo(() => {
@@ -216,6 +235,8 @@ export default function DesignReview() {
       return null;
     }
   };
+
+  const showMessageBox = (message) => { setModalMessage(message); setShowModal(true); };
 
   // 리뷰 상세 + 첨부 파생 데이터 로드
   useEffect(() => {
@@ -274,14 +295,20 @@ export default function DesignReview() {
             ]);
             setAttachmentImageUrls(images);
             setAttachmentOtherFiles(others);
+
+            // 🔎 첨부 비이미지에서 .glb 찾기 → 3D 도면 자동 표시용
+            const glb = others.find(f => /\.glb($|\?|#)/i.test(f?.name || '') || /\.glb($|\?|#)/i.test(f?.url || ''));
+            setGlbModelUrl(glb ? glb.url : '');
           } catch (e) {
             console.warn('첨부 로드 실패:', e);
             setAttachmentImageUrls([]);
             setAttachmentOtherFiles([]);
+            setGlbModelUrl('');
           }
         } else {
           setAttachmentImageUrls([]);
           setAttachmentOtherFiles([]);
+          setGlbModelUrl('');
         }
       } catch (error) {
         console.error('심사 상세 정보 조회 실패:', error);
@@ -293,20 +320,28 @@ export default function DesignReview() {
     run();
   }, [id, navigate]);
 
-  // 첫 도면 자동 유사분석 (CORS 허용 필요)
+  // ✅ 첫 번째 2D 도면으로 자동 유사 분석 실행
   useEffect(() => {
     (async () => {
       if (!design) return;
+      if (!drawingSources || drawingSources.length === 0) return;
       const first = drawingSources[0];
       const url = resolveToUrl(first);
       if (!url) return;
       try {
-        const res = await fetch(url);
-        const blob = await res.blob();
-        const ext = (blob.type.split('/')[1] || 'png');
-        const file = new File([blob], `design_${design.patentId}.${ext}`, { type: blob.type || 'image/png' });
-        await handleSimilaritySearch(file);
-      } catch { /* noop */ }
+        setIsSearchingSimilarity(true);
+        const results = await searchDesignImage(url); // URL 문자열로 직접 호출
+        if (results && results.results) {
+          setSimilarityResults(results.results);
+        } else {
+          setSimilarityResults([]);
+        }
+      } catch (e) {
+        console.warn('자동 유사 분석 실패:', e);
+        setSimilarityResults([]);
+      } finally {
+        setIsSearchingSimilarity(false);
+      }
     })();
   }, [design, drawingSources]);
 
@@ -392,8 +427,6 @@ export default function DesignReview() {
       default: return 'bg-gray-100 text-gray-800';
     }
   };
-
-  const showMessageBox = (message) => { setModalMessage(message); setShowModal(true); };
 
   const handleReviewSubmit = async () => {
     let currentComment, decision, msg, newStatus;
@@ -490,71 +523,6 @@ ${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getD
     } catch (error) {
       console.error('출원 서류 점검 실패:', error);
       showMessageBox('오류: 서류 점검 중 문제가 발생했습니다.');
-    }
-  };
-
-  const handleGenerate3DModel = async () => {
-    if (!design) return;
-    const chosen = drawingSources[selectedDrawingIdx] || drawingSources[0];
-    const targetUrl = resolveToUrl(chosen);
-    if (!targetUrl) {
-      showMessageBox('사용할 도면 이미지가 없습니다.');
-      return;
-    }
-    setIsGenerating3D(true);
-    setThreeDModelPath('');
-    try {
-      const result = await generate3DModel(design.patentId, { image_id: selectedDrawingIdx + 1, image_url: targetUrl });
-      setThreeDModelPath(result.file_path);
-      showMessageBox(`3D 모델 생성 완료!\n경로: ${result.file_path}`);
-    } catch (error) {
-      console.error('3D 모델 생성 실패:', error);
-      showMessageBox('오류: 3D 모델 생성에 실패했습니다.');
-    } finally {
-      setIsGenerating3D(false);
-    }
-  };
-
-  const handleGenerateRejectionDraft = async () => {
-    if (!design) return;
-    setIsGeneratingDraft(true);
-    try {
-      const draftData = await generateRejectionDraft(design.patentId);
-      setRejectionComment(draftData.content);
-      showMessageBox('AI 거절 사유서 초안이 생성되었습니다.');
-    } catch (error) {
-      console.error('AI 초안 생성 실패:', error);
-      showMessageBox('오류: AI 초안 생성에 실패했습니다.');
-    } finally {
-      setIsGeneratingDraft(false);
-    }
-  };
-
-  // 유사 디자인 검색 (form-data 업로드)
-  const handleSimilaritySearch = async (imageFile) => {
-    if (!imageFile) {
-      showMessageBox('유사도 분석을 위해 이미지가 필요합니다.');
-      return;
-    }
-    if (typeof imageFile === 'string') {
-      showMessageBox('이 기능은 이미지 파일 업로드가 필요합니다.');
-      return;
-    }
-    setIsSearchingSimilarity(true);
-    setSimilarityResults([]);
-    try {
-      const results = await searchDesignImage(imageFile);
-      if (results && results.results) {
-        setSimilarityResults(results.results);
-        showMessageBox(`총 ${results.results.length}개의 유사 디자인을 찾았습니다.`);
-      } else {
-        showMessageBox('유사 디자인을 찾을 수 없습니다.');
-      }
-    } catch (error) {
-      console.error('유사도 분석 실패:', error);
-      showMessageBox('유사도 분석 중 오류가 발생했습니다.');
-    } finally {
-      setIsSearchingSimilarity(false);
     }
   };
 
@@ -666,12 +634,20 @@ ${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getD
                     </label>
                     {selectedAction === 'rejection' && (
                       <button
-                        onClick={handleGenerateRejectionDraft}
-                        disabled={isGeneratingDraft || isFinalStatus}
+                        onClick={async () => {
+                          try {
+                            const draft = await generateRejectionDraft(design.patentId);
+                            setRejectionComment(draft.content);
+                            showMessageBox('AI 거절 사유서 초안이 생성되었습니다.');
+                          } catch (e) {
+                            showMessageBox('오류: AI 초안 생성에 실패했습니다.');
+                          }
+                        }}
+                        disabled={isFinalStatus}
                         className="px-3 py-1.5 bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-md hover:bg-indigo-200 transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <Bot className="w-4 h-4 mr-1.5" />
-                        {isGeneratingDraft ? '생성 중...' : 'AI 초안 생성'}
+                        AI 초안 생성
                       </button>
                     )}
                   </div>
@@ -838,34 +814,20 @@ ${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getD
                 </div>
               </div>
 
-              {/* 3D 모델 */}
+              {/* 3D 도면 (.glb 첨부 자동 표시) */}
               <div className="mt-6">
                 <div className="flex justify-between items-center mb-2">
                   <h4 className="font-medium text-lg text-gray-800 flex items-center gap-1">
-                    <FlaskConical className="w-4 h-4 text-indigo-400" /> 3D 모델
+                    <Image className="w-4 h-4 text-indigo-400" /> 3D 도면
                   </h4>
-                  <button
-                    onClick={handleGenerate3DModel}
-                    disabled={isGenerating3D || drawingSources.length === 0}
-                    className="px-4 py-1.5 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg font-medium transition-colors flex items-center gap-2 text-sm disabled:bg-gray-400 disabled:cursor-not-allowed"
-                  >
-                    {isGenerating3D ? '생성 중...' : '선택한 도면으로 3D 모델 생성'}
-                  </button>
                 </div>
-
-                {drawingSources.length === 0 && (
-                  <p className="text-xs text-gray-500 mb-2">3D 모델 생성을 위해 2D 도면(이미지)이 필요합니다.</p>
+                {glbModelUrl ? (
+                  <ModelViewer3D src={glbModelUrl} />
+                ) : (
+                  <div className="w-full h-24 bg-gray-50 border border-dashed border-gray-300 rounded-lg flex items-center justify-center text-sm text-gray-500">
+                    첨부 파일에서 .glb 파일을 찾지 못했습니다. .glb 파일을 업로드하면 자동으로 표시됩니다.
+                  </div>
                 )}
-
-                <div className="w-full h-72 bg-gray-100 rounded-lg flex items-center justify-center border border-gray-200">
-                  {isGenerating3D ? (
-                    <p className="text-gray-500 animate-pulse">AI가 3D 모델을 생성하고 있습니다...</p>
-                  ) : threeDModelPath ? (
-                    <ThreeDModelViewer glbPath={threeDModelPath} />
-                  ) : (
-                    <p className="text-gray-500">2D 도면을 선택한 뒤 “3D 모델 생성”을 눌러주세요.</p>
-                  )}
-                </div>
               </div>
             </section>
           </div>
@@ -876,34 +838,7 @@ ${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getD
               <Copy className="w-5 h-5 text-indigo-500" /> AI 유사 디자인 분석
             </h3>
 
-            <div className="flex items-center gap-3 mb-4">
-              <label
-                htmlFor="similarity-image-upload"
-                className="inline-flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg text-sm cursor-pointer hover:bg-gray-50"
-              >
-                <Upload className="w-4 h-4" />
-                이미지 업로드
-              </label>
-              <input
-                id="similarity-image-upload"
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    setUploadedImage(file);
-                    handleSimilaritySearch(file);
-                  }
-                }}
-              />
-              {uploadedImage && (
-                <span className="text-xs text-gray-600 truncate max-w-[240px]">
-                  업로드됨: {uploadedImage.name}
-                </span>
-              )}
-            </div>
-
+            {/* 자동 분석 진행 상태/결과 */}
             <div className="flex gap-4 overflow-x-auto pb-2 -mx-2 px-2">
               {isSearchingSimilarity ? (
                 <div className="w-full flex justify-center items-center py-8">

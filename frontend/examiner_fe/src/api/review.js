@@ -51,9 +51,12 @@ const asObject = (data) => {
 // 4xx는 에러로, 204/빈 바디는 통과시키고 정규화할 수 있게
 const okOrClientErr = (s) => s < 500;
 
+// 백엔드 구현 다양성 대응(리뷰 상태/결정 키워드)
 const STATUS_SET = new Set([
-  'DRAFT', 'SUBMITTED', 'REVIEWING', 'APPROVED', 'REJECTED',
-  'APPROVE', 'REJECT', 'PENDING',
+  // PatentStatus 계열(백엔드 전역 상태)
+  'DRAFT', 'SUBMITTED', 'REVIEWING', 'APPROVED', 'REJECTED', 'WAITING_ASSIGNMENT',
+  // Review.Decision 계열(심사결정)
+  'APPROVE', 'REJECT',
 ]);
 
 const TYPE_SET = new Set(['PATENT', 'DESIGN']);
@@ -94,28 +97,33 @@ async function _searchWithParams(examinerId, paramsCandidates) {
 
 /**
  * 1. 심사관 수동 배정
- * @param {object} requestData - { applicationNumber: number, examinerId: number }
+ * @param {{ applicationNumber:number, examinerId:number }} requestData
  */
 export const assignReviewer = async (requestData) => {
-  const response = await axiosInstance.post('/api/reviews/assign', requestData);
-  return response.data;
+  const { data } = await axiosInstance.post('/api/reviews/assign', requestData, {
+    validateStatus: okOrClientErr,
+  });
+  return asObject(data);
 };
 
 /**
  * 2. 심사관 자동 배정
- * @param {string} type - 'PATENT' | 'DESIGN'
+ * @param {'PATENT'|'DESIGN'} type
  */
 export const autoAssign = async (type) => {
-  const response = await axiosInstance.post(`/api/reviews/assign/auto`, null, {
-    params: { type },
+  const t = String(type || '').toUpperCase();
+  const params = TYPE_SET.has(t) ? { type: t } : {};
+  const { data } = await axiosInstance.post(`/api/reviews/assign/auto`, null, {
+    params,
+    validateStatus: okOrClientErr,
   });
-  return response.data;
+  return asObject(data);
 };
 
 /**
  * 3. 심사 목록 조회 (강화판)
  * - 예전 호환: getReviewList(userId, 'SUBMITTED') → status 필터
- * - 새 용법  : getReviewList(userId, 'PATENT') → type 필터
+ * - 새 용법  : getReviewList(userId, 'PATENT')   → type 필터
  * - 객체     : getReviewList(userId, { type: 'PATENT', status: 'REVIEWING' })
  * @returns {Array} 항상 배열
  */
@@ -125,7 +133,8 @@ export const getReviewList = async (userId, opts) => {
   // 문자열로 온 경우(과거 호환)
   if (typeof opts === 'string') {
     const v = opts.toUpperCase();
-    // ✅ "PATENT"/"DESIGN"이면 type 필터로 처리 (키 다양성 대응)
+
+    // "PATENT"/"DESIGN"이면 type 필터로 처리 (서버 키 다양성 대응)
     if (TYPE_SET.has(v)) {
       return _listWithParams(userId, [
         { type: v },
@@ -134,7 +143,8 @@ export const getReviewList = async (userId, opts) => {
         { targetType: v },
       ]);
     }
-    // ✅ 그 외는 status로 처리
+
+    // 상태로 취급
     if (STATUS_SET.has(v)) {
       const { data } = await axiosInstance.get(`/api/reviews/list/${userId}`, {
         params: { status: v },
@@ -170,7 +180,7 @@ export const getReviewList = async (userId, opts) => {
       return asArray(data);
     }
 
-    // 필터 없음
+    // 필터 없음 → 전체
     const { data } = await axiosInstance.get(`/api/reviews/list/${userId}`, {
       validateStatus: okOrClientErr,
     });
@@ -188,30 +198,33 @@ export const getReviewList = async (userId, opts) => {
  * 4. 심사 상세 조회
  */
 export const getReviewDetail = async (reviewId) => {
-  const response = await axiosInstance.get(`/api/reviews/${reviewId}`, {
+  const { data } = await axiosInstance.get(`/api/reviews/${reviewId}`, {
     validateStatus: okOrClientErr,
   });
-  return response.data; // 상세는 객체 그대로
+  return asObject(data);
 };
 
 /**
  * 5. 심사 결과 제출
- * @param {{ patentId:number, decision:string, comment:string }} requestData
+ * @param {{ patentId:number, decision:'SUBMITTED'|'REVIEWING'|'APPROVE'|'REJECT', comment:string }} requestData
  */
 export const submitReview = async (requestData) => {
-  const response = await axiosInstance.post('/api/reviews/submit', requestData);
-  return response.data;
+  const { data } = await axiosInstance.post('/api/reviews/submit', requestData, {
+    validateStatus: okOrClientErr,
+  });
+  return asObject(data);
 };
 
 /**
  * 6. 의견서 작성
  */
 export const createOpinionNotice = async (reviewId, requestData) => {
-  const response = await axiosInstance.post(
+  const { data } = await axiosInstance.post(
     `/api/reviews/${reviewId}/opinion-notices`,
-    requestData
+    requestData,
+    { validateStatus: okOrClientErr }
   );
-  return response.data;
+  return asObject(data);
 };
 
 /**

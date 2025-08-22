@@ -5,7 +5,7 @@ import axios from 'axios';
 const getBaseURL = () => {
   // 개발 환경: 프록시 사용 (상대 경로)
   if (import.meta.env.DEV) {
-    return '/api'; // 프록시를 통해 /api 요청이 백엔드로 전달됨
+    return ''; // 프록시를 통해 /api 요청이 백엔드로 전달됨
   }
   
   // 프로덕션 환경: 실제 배포된 서버 사용
