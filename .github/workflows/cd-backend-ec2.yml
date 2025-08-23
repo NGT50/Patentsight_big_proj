@@ -43,9 +43,9 @@ jobs:
         id: findjar
         shell: bash
         run: |
-          JAR="backend/build/libs/backend-0.0.1-${{ steps.vars.outputs.sha }}.jar"
-          if [ ! -f "$JAR" ]; then
-            echo "Jar not found: $JAR" >&2
+          JAR=$(find backend/build/libs -maxdepth 1 -name '*.jar' ! -name '*-plain.jar' | head -n 1)
+          if [ -z "$JAR" ]; then
+            echo "Jar not found" >&2
             exit 1
           fi
           echo "jar=$JAR" >> $GITHUB_OUTPUT
