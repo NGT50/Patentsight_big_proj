@@ -43,7 +43,8 @@ jobs:
         id: findjar
         shell: bash
         run: |
-          JAR=$(find backend/build/libs -maxdepth 1 -name '*.jar' ! -name '*-plain.jar' | head -n 1)
+          JAR=$(ls -t backend/build/libs/*-SNAPSHOT.jar 2>/dev/null | grep -v plain | head -n 1)
+
           if [ -z "$JAR" ]; then
             echo "Jar not found" >&2
             exit 1
