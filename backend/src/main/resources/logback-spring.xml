@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <springProperty scope="context" name="AWS_ACCESS_KEY_ID" source="aws.accessKeyId"/>
+    <springProperty scope="context" name="AWS_SECRET_ACCESS_KEY" source="aws.secretAccessKey"/>
+    <springProperty scope="context" name="AWS_REGION" source="aws.region"/>
+    <springProperty scope="context" name="LOG_GROUP" source="logging.cloudwatch.log-group"/>
+
+    <appender name="CLOUDWATCH" class="com.sndyuk.logback.more.appenders.CloudWatchAppender">
+        <logGroupName>${LOG_GROUP}</logGroupName>
+        <logStreamName>${HOSTNAME}</logStreamName>
+        <regionName>${AWS_REGION}</regionName>
+        <accessKeyId>${AWS_ACCESS_KEY_ID}</accessKeyId>
+        <secretAccessKey>${AWS_SECRET_ACCESS_KEY}</secretAccessKey>
+        <maxBatchSize>100</maxBatchSize>
+        <maxBatchTimeMillis>1000</maxBatchTimeMillis>
+        <layout class="ch.qos.logback.classic.PatternLayout">
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} %-5level %logger{36} - %msg%n</pattern>
+        </layout>
+    </appender>
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="CLOUDWATCH"/>
+    </root>
+
+</configuration>
+
