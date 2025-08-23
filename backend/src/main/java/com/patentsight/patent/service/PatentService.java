@@ -91,7 +91,15 @@ public class PatentService {
         patent.setSummary(request.getSummary());
         patent.setDrawingDescription(request.getDrawingDescription());
         patent.setClaims(request.getClaims());
-        patentRepository.save(patent);
+
+        log.info("[CREATE] Before save - patentId: {}, status: {}", patent.getPatentId(), patent.getStatus());
+        try {
+            patentRepository.save(patent);
+            log.info("[CREATE] After save - patentId: {}, status: {}", patent.getPatentId(), patent.getStatus());
+        } catch (Exception e) {
+            log.error("[CREATE] Error saving patent - patentId: {}, status: {}", patent.getPatentId(), patent.getStatus(), e);
+            throw e;
+        }
 
         // 알림
         notificationService.createNotification(
@@ -174,7 +182,15 @@ public class PatentService {
             patent.setApplicationNumber(generateApplicationNumber(patent));
         }
         patent.setIpc(ipcCode);
-        patentRepository.save(patent);
+
+        log.info("[SUBMIT] Before save - patentId: {}, status: {}", patent.getPatentId(), patent.getStatus());
+        try {
+            patentRepository.save(patent);
+            log.info("[SUBMIT] After save - patentId: {}, status: {}", patent.getPatentId(), patent.getStatus());
+        } catch (Exception e) {
+            log.error("[SUBMIT] Error saving patent - patentId: {}, status: {}", patent.getPatentId(), patent.getStatus(), e);
+            throw e;
+        }
 
         // 심사관 자동 할당
         reviewService.autoAssignWithSpecialty(patent);
@@ -231,7 +247,15 @@ public class PatentService {
         Patent patent = patentRepository.findById(patentId).orElse(null);
         if (patent == null) return null;
         patent.setStatus(status);
-        patentRepository.save(patent);
+
+        log.info("[STATUS] Before save - patentId: {}, status: {}", patent.getPatentId(), patent.getStatus());
+        try {
+            patentRepository.save(patent);
+            log.info("[STATUS] After save - patentId: {}, status: {}", patent.getPatentId(), patent.getStatus());
+        } catch (Exception e) {
+            log.error("[STATUS] Error saving patent - patentId: {}, status: {}", patent.getPatentId(), patent.getStatus(), e);
+            throw e;
+        }
 
         notificationService.createNotification(
                 NotificationRequest.builder()
@@ -273,7 +297,14 @@ public class PatentService {
         if (request.getDrawingDescription() != null) patent.setDrawingDescription(request.getDrawingDescription());
         if (request.getClaims() != null) patent.setClaims(request.getClaims());
 
-        patentRepository.save(patent);
+        log.info("[UPDATE] Before save - patentId: {}, status: {}", patent.getPatentId(), patent.getStatus());
+        try {
+            patentRepository.save(patent);
+            log.info("[UPDATE] After save - patentId: {}, status: {}", patent.getPatentId(), patent.getStatus());
+        } catch (Exception e) {
+            log.error("[UPDATE] Error saving patent - patentId: {}, status: {}", patent.getPatentId(), patent.getStatus(), e);
+            throw e;
+        }
 
         return toPatentResponse(patent, null);
     }
@@ -304,7 +335,14 @@ public class PatentService {
         // ★ 최종 제출 시 상태 SUBMITTED 강제
         patent.setStatus(PatentStatus.SUBMITTED);
 
-        patentRepository.save(patent);
+        log.info("[SUBMIT_UPDATE] Before save - patentId: {}, status: {}", patent.getPatentId(), patent.getStatus());
+        try {
+            patentRepository.save(patent);
+            log.info("[SUBMIT_UPDATE] After save - patentId: {}, status: {}", patent.getPatentId(), patent.getStatus());
+        } catch (Exception e) {
+            log.error("[SUBMIT_UPDATE] Error saving patent - patentId: {}, status: {}", patent.getPatentId(), patent.getStatus(), e);
+            throw e;
+        }
 
         // ★ 제출 시점 버전 기록
         SpecVersion version = new SpecVersion();
