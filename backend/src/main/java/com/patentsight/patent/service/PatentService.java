@@ -20,6 +20,8 @@ import com.patentsight.patent.dto.SubmitPatentResponse;
 import com.patentsight.ai.dto.PredictRequest;
 import com.patentsight.ai.dto.PredictResponse;
 import com.patentsight.patent.repository.PatentRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,6 +38,8 @@ import java.util.stream.Collectors;
 @Service
 @Transactional
 public class PatentService {
+
+    private static final Logger log = LoggerFactory.getLogger(PatentService.class);
 
     private final PatentRepository patentRepository;
     private final ReviewService reviewService;
@@ -152,11 +156,15 @@ public class PatentService {
                 ? patent.getClaims().get(0) : "";
         PredictRequest requestBody = new PredictRequest(firstClaim);
 
-        PredictResponse predictResponse = restTemplate.postForObject(fastApiIpcUrl, requestBody, PredictResponse.class);
-
         String ipcCode = "N/A";
-        if (predictResponse != null && !predictResponse.getTopIpcResults().isEmpty()) {
-            ipcCode = predictResponse.getTopIpcResults().get(0).getMaingroup();
+        try {
+            PredictResponse predictResponse = restTemplate.postForObject(fastApiIpcUrl, requestBody, PredictResponse.class);
+            if (predictResponse != null && !predictResponse.getTopIpcResults().isEmpty()) {
+                ipcCode = predictResponse.getTopIpcResults().get(0).getMaingroup();
+            }
+        } catch (Exception e) {
+            log.error("Failed to retrieve IPC code from FastAPI", e);
+            ipcCode = "N/A";
         }
 
         // 특허 상태 및 IPC 업데이트
