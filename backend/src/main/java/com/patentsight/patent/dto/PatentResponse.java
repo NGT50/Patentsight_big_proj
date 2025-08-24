@@ -1,7 +1,10 @@
 package com.patentsight.patent.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.patentsight.patent.domain.PatentStatus;
 import com.patentsight.patent.domain.PatentType;
+import java.time.LocalDate;
 import java.util.List;
 
 public class PatentResponse {
@@ -13,6 +16,9 @@ public class PatentResponse {
     private List<Long> attachmentIds;
     private String cpc;
     private String applicationNumber;
+    @JsonProperty("applicationDate")
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
+    private LocalDate applicationDate;
     private String inventor;
     private String technicalField;
     private String backgroundTechnology;
@@ -39,6 +45,8 @@ public class PatentResponse {
     public void setCpc(String cpc) { this.cpc = cpc; }
     public String getApplicationNumber() { return applicationNumber; }
     public void setApplicationNumber(String applicationNumber) { this.applicationNumber = applicationNumber; }
+    public LocalDate getApplicationDate() { return applicationDate; }
+    public void setApplicationDate(LocalDate applicationDate) { this.applicationDate = applicationDate; }
     public String getInventor() { return inventor; }
     public void setInventor(String inventor) { this.inventor = inventor; }
     public String getTechnicalField() { return technicalField; }

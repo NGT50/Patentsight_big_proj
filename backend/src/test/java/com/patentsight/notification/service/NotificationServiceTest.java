@@ -1,12 +1,13 @@
 package com.patentsight.notification.service;
 
 import com.patentsight.notification.domain.Notification;
-import com.patentsight.notification.dto.NotificationResponse;
 import com.patentsight.notification.repository.NotificationRepository;
+import com.patentsight.notification.service.impl.NotificationServiceImpl;
+import com.patentsight.user.domain.User;
+import com.patentsight.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -14,9 +15,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.Optional;
-import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -25,58 +26,60 @@ class NotificationServiceTest {
     @Mock
     private NotificationRepository notificationRepository;
 
+    @Mock
+    private UserRepository userRepository;
+
     @InjectMocks
-    private NotificationService notificationService;
+    private NotificationServiceImpl notificationService;
+
+    private User user;
 
     @BeforeEach
     void setup() {
-        notificationService = new NotificationService(notificationRepository);
+        user = new User();
+        user.setUserId(1L);
+        user.setName("Tester");
     }
 
     @Test
-    void listNotifications_returnsResponses() {
-        Notification n = new Notification();
-        n.setNotificationId(1L);
-        n.setUserId(1L);
-        n.setNotificationType("TYPE");
-        n.setMessage("msg");
-        n.setTargetType("PATENT");
-        n.setTargetId(2L);
-        n.setRead(false);
-        n.setCreatedAt(LocalDateTime.now());
-        when(notificationRepository.findByUserIdOrderByCreatedAtDesc(1L))
+    void getNotifications_returnsList() {
+        Notification n = Notification.builder()
+                .notificationId(1L)
+                .notificationType("TYPE")
+                .message("msg")
+                .targetType("PATENT")
+                .targetId(2L)
+                .isRead(false)
+                .createdAt(LocalDateTime.now())
+                .user(user)
+                .build();
+
+        when(notificationRepository.findByUser_UserId(1L))
                 .thenReturn(Collections.singletonList(n));
 
-        List<NotificationResponse> list = notificationService.listNotifications(1L);
-        assertEquals(1, list.size());
-        assertEquals(1L, list.get(0).getNotificationId());
+        assertEquals(1, notificationService.getNotifications(1L).size());
     }
 
     @Test
-    void markRead_updatesEntity() {
-        Notification n = new Notification();
-        n.setNotificationId(1L);
-        n.setRead(false);
+    void markAsRead_updatesEntity() {
+        Notification n = Notification.builder()
+                .notificationId(1L)
+                .isRead(false)
+                .user(user)
+                .build();
+
         when(notificationRepository.findById(1L)).thenReturn(Optional.of(n));
-        when(notificationRepository.save(any(Notification.class))).thenAnswer(i -> i.getArgument(0));
 
-        boolean result = notificationService.markRead(1L, true);
+        notificationService.markAsRead(1L);
 
-        assertTrue(result);
-        ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
-        verify(notificationRepository).save(captor.capture());
-        assertTrue(captor.getValue().isRead());
+        assertTrue(n.isRead());
+        verify(notificationRepository).save(n);
     }
 
     @Test
     void deleteNotification_removesRecord() {
-        Notification n = new Notification();
-        n.setNotificationId(1L);
-        when(notificationRepository.findById(1L)).thenReturn(Optional.of(n));
-
-        boolean deleted = notificationService.deleteNotification(1L);
-
-        assertTrue(deleted);
-        verify(notificationRepository).delete(n);
+        notificationService.deleteNotification(1L);
+        verify(notificationRepository).deleteById(1L);
     }
 }
+
