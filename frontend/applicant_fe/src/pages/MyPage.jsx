@@ -147,7 +147,7 @@ const MyPage = () => {
                           <span><strong>CPC:</strong> {patent.cpc || 'N/A'}</span>
                         </div>
                         <p className="text-sm text-gray-700 mt-2">
-                          <strong>출원인:</strong> {patent.inventor || '미지정'} | 
+                          <strong>출원인:</strong> {patent.inventor || patent.applicantName || '미지정'} | 
                           <span className={`ml-2 px-2 py-1 rounded text-xs font-medium ${
                             patent.status === 'IN_REVIEW' ? 'bg-yellow-100 text-yellow-800' :
                             patent.status === 'SUBMITTED' ? 'bg-blue-100 text-blue-800' :
