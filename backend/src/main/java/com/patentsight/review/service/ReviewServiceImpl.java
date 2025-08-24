@@ -284,12 +284,27 @@ public class ReviewServiceImpl implements ReviewService {
     @Override
     public DashboardResponse getDashboard(Long userId) {
         List<Review> reviews = reviewRepository.findByExaminer_UserId(userId);
-
-        long total = reviews.size();
-        long inReview = reviews.stream().filter(r -> r.getDecision() == Review.Decision.REVIEWING).count();
-        long submitted = reviews.stream().filter(r -> r.getDecision() == Review.Decision.SUBMITTED).count();
-        long completed = reviews.stream().filter(r -> r.getDecision() == Review.Decision.APPROVE || r.getDecision() == Review.Decision.REJECT).count();
-
+    
+        // 🔹 특허별로 리뷰를 최신 것만 남기기
+        var latestReviews = reviews.stream()
+                .collect(Collectors.groupingBy(
+                        r -> r.getPatent().getPatentId(), // patentId 별로 그룹핑
+                        Collectors.collectingAndThen(
+                                Collectors.maxBy((a, b) -> {
+                                    LocalDateTime t1 = a.getReviewedAt() != null ? a.getReviewedAt() : LocalDateTime.MIN;
+                                    LocalDateTime t2 = b.getReviewedAt() != null ? b.getReviewedAt() : LocalDateTime.MIN;
+                                    return t1.compareTo(t2);
+                                }),
+                                Optional::get
+                        )
+                ))
+                .values();
+    
+        long total = latestReviews.size();
+        long inReview = latestReviews.stream().filter(r -> r.getDecision() == Review.Decision.REVIEWING).count();
+        long submitted = latestReviews.stream().filter(r -> r.getDecision() == Review.Decision.SUBMITTED).count();
+        long completed = latestReviews.stream().filter(r -> r.getDecision() == Review.Decision.APPROVE || r.getDecision() == Review.Decision.REJECT).count();
+    
         return DashboardResponse.builder()
                 .total(total)
                 .inReview(inReview)
@@ -297,6 +312,7 @@ public class ReviewServiceImpl implements ReviewService {
                 .completed(completed)
                 .build();
     }
+
 
     // 7️⃣ 최근 활동 (임시)
     @Override
