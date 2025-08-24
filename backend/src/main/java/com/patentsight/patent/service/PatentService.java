@@ -83,7 +83,9 @@ public class PatentService {
         patent.setType(request.getType());
         patent.setApplicantId(applicantId);
         patent.setStatus(PatentStatus.DRAFT);
-        patent.setCpc(request.getCpc());
+        // DB에서는 CPC 코드가 NOT NULL 제약을 가질 수 있으므로
+        // null이 전달되면 빈 문자열로 치환하여 저장한다.
+        patent.setCpc(request.getCpc() != null ? request.getCpc() : "");
         patent.setTechnicalField(request.getTechnicalField());
         patent.setBackgroundTechnology(request.getBackgroundTechnology());
 
@@ -131,35 +133,11 @@ public class PatentService {
         List<FileAttachment> attachments = java.util.Collections.emptyList();
     
         PatentResponse response = toPatentResponse(patent, attachments);
-    
-        // ---- SpecVersion 저장 ----
-        try {
-            SpecVersion initial = new SpecVersion();
-            initial.setPatent(patent);
-            initial.setApplicantId(applicantId);
-            initial.setChangeSummary("initial draft");
-    
-            try {
-                initial.setDocument(objectMapper.writeValueAsString(response));
-            } catch (Exception e) {
-                log.warn("[CREATE] JSON 변환 실패, 빈 JSON 저장", e);
-                initial.setDocument("{}");
-            }
-    
-            initial.setVersionNo(1);
-            initial.setCurrent(true);
-            LocalDateTime now = LocalDateTime.now();
-            initial.setCreatedAt(now);
-            initial.setUpdatedAt(now);
-    
-            specVersionService.save(initial);
-            log.info("[CREATE] Initial SpecVersion 저장 완료 - patentId: {}", patent.getPatentId());
-    
-        } catch (Exception e) {
-            log.error("[CREATE] SpecVersion 생성 실패 - patentId={}", patent.getPatentId(), e);
-            throw e; // rollback → 불완전한 데이터 방지
-        }
-    
+
+        // 초기 버전 정보 저장 과정에서 빈번히 발생한 DB 잠금 문제로 인해
+        // 특허 생성 단계에서는 버전 정보를 저장하지 않는다.
+        // 필요 시 다른 API를 통해 버전 관리를 별도로 수행한다.
+
         return response;
     }
 
@@ -374,66 +352,18 @@ public class PatentService {
             throw e;
         }
 
-        // ★ 제출 시점 버전 기록
-        SpecVersion version = new SpecVersion();
-        version.setPatent(patent);
-        version.setApplicantId(patent.getApplicantId());
-        version.setChangeSummary("Submitted version");
-        try {
-            version.setDocument(objectMapper.writeValueAsString(toPatentResponse(patent, null)));
-        } catch (Exception e) {
-            version.setDocument(null);
-        }
-        version.setVersionNo(1); // 필요 시 기존 로직대로 계산 가능
-        version.setCurrent(true);
-        version.setCreatedAt(LocalDateTime.now());
-        version.setUpdatedAt(LocalDateTime.now());
-
-        try {
-            specVersionService.save(version);
-        } catch (Exception e) {
-            // log and continue
-        }
-
-
         return patent;
     }
 
-    // ✅ 빠져있던 updateDocument 추가 (임시저장)
+    // ✅ 임시저장: 버전 정보 저장 없이 특허 내용만 갱신
     public DocumentContentResponse updateDocument(Long patentId, PatentRequest document) {
         PatentResponse updated = updatePatent(patentId, document);
         if (updated == null) return null;
 
-        Patent patent = patentRepository.findById(patentId).orElse(null);
-        if (patent == null) return null;
-
-        SpecVersion current = specVersionRepository.findFirstByPatent_PatentIdAndIsCurrentTrue(patentId);
-        if (current == null) {
-            current = new SpecVersion();
-            current.setPatent(patent);
-            current.setVersionNo(1);
-            current.setApplicantId(patent.getApplicantId());
-            current.setCurrent(true);
-            current.setCreatedAt(LocalDateTime.now());
-        }
-        try {
-            current.setDocument(objectMapper.writeValueAsString(updated));
-        } catch (Exception e) {
-            current.setDocument(null);
-        }
-        current.setUpdatedAt(LocalDateTime.now());
-
-        try {
-            specVersionService.save(current);
-        } catch (Exception e) {
-            // log and continue
-        }
-
-
         DocumentContentResponse res = new DocumentContentResponse();
-        res.setVersionNo(current.getVersionNo());
+        res.setVersionNo(null);
         res.setDocument(updated);
-        res.setUpdatedAt(current.getUpdatedAt());
+        res.setUpdatedAt(LocalDateTime.now());
         return res;
     }
 
