@@ -21,7 +21,6 @@ const statusMap = {
   REJECTED: '거절결정',
 };
 
-
 const MyPage = () => {
   const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -33,10 +32,12 @@ const MyPage = () => {
   });
 
   // 2. API 데이터로부터 화면에 필요한 값들을 계산합니다.
-  const submittedPatentsList = allMyPatents?.filter(p => p.status !== 'DRAFT') || [];
+  // const submittedPatentsList = allMyPatents?.filter(p => p.status !== 'DRAFT') || [];  // ❌ 기존: DRAFT는 제외
+  const allPatentsList = allMyPatents || []; // ✅ 수정됨: 모든 출원 포함
+
   const patentDraftCount = allMyPatents?.filter(p => p.type === 'PATENT' && p.status === 'DRAFT').length || 0;
   const designDraftCount = allMyPatents?.filter(p => p.type === 'DESIGN' && p.status === 'DRAFT').length || 0;
-  const totalSubmittedCount = submittedPatentsList.length;
+  const totalSubmittedCount = allPatentsList.length; // ✅ 수정됨
   // TODO: '보완요청'에 해당하는 상태값으로 필터링해야 합니다.
   const needsActionCount = 1; 
 
@@ -53,7 +54,8 @@ const MyPage = () => {
       {isModalOpen && (
         <PatentListModal 
           onClose={closePatentListModal}
-          patents={submittedPatentsList}
+          // patents={submittedPatentsList}  // ❌ 기존
+          patents={allPatentsList}          // ✅ 수정됨
           isLoading={isLoading}
           isError={isError}
           error={error}
@@ -120,16 +122,16 @@ const MyPage = () => {
               </div>
             )}
             
-            {!isLoading && !isError && submittedPatentsList.length === 0 && (
+            {!isLoading && !isError && allPatentsList.length === 0 && (  // ✅ 수정됨
               <div className="text-center py-8">
                 <FileText className="w-12 h-12 text-gray-400 mx-auto mb-2" />
                 <p className="text-gray-600">출원 내역이 없습니다.</p>
               </div>
             )}
             
-            {submittedPatentsList.length > 0 && (
+            {allPatentsList.length > 0 && (  // ✅ 수정됨
               <div className="space-y-4">
-                {submittedPatentsList.map((patent) => (
+                {allPatentsList.map((patent) => (  // ✅ 수정됨
                   <div
                     key={patent.patentId}
                     onClick={() => handleCardClick(patent.patentId)}
@@ -145,7 +147,7 @@ const MyPage = () => {
                           <span><strong>CPC:</strong> {patent.cpc || 'N/A'}</span>
                         </div>
                         <p className="text-sm text-gray-700 mt-2">
-                          <strong>출원인:</strong> {patent.inventor} | 
+                          <strong>출원인:</strong> {patent.inventor || '미지정'} | 
                           <span className={`ml-2 px-2 py-1 rounded text-xs font-medium ${
                             patent.status === 'IN_REVIEW' ? 'bg-yellow-100 text-yellow-800' :
                             patent.status === 'SUBMITTED' ? 'bg-blue-100 text-blue-800' :
@@ -156,7 +158,7 @@ const MyPage = () => {
                             {statusMap[patent.status] || patent.status}
                           </span>
                         </p>
-                        <p className="mt-2 text-sm text-gray-600">📌 <em>{patent.summary}</em></p>
+                        <p className="mt-2 text-sm text-gray-600">📌 <em>{patent.summary || '요약 없음'}</em></p>
                       </div>
                     </div>
                   </div>
