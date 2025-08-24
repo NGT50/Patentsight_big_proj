@@ -28,7 +28,7 @@ const PatentDetail = () => {
         title: patent?.title || '',
         type: patent?.type || 'PATENT', // 기본값 PATENT
         cpc: patent?.cpc || '',
-        inventor: patent?.inventor || '',
+        inventor: patent?.inventor ?? null,
         technicalField: patent?.technicalField || '',
         backgroundTechnology: patent?.backgroundTechnology || '',
         inventionDetails: patent?.inventionDetails || {
