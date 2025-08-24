@@ -177,6 +177,7 @@ public class PatentService {
             patent.setApplicantId(userId);
         }
 
+
         // ✅ inventor 값이 비었거나 "미지정"이면 로그인한 사용자의 이름으로 세팅
         if (patent.getInventor() == null || patent.getInventor().isBlank()
                 || "미지정".equals(patent.getInventor())) {
@@ -186,6 +187,7 @@ public class PatentService {
                         .map(User::getName)
                         .orElse("미지정");
             }
+
             patent.setInventor(userName);
         }
 
