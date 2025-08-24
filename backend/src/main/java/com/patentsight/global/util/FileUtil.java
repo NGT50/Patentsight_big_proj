@@ -3,6 +3,9 @@ package com.patentsight.global.util;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.UUID;
 
 import org.slf4j.Logger;
@@ -19,11 +22,11 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 
 /**
- * Utility helpers for storing uploaded files. Instead of writing to the local
- * file system this implementation stores objects in Amazon S3. The bucket name
- * and region are read from the {@code S3_BUCKET} and {@code AWS_REGION}
- * environment variables (defaults: {@code patentsight-artifacts-usea1} and
- * {@code us-east-1}).
+ * Utility helpers for storing uploaded files. The primary storage target is
+ * Amazon S3, but if AWS credentials are not configured or an upload/delete
+ * operation fails, the file system under the {@code uploads} directory is used
+ * as a graceful fallback so the application can continue to function in local
+ * environments.
  */
 public class FileUtil {
 
@@ -32,6 +35,9 @@ public class FileUtil {
     private static final String BUCKET = System.getenv().getOrDefault("S3_BUCKET", "patentsight-artifacts-usea1");
     private static final Region REGION = Region.of(System.getenv().getOrDefault("AWS_REGION", "us-east-1"));
     private static final S3Client S3 = S3Client.builder().region(REGION).build();
+
+    // Local fallback directory for environments without S3 credentials
+    private static final Path BASE_DIR = Path.of("uploads");
 
     private static void ensureAwsCredentials(String action) throws IOException {
         try {
@@ -43,44 +49,53 @@ public class FileUtil {
     }
 
     /**
-     * Saves the provided multipart file to S3 and returns the generated object
-     * key so it can be stored in the database.
+     * Saves the provided multipart file to S3. If credentials are missing or the
+     * upload fails, the file is stored on the local file system instead and the
+     * absolute path is returned.
      */
     public static String saveFile(MultipartFile file) throws IOException {
         if (file == null || file.isEmpty()) {
             throw new IOException("No file provided");
         }
-        ensureAwsCredentials("upload file '" + file.getOriginalFilename() + "'");
-        String key = UUID.randomUUID() + "_" + file.getOriginalFilename();
+        String name = UUID.randomUUID() + "_" + file.getOriginalFilename();
         try {
+            ensureAwsCredentials("upload file '" + file.getOriginalFilename() + "'");
             PutObjectRequest req = PutObjectRequest.builder()
                     .bucket(BUCKET)
-                    .key(key)
+                    .key(name)
                     .contentType(file.getContentType())
                     .build();
             S3.putObject(req, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
-            return key;
-        } catch (S3Exception e) {
-            throw new IOException("Failed to store file in S3", e);
+            return name;
+        } catch (Exception e) {
+            // Fall back to local file system
+            log.warn("S3 upload failed, storing file locally: {}", e.getMessage());
+            Files.createDirectories(BASE_DIR);
+            Path target = BASE_DIR.resolve(name).toAbsolutePath();
+            Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
+            return target.toString();
         }
     }
 
     /**
-     * Removes the S3 object for the given key. This is used when a
-     * {@link com.patentsight.file.domain.FileAttachment} is deleted or
-     * replaced.
+     * Removes the stored file. Attempts S3 deletion first and falls back to
+     * deleting a local file if S3 interaction fails.
      */
     public static void deleteFile(String key) throws IOException {
-        if (key != null && !key.isEmpty()) {
+        if (key == null || key.isEmpty()) return;
+        try {
             ensureAwsCredentials("delete object '" + key + "'");
+            DeleteObjectRequest req = DeleteObjectRequest.builder()
+                    .bucket(BUCKET)
+                    .key(key)
+                    .build();
+            S3.deleteObject(req);
+        } catch (Exception e) {
+            log.warn("S3 delete failed, removing local file: {}", e.getMessage());
             try {
-                DeleteObjectRequest req = DeleteObjectRequest.builder()
-                        .bucket(BUCKET)
-                        .key(key)
-                        .build();
-                S3.deleteObject(req);
-            } catch (S3Exception e) {
-                throw new IOException("Failed to delete S3 object", e);
+                Files.deleteIfExists(Path.of(key));
+            } catch (IOException ex) {
+                log.warn("Failed to delete local file '{}': {}", key, ex.getMessage());
             }
         }
     }
