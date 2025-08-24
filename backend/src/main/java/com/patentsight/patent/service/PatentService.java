@@ -60,7 +60,8 @@ public class PatentService {
                          SpecVersionService specVersionService,
                          RestTemplate restTemplate,
                          NotificationService notificationService,
-                         ReviewService reviewService) {
+                         ReviewService reviewService,
+                         UserRepository userRepository) {
         this.patentRepository = patentRepository;
         this.fileRepository = fileRepository;
         this.specVersionRepository = specVersionRepository;
@@ -68,6 +69,8 @@ public class PatentService {
         this.restTemplate = restTemplate;
         this.notificationService = notificationService;
         this.reviewService = reviewService;
+        this.userRepository = userRepository;   // 👈 추가
+
     }
 
     // ------------------- CREATE -------------------
@@ -78,9 +81,18 @@ public class PatentService {
         patent.setApplicantId(applicantId);
         patent.setStatus(PatentStatus.DRAFT);
         patent.setCpc(request.getCpc());
-        patent.setInventor(request.getInventor());
         patent.setTechnicalField(request.getTechnicalField());
         patent.setBackgroundTechnology(request.getBackgroundTechnology());
+
+        if (request.getInventor() != null && !request.getInventor().isBlank()) {
+            patent.setInventor(request.getInventor());
+        } else {
+            // inventor가 비어있으면 자동으로 User.name 넣기
+            String userName = userRepository.findById(applicantId)
+                    .map(User::getName)
+                    .orElse("미지정");
+            patent.setInventor(userName);
+        }
     
         if (request.getInventionDetails() != null) {
             patent.setProblemToSolve(request.getInventionDetails().getProblemToSolve());
