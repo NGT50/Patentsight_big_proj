@@ -261,20 +261,21 @@ public class ReviewServiceImpl implements ReviewService {
         review.setComment(request.getComment());
         review.setReviewedAt(LocalDateTime.now());
     
-        // 🔸 4. Patent 상태도 Review와 동기화
-        Patent patent = review.getPatent();
-        patent.setStatus(convertToPatentStatus(review.getDecision()));
-        patentRepository.saveAndFlush(patent); // ✅ DB에 강제 반영
-    
-        // 🔸 5. Review 저장
+        // 🔸 4. Review 먼저 저장
         Review updatedReview = reviewRepository.save(review);
     
+        // 🔸 5. Patent 다시 조회 후 상태 반영
+        Patent patent = patentRepository.findById(updatedReview.getPatent().getPatentId())
+                .orElseThrow(() -> new IllegalArgumentException("Patent not found"));
+        patent.setStatus(convertToPatentStatus(updatedReview.getDecision()));
+        patentRepository.saveAndFlush(patent); // DB에 즉시 반영
+    
         // 🔔 알림 로직 유지
-        if (review.getPatent().getApplicantId() != null) {
+        if (patent.getApplicantId() != null) {
             notificationService.createNotification(NotificationRequest.builder()
-                    .userId(review.getPatent().getApplicantId())
+                    .userId(patent.getApplicantId())
                     .notificationType("REVIEW_RESULT")
-                    .message("심사 결과가 등록되었습니다: " + review.getDecision().name())
+                    .message("심사 결과가 등록되었습니다: " + updatedReview.getDecision().name())
                     .targetType("REVIEW")
                     .targetId(updatedReview.getReviewId())
                     .build()
@@ -283,8 +284,6 @@ public class ReviewServiceImpl implements ReviewService {
     
         return updatedReview;
     }
-
-
 
     // 6️⃣ 심사관별 대시보드 요약
     @Override
