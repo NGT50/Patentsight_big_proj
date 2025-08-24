@@ -68,10 +68,6 @@ dependencies {
         // AWS S3 client
         implementation 'software.amazon.awssdk:s3:2.25.12'
 
-        // AWS CloudWatch logging
-        implementation 'software.amazon.awssdk:cloudwatchlogs:2.25.12'
-        implementation 'com.sndyuk:logback-more-appenders:1.8.8'
-
         testImplementation 'org.springframework.boot:spring-boot-starter-test'
 }
 
