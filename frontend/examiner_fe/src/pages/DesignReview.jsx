@@ -263,52 +263,39 @@ export default function DesignReview() {
   const showMessageBox = (message) => { setModalMessage(message); setShowModal(true); };
 
   // 의견서(긴 본문) 저장: 분할 + 메타
-  async function saveLongOpinion(reviewId, kind, content, { isAiDrafted = false } = {}) {
+// 긴 본문을 opinion-notice에 저장(분할 저장). type 포함(필수).
+  async function saveLongOpinion(reviewId, kind, content) {
     const text = String(content || '').trim();
     if (!reviewId || !text) return [];
 
+    // 백엔드 enum 매핑
     const typeMap = {
       '최종 승인 의견서': 'APPROVAL',
-      '보류 의견서': 'EXAMINER_OPINION',
-      '거절 사유서': 'REJECTION',
+      '보류 의견서':     'EXAMINER_OPINION',
+      '거절 사유서':     'REJECTION',
     };
     const type = typeMap[kind] || 'EXAMINER_OPINION';
 
-    const CHUNK = 8000; // 안전 분할 크기
+    const CHUNK = 8000;   // 안전 분할 크기(백엔드/프록시 제한 피하기)
     const ids = [];
-    const ts = new Date().toISOString().slice(0,16).replace('T',' ');
-    const totalParts = Math.ceil(text.length / CHUNK) || 1;
 
-    const postOne = async (partIdx, chunk) => {
-      const structured = {
-        kind, ts, totalParts, part: partIdx,
-        source: 'design-review-ui',
-      };
-      // 서버 DTO가 snake/camel 어느 쪽이든 받도록 최소필드 위주
-      const req = {
-        content: chunk,
-        type,
-        status: 'SUBMITTED',
-        isAiDrafted,                   // camel
-        is_ai_drafted: isAiDrafted,    // snake (무시되더라도 OK)
-        structured_content: JSON.stringify(structured), // snake
-        structuredContent: JSON.stringify(structured),  // camel
-      };
-      const res = await createOpinionNotice(reviewId, req);
+    const postOne = async (chunk) => {
+      // ✅ content + type만 보냄 (필수 최소 필드)
+      const res = await createOpinionNotice(reviewId, { content: chunk, type });
       const id = res?.id ?? res?.noticeId ?? res?.opinionNoticeId;
       if (id != null) ids.push(id);
     };
 
     if (text.length <= CHUNK) {
-      await postOne(1, text);
+      await postOne(text);
     } else {
-      let part = 1;
-      for (let i = 0; i < text.length; i += CHUNK, part++) {
-        await postOne(part, text.slice(i, i + CHUNK));
+      for (let i = 0; i < text.length; i += CHUNK) {
+        await postOne(text.slice(i, i + CHUNK));
       }
     }
     return ids;
   }
+
 
   // 의견서 목록 불러오기
   const refreshNotices = async (reviewId) => {
