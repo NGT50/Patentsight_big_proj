@@ -162,17 +162,17 @@ public class PatentService {
     public SubmitPatentResponse submitPatent(Long patentId, PatentRequest latestRequest) {
         Patent patent = patentRepository.findById(patentId).orElse(null);
         if (patent == null) return null;
-
+    
         // ✅ 최신 데이터가 들어온 경우 DB 업데이트 (임시저장용 updatePatent → 제출 전용 updatePatentForSubmit으로 변경)
         if (latestRequest != null) {
-            patent = updatePatentForSubmit(patentId, latestRequest);  // ★ 수정됨
+            patent = updatePatentForSubmit(patentId, latestRequest);
         }
-
+    
         // FastAPI 호출
         String firstClaim = patent.getClaims() != null && !patent.getClaims().isEmpty()
                 ? patent.getClaims().get(0) : "";
         PredictRequest requestBody = new PredictRequest(firstClaim);
-
+    
         String ipcCode = "N/A";
         try {
             PredictResponse predictResponse = restTemplate.postForObject(fastApiIpcUrl, requestBody, PredictResponse.class);
@@ -183,7 +183,7 @@ public class PatentService {
             log.error("Failed to retrieve IPC code from FastAPI", e);
             ipcCode = "N/A";
         }
-
+    
         // 특허 상태 및 IPC 업데이트
         patent.setStatus(PatentStatus.SUBMITTED);
         patent.setSubmittedAt(LocalDateTime.now());
@@ -191,7 +191,7 @@ public class PatentService {
             patent.setApplicationNumber(generateApplicationNumber(patent));
         }
         patent.setIpc(ipcCode);
-
+    
         log.info("[SUBMIT] Before save - patentId: {}, status: {}", patent.getPatentId(), patent.getStatus());
         try {
             patentRepository.save(patent);
@@ -200,10 +200,10 @@ public class PatentService {
             log.error("[SUBMIT] Error saving patent - patentId: {}, status: {}", patent.getPatentId(), patent.getStatus(), e);
             throw e;
         }
-
+    
         // 심사관 자동 할당
         reviewService.autoAssignWithSpecialty(patent);
-
+    
         // 알림
         notificationService.createNotification(
                 NotificationRequest.builder()
@@ -214,16 +214,23 @@ public class PatentService {
                         .targetId(patent.getPatentId())
                         .build()
         );
-
+    
+        // ✅ applicantName 조회 추가
+        String applicantName = userRepository.findById(patent.getApplicantId())
+                .map(User::getName)
+                .orElse("미지정");
+    
+        // ✅ 응답에 applicantName 포함해서 리턴
         return new SubmitPatentResponse(
                 patent.getPatentId(),
                 patent.getApplicantId(),
                 patent.getStatus(),
                 patent.getApplicationNumber(),
                 patent.getIpc(),
-                applicantName 
+                applicantName
         );
     }
+    
 
     private String generateApplicationNumber(Patent patent) {
         String typeCode;
