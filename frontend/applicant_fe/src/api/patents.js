@@ -46,15 +46,11 @@ export const submitPatent = async (patentId, latestRequest) => {
 
 // getMyPatents 함수를 아래와 같이 수정합니다.
 // 수정 후
-export const getMyPatents = async ({ queryKey, signal }) => {
-  // queryKey[0] === 'myPatents'
-  // queryKey[1] 에 추가 조건(필터 등)을 넣어서 사용할 수도 있음
-
+export const getMyPatents = async ({ signal }) => {
   const res = await axios.get('/api/patents/my', {
     params: {},   // 필요한 경우 여기에 type 같은 필터 추가 가능
     signal,       // AbortSignal 은 axios 옵션으로 따로 전달
   });
-
   return res.data;
 };
 
