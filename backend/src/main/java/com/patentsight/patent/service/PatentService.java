@@ -1,6 +1,7 @@
 package com.patentsight.patent.service;
 
 import com.patentsight.user.repository.UserRepository;
+import com.patentsight.user.domain.User;
 import com.patentsight.file.domain.FileAttachment;
 import com.patentsight.file.domain.SpecVersion;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -91,7 +92,7 @@ public class PatentService {
         } else {
             // inventor가 비어있으면 자동으로 User.name 넣기
             String userName = userRepository.findById(applicantId)
-                    .map(User::getName)
+                    .map(user -> user.getName())
                     .orElse("미지정");
             patent.setInventor(userName);
         }
