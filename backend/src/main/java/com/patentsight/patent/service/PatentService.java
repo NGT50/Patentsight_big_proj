@@ -83,7 +83,9 @@ public class PatentService {
         patent.setType(request.getType());
         patent.setApplicantId(applicantId);
         patent.setStatus(PatentStatus.DRAFT);
-        patent.setCpc(request.getCpc());
+        // DB에서는 CPC 코드가 NOT NULL 제약을 가질 수 있으므로
+        // null이 전달되면 빈 문자열로 치환하여 저장한다.
+        patent.setCpc(request.getCpc() != null ? request.getCpc() : "");
         patent.setTechnicalField(request.getTechnicalField());
         patent.setBackgroundTechnology(request.getBackgroundTechnology());
 
@@ -131,35 +133,11 @@ public class PatentService {
         List<FileAttachment> attachments = java.util.Collections.emptyList();
     
         PatentResponse response = toPatentResponse(patent, attachments);
-    
-        // ---- SpecVersion 저장 ----
-        try {
-            SpecVersion initial = new SpecVersion();
-            initial.setPatent(patent);
-            initial.setApplicantId(applicantId);
-            initial.setChangeSummary("initial draft");
-    
-            try {
-                initial.setDocument(objectMapper.writeValueAsString(response));
-            } catch (Exception e) {
-                log.warn("[CREATE] JSON 변환 실패, 빈 JSON 저장", e);
-                initial.setDocument("{}");
-            }
-    
-            initial.setVersionNo(1);
-            initial.setCurrent(true);
-            LocalDateTime now = LocalDateTime.now();
-            initial.setCreatedAt(now);
-            initial.setUpdatedAt(now);
-    
-            specVersionService.save(initial);
-            log.info("[CREATE] Initial SpecVersion 저장 완료 - patentId: {}", patent.getPatentId());
-    
-        } catch (Exception e) {
-            log.error("[CREATE] SpecVersion 생성 실패 - patentId={}", patent.getPatentId(), e);
-            throw e; // rollback → 불완전한 데이터 방지
-        }
-    
+
+        // 초기 버전 정보 저장 과정에서 빈번히 발생한 DB 잠금 문제로 인해
+        // 특허 생성 단계에서는 버전 정보를 저장하지 않는다.
+        // 필요 시 다른 API를 통해 버전 관리를 별도로 수행한다.
+
         return response;
     }
 
