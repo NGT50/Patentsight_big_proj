@@ -1,3 +1,4 @@
+// src/pages/DesignReview.jsx
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -21,6 +22,17 @@ import {
 import { getImageUrlsByIds, getNonImageFilesByIds, toAbsoluteFileUrl } from '../api/files'
 
 /* ------------------------- 유틸 & 보조 컴포넌트 ------------------------- */
+
+// ✅ 안전한 UUID (crypto.randomUUID 미지원 브라우저 대응)
+const safeUUID = () => {
+  try {
+    if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+    const rnd = Math.random().toString(36).slice(2);
+    return `id-${Date.now().toString(36)}-${rnd}`;
+  } catch {
+    return `id-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+  }
+};
 
 // 문자열/JSON배열/콤마/개행/단일 URL 모두 파싱
 function extractDrawingUrls(raw) {
@@ -238,6 +250,26 @@ export default function DesignReview() {
 
   const showMessageBox = (message) => { setModalMessage(message); setShowModal(true); };
 
+  // ✅ 리뷰 제출 안전 호출 (reviewId 경로형 우선 → 일반 submit 폴백)
+  const safeSubmitReview = async (payload) => {
+    const reviewId =
+      payload?.reviewId ??
+      design?.reviewId ??
+      design?.review_id ??
+      (id && !Number.isNaN(Number(id)) ? Number(id) : undefined);
+
+    if (reviewId != null) {
+      try {
+        await axiosInstance.post(`/api/reviews/${reviewId}/submit`, payload);
+        return;
+      } catch (e) {
+        // 경로형 없거나(404/405) 서버 포맷 다르면 아래로 폴백
+        console.warn('경로형 submit 실패, 일반 submit으로 폴백합니다.', e);
+      }
+    }
+    await submitReview(payload);
+  };
+
   // 리뷰 상세 + 첨부 파생 데이터 로드
   useEffect(() => {
     const run = async () => {
@@ -248,15 +280,17 @@ export default function DesignReview() {
         const data = await getReviewDetail(id);
         setDesign(data);
 
-        // 2) 상태 매핑
+        // 2) 상태 매핑 (APPROVED/REJECTED도 대응)
         let translatedStatus = '';
         switch (data.decision) {
           case 'APPROVE':
+          case 'APPROVED':
             translatedStatus = '심사완료';
             setSelectedAction('approval');
             setApprovalDocumentText(data.comment || '최종 등록 승인됨.');
             break;
           case 'REJECT':
+          case 'REJECTED':
             translatedStatus = '거절';
             setSelectedAction('rejection');
             setRejectionComment(data.comment || '');
@@ -348,7 +382,7 @@ export default function DesignReview() {
   const sendChatMessage = async (message = inputMessage) => {
     if (!message.trim() || !design || !design.patentId) {
       const errorMessage = {
-        id: crypto.randomUUID(),
+        id: safeUUID(),
         type: 'bot',
         message: '오류: 디자인 정보가 올바르지 않아 AI와 대화를 시작할 수 없습니다.',
         timestamp: new Date()
@@ -358,7 +392,7 @@ export default function DesignReview() {
     }
 
     const newUserMessage = {
-      id: crypto.randomUUID(),
+      id: safeUUID(),
       type: 'user',
       message,
       timestamp: new Date()
@@ -382,7 +416,7 @@ export default function DesignReview() {
 
       const botResponse = await sendChatMessageToServer(currentSessionId, messagePayload);
       const botMessage = {
-        id: botResponse?.message_id || crypto.randomUUID(),
+        id: botResponse?.message_id || safeUUID(),
         type: 'bot',
         message: botResponse?.content ?? '응답이 비어 있습니다.',
         timestamp: botResponse?.created_at ? new Date(botResponse.created_at) : new Date()
@@ -391,7 +425,7 @@ export default function DesignReview() {
 
       if (botResponse?.executed_features?.length > 0) {
         const featuresMessage = {
-          id: crypto.randomUUID(),
+          id: safeUUID(),
           type: 'bot-features',
           features: botResponse.executed_features,
           results: botResponse.features_result,
@@ -402,7 +436,7 @@ export default function DesignReview() {
     } catch (error) {
       console.error('챗봇 메시지 전송 실패:', error);
       const errorMessage = {
-        id: crypto.randomUUID(),
+        id: safeUUID(),
         type: 'bot',
         message: error.message === 'Failed to get a valid session_id from the server.'
           ? '오류: AI와 새로운 대화 세션을 시작하지 못했습니다. 서버 응답을 확인해주세요.'
@@ -449,9 +483,18 @@ export default function DesignReview() {
       return;
     }
 
-    const requestData = { patentId: design.patentId, decision, comment: currentComment };
     try {
-      await submitReview(requestData);
+      const reviewId =
+        design?.reviewId ?? design?.review_id ?? (id && !Number.isNaN(Number(id)) ? Number(id) : undefined);
+
+      const requestData = {
+        patentId: design.patentId,
+        reviewId,          // ✅ 함께 전달
+        decision,
+        comment: currentComment
+      };
+
+      await safeSubmitReview(requestData);
       setStatus(newStatus);
       showMessageBox(msg);
     } catch (error) {
@@ -494,13 +537,18 @@ ${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getD
   };
 
   const handleFinalizeApproval = async () => {
-    const requestData = {
-      patentId: design.patentId,
-      decision: 'APPROVE',
-      comment: approvalDocumentText || '최종 등록 승인됨.'
-    };
     try {
-      await submitReview(requestData);
+      const reviewId =
+        design?.reviewId ?? design?.review_id ?? (id && !Number.isNaN(Number(id)) ? Number(id) : undefined);
+
+      const requestData = {
+        patentId: design.patentId,
+        reviewId,          // ✅ 함께 전달
+        decision: 'APPROVE',
+        comment: approvalDocumentText || '최종 등록 승인됨.'
+      };
+
+      await safeSubmitReview(requestData);
       setStatus('심사완료');
       showMessageBox('디자인이 최종 승인 처리되었습니다.');
     } catch (error) {
