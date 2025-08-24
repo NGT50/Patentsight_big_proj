@@ -1,4 +1,3 @@
-// src/api/review.js
 import axiosInstance from './axiosInstance';
 
 /* =========================
@@ -48,26 +47,33 @@ const asObject = (data) => {
   return {};
 };
 
-// 4xx는 에러로, 204/빈 바디는 통과시키고 정규화할 수 있게
-// 2xx만 성공으로 간주
+// 상태코드 허용 범위
 const okOrClientErr = (s) => s >= 200 && s < 300;
+// ✅ submit 전용(동일해도 의미상 분리)
+const okOnly = (s) => s >= 200 && s < 300;
 
-
-// 백엔드 구현 다양성 대응(리뷰 상태/결정 키워드)
+// 서버에서 사용하는 상태/결정 문자열
 const STATUS_SET = new Set([
-  // PatentStatus 계열(백엔드 전역 상태)
   'DRAFT', 'SUBMITTED', 'REVIEWING', 'APPROVED', 'REJECTED', 'WAITING_ASSIGNMENT',
-  // Review.Decision 계열(심사결정)
   'APPROVE', 'REJECT',
 ]);
 
+const TYPE_SET = new Set(['PATENT', 'DESIGN']);
 
+// 255자 안전 컷
 const short255 = (s) => {
   const t = String(s ?? '');
   return t.length > 255 ? (t.slice(0, 252) + '…') : t;
 };
 
-const TYPE_SET = new Set(['PATENT', 'DESIGN']);
+/* -------------------- 결정 문자열 매핑 유틸 -------------------- */
+// 👉 서버는 'APPROVE' / 'REJECT' 기대. 클라이언트가 'APPROVED'/'REJECTED'를 줘도 맞춰서 변환.
+const mapDecisionForServer = (d) => {
+  const v = String(d || '').toUpperCase();
+  if (v === 'APPROVED') return 'APPROVE';
+  if (v === 'REJECTED') return 'REJECT';
+  return v; // SUBMITTED, REVIEWING, APPROVE, REJECT
+};
 
 /** 내부 유틸: 여러 파라미터 키 후보로 리스트 요청을 시도(항상 배열로 리턴) */
 async function _listWithParams(userId, paramsCandidates) {
@@ -212,25 +218,16 @@ export const getReviewDetail = async (reviewId) => {
   return asObject(data);
 };
 
-/* -------------------- 결정 문자열 매핑 유틸 -------------------- */
-const mapDecisionForServer = (d) => {
-  const v = String(d || '').toUpperCase();
-  if (v === 'APPROVE') return 'APPROVED';
-  if (v === 'REJECT')  return 'REJECTED';
-  return v; // SUBMITTED, REVIEWING 등
-};
-
 /**
  * 5. 심사 결과 제출 (안전 버전)
- * - APPROVE → APPROVED, REJECT → REJECTED 자동 매핑
- * - reviewId / review_id 모두 허용
- * - JSON 실패 시 x-www-form-urlencoded → snake_case(JSON) → snake_case(form) 순으로 폴백
- * @param {{ patentId:number, reviewId?:number, review_id?:number, decision:string, comment?:string }} requestData
+ * - 'APPROVED' → 'APPROVE', 'REJECTED' → 'REJECT' 자동 매핑
+ * - comment는 255자로 안전 컷
+ * @param {{ patentId:number, decision:string, comment?:string }} requestData
  */
 export const submitReview = async (requestData) => {
   const patentId = requestData?.patentId;
   const decision = mapDecisionForServer(requestData?.decision);
-  const comment  = requestData?.comment ?? '';
+  const comment  = short255(requestData?.comment ?? '');
 
   if (!patentId) throw new Error('patentId is required');
   if (!decision) throw new Error('decision is required');
