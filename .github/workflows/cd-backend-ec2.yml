@@ -43,7 +43,7 @@ jobs:
         id: findjar
         shell: bash
         run: |
-          JAR=$(ls -t backend/build/libs/*-SNAPSHOT.jar 2>/dev/null | grep -v plain | head -n 1)
+          JAR=$(ls -t backend/build/libs/*.jar 2>/dev/null | grep -v plain | head -n 1)
 
           if [ -z "$JAR" ]; then
             echo "Jar not found" >&2
@@ -90,9 +90,3 @@ jobs:
             fi
 
             "$APP_DIR"/deploy.sh "$TARGET_JAR"
-            
-            # [수정] Health Check: Spring Security로 인해 actuator/health 접근 시 401 인증 오류가 발생하고,
-            # 이로 인해 배포가 지연되거나 실패하는 것처럼 보이므로 해당 부분을 제거합니다.
-            # 배포 성공 여부는 EC2 서버 접속 또는 실제 서비스 접속으로 확인하는 것이 더 확실합니다.
-            # sleep 2
-            # curl -fsS "http://127.0.0.1:${APP_PORT:-8080}/actuator/health" || curl -fsS "http://127.0.0.1:${APP_PORT:-8080}" || true

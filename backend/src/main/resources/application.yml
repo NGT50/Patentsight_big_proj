@@ -39,7 +39,3 @@ aws:
   accessKeyId: ${AWS_ACCESS_KEY_ID:}
   secretAccessKey: ${AWS_SECRET_ACCESS_KEY:}
   region: ${AWS_REGION:us-east-1}
-
-logging:
-  cloudwatch:
-    log-group: ${CLOUDWATCH_LOG_GROUP:patentsight-log-group}
