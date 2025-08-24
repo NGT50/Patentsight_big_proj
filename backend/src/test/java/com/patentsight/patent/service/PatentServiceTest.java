@@ -23,10 +23,12 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Optional;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -228,6 +230,7 @@ class PatentServiceTest {
         patent.setTitle("T");
         patent.setType(PatentType.PATENT);
         patent.setStatus(PatentStatus.DRAFT);
+        patent.setSubmittedAt(LocalDateTime.of(2024, 1, 1, 0, 0));
         when(patentRepository.findByApplicantId(1L)).thenReturn(Collections.singletonList(patent));
 
         FileAttachment file = new FileAttachment();
@@ -240,6 +243,7 @@ class PatentServiceTest {
         PatentResponse res = list.get(0);
         assertEquals(PatentType.PATENT, res.getType());
         assertEquals(List.of(10L), res.getAttachmentIds());
+        assertEquals(LocalDate.of(2024, 1, 1), res.getApplicationDate());
     }
 }
 

@@ -311,6 +311,7 @@ public class PatentService {
         res.setPatentId(patent.getPatentId());
         res.setApplicantId(patent.getApplicantId());
         res.setStatus(patent.getStatus());
+        res.setApplicationDate(patent.getSubmittedAt() != null ? patent.getSubmittedAt().toLocalDate() : null);
         return res;
     }
 
@@ -602,6 +603,7 @@ public class PatentService {
         response.setStatus(patent.getStatus());
         response.setCpc(patent.getCpc());
         response.setApplicationNumber(patent.getApplicationNumber());
+        response.setApplicationDate(patent.getSubmittedAt() != null ? patent.getSubmittedAt().toLocalDate() : null);
         response.setInventor(patent.getInventor());
         response.setTechnicalField(patent.getTechnicalField());
         response.setBackgroundTechnology(patent.getBackgroundTechnology());
