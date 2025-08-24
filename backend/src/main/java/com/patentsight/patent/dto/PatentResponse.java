@@ -21,6 +21,7 @@ public class PatentResponse {
     private String drawingDescription;
     private List<String> claims;
     private String ipc;
+    private String applicantName;
 
     public Long getPatentId() { return patentId; }
     public void setPatentId(Long patentId) { this.patentId = patentId; }
@@ -54,7 +55,8 @@ public class PatentResponse {
     public void setClaims(List<String> claims) { this.claims = claims; }
     public String getIpc() { return ipc; }
     public void setIpc(String ipc) { this.ipc = ipc; }
-    
+    public String getApplicantName() { return applicantName; }
+    public void setApplicantName(String applicantName) { this.applicantName = applicantName; }
     // CICD test용 주석3
     public static class InventionDetails {
         private String problemToSolve;
