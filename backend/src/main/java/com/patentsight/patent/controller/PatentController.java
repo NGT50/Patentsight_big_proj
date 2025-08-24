@@ -76,16 +76,24 @@ public class PatentController {
         PatentResponse res = patentService.updatePatent(id, request);
         return ResponseEntity.ok(res);
     }
-    
+        
     @PatchMapping("/{id}/document")
     public ResponseEntity<DocumentContentResponse> updateDocumentContent(
             @PathVariable("id") Long id,
             @RequestBody Map<String, Object> body) {
     
-        // JSON → DTO 변환 (null-safe)
+        // 🔎 요청 바디 그대로 찍기
+        System.out.println("Raw Request Body: " + body);
+    
+        // JSON → DTO 변환
         PatentRequest request = objectMapper.convertValue(body, PatentRequest.class);
     
+        // 🔎 변환된 DTO 찍기
         System.out.println("Converted PatentRequest: " + request);
+    
+        if (request == null) {
+            throw new IllegalArgumentException("요청 변환 실패: body=" + body);
+        }
     
         DocumentContentResponse res = patentService.updateDocument(id, request);
         return ResponseEntity.ok(res);
