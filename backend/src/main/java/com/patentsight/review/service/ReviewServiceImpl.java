@@ -236,26 +236,34 @@ public class ReviewServiceImpl implements ReviewService {
     public Review submitReview(SubmitReviewRequest request) {
         Review review;
     
-        // 🔸 1. reviewId가 전달되면 그 ID로 Review를 조회합니다.
+        // 🔸 1. reviewId가 전달되면 그 ID로 Review를 조회
         if (request.getReviewId() != null) {
             review = reviewRepository.findById(request.getReviewId())
                     .orElseThrow(() -> new IllegalArgumentException("Review not found"));
         } else {
-            // 🔸 2. 그렇지 않으면 기존처럼 patentId로 조회합니다.
-            review = reviewRepository.findByPatent_PatentId(request.getPatentId())
-                    .orElseThrow(() -> new IllegalArgumentException("Review not found"));
+            // 🔸 2. patentId로 조회했을 때 여러 개면 → 가장 최근 것 선택
+            List<Review> reviews = reviewRepository.findByPatent_PatentId(request.getPatentId());
+            if (reviews.isEmpty()) {
+                throw new IllegalArgumentException("Review not found");
+            }
+    
+            // reviewedAt 기준으로 가장 최근 것 선택 (없으면 생성 순서로 처리)
+            reviews.sort((a, b) -> {
+                LocalDateTime t1 = a.getReviewedAt() != null ? a.getReviewedAt() : LocalDateTime.MIN;
+                LocalDateTime t2 = b.getReviewedAt() != null ? b.getReviewedAt() : LocalDateTime.MIN;
+                return t1.compareTo(t2);
+            });
+            review = reviews.get(reviews.size() - 1);
         }
     
-        // 🔸 3. 전달받은 decision 값을 열거형으로 변환합니다.
-        review.setDecision(
-                Review.Decision.valueOf(request.getDecision().toUpperCase())
-        );
+        // 🔸 3. 상태/코멘트 갱신
+        review.setDecision(Review.Decision.valueOf(request.getDecision().toUpperCase()));
         review.setComment(request.getComment());
         review.setReviewedAt(LocalDateTime.now());
     
         Review updatedReview = reviewRepository.save(review);
     
-        // 🔔 알림 로직은 그대로 유지
+        // 🔔 알림 로직 유지
         if (review.getPatent().getApplicantId() != null) {
             notificationService.createNotification(NotificationRequest.builder()
                     .userId(review.getPatent().getApplicantId())
@@ -269,6 +277,8 @@ public class ReviewServiceImpl implements ReviewService {
     
         return updatedReview;
     }
+
+
 
     // 6️⃣ 심사관별 대시보드 요약
     @Override
