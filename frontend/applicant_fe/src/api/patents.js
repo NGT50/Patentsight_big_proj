@@ -34,9 +34,9 @@ export const updateFileContent = async (fileId, content) => {
   }
 };
 
-export const submitPatent = async (patentId) => {
+export const submitPatent = async (patentId, latestRequest) => {
   try {
-    const res = await axios.post(`/api/patents/${patentId}/submit`);
+    const res = await axios.post(`/api/patents/${patentId}/submit`, latestRequest);
     return res.data;
   } catch (error) {
     console.error('최종 제출 실패:', error);
