@@ -49,6 +49,7 @@ public class PatentService {
     private final SpecVersionService specVersionService;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final RestTemplate restTemplate;
+    private final UserRepository userRepository;
 
     @Value("${external-api.fastapi-ipc-url}")
     private String fastApiIpcUrl;
