@@ -220,7 +220,8 @@ public class PatentService {
                 patent.getApplicantId(),
                 patent.getStatus(),
                 patent.getApplicationNumber(),
-                patent.getIpc()
+                patent.getIpc(),
+                applicantName 
         );
     }
 
