@@ -12,7 +12,7 @@ import java.util.Optional;
 public interface ReviewRepository extends JpaRepository<Review, Long> {
 
     // 🔹 특정 특허의 Review 조회
-    Optional<Review> findByPatent_PatentId(Long patentId);
+    List<Review> findByPatent_PatentId(Long patentId);
 
     // 🔹 상태별 Review 개수
     long countByDecision(Review.Decision decision);
