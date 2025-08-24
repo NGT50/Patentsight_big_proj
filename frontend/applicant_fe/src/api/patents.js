@@ -45,16 +45,19 @@ export const submitPatent = async (patentId) => {
 };
 
 // getMyPatents 함수를 아래와 같이 수정합니다.
-export const getMyPatents = async (params = {}) => {
-  try {
-    // params 객체를 쿼리 스트링으로 전달합니다 (예: { type: 'PATENT' } -> ?type=PATENT)
-    const res = await axios.get('/api/patents/my', { params });
-    return res.data;
-  } catch (error) {
-    console.error('내 출원 목록 조회 실패:', error);
-    throw error;
-  }
+// 수정 후
+export const getMyPatents = async ({ queryKey, signal }) => {
+  // queryKey[0] === 'myPatents'
+  // queryKey[1] 에 추가 조건(필터 등)을 넣어서 사용할 수도 있음
+
+  const res = await axios.get('/api/patents/my', {
+    params: {},   // 필요한 경우 여기에 type 같은 필터 추가 가능
+    signal,       // AbortSignal 은 axios 옵션으로 따로 전달
+  });
+
+  return res.data;
 };
+
 
 export const getPatentDetail = async (patentId) => {
   try {
