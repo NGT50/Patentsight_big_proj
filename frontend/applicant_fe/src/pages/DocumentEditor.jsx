@@ -51,13 +51,16 @@ const DocumentEditor = () => {
     const docFromServer = data;
     const initialState = {
       ...initialDocumentState,
-      ...docFromServer,
+      title: docFromServer.title || "",
+      technicalField: docFromServer.technicalField || "",
+      backgroundTechnology: docFromServer.backgroundTechnology || "",
       inventionDetails: {
-        ...initialDocumentState.inventionDetails,
-        problemToSolve: docFromServer.problemToSolve,
-        solution: docFromServer.solution,
-        effect: docFromServer.effect,
+        problemToSolve: docFromServer.inventionDetails?.problemToSolve || "",
+        solution: docFromServer.inventionDetails?.solution || "",
+        effect: docFromServer.inventionDetails?.effect || "",
       },
+      summary: docFromServer.summary || "",
+      drawingDescription: docFromServer.drawingDescription || "",
       claims: docFromServer.claims && docFromServer.claims.length > 0 ? docFromServer.claims : [''],
     };
     setDocument(initialState);
