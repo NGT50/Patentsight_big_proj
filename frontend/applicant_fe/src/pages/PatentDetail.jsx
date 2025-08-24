@@ -24,19 +24,25 @@ const PatentDetail = () => {
   const handleSubmit = async () => {
     setSubmitStatus('');
     try {
-      const response = await submitPatent(id, {
-        title: patent.title,
-        type: patent.type,   // ✅ 누락되면 백엔드에서 null 에러 발생
-        cpc: patent.cpc,
-        inventor: patent.inventor,
-        technicalField: patent.technicalField,
-        backgroundTechnology: patent.backgroundTechnology,
-        inventionDetails: patent.inventionDetails,
-        summary: patent.summary,
-        drawingDescription: patent.drawingDescription,
-        claims: patent.claims,
-      });
-  
+      const latestRequest = {
+        title: patent?.title || '',
+        type: patent?.type || 'PATENT', // 기본값 PATENT
+        cpc: patent?.cpc || '',
+        inventor: patent?.inventor || '',
+        technicalField: patent?.technicalField || '',
+        backgroundTechnology: patent?.backgroundTechnology || '',
+        inventionDetails: patent?.inventionDetails || {
+          problemToSolve: '',
+          solution: '',
+          effect: ''
+        },
+        summary: patent?.summary || '',
+        drawingDescription: patent?.drawingDescription || '',
+        claims: patent?.claims?.length ? patent.claims : ['']
+      };
+
+      const response = await submitPatent(id, latestRequest);
+
       setPatent((prev) => ({ ...prev, status: response.status }));
       queryClient.invalidateQueries(['myPatents']);
       setSubmitStatus('✅ 제출 완료되었습니다.');
@@ -48,7 +54,6 @@ const PatentDetail = () => {
     }
   };
 
-
   // ✅ 최초 로딩
   useEffect(() => {
     async function fetchData() {
@@ -57,8 +62,8 @@ const PatentDetail = () => {
         setPatent(detail);
 
         const file = await getLatestFile(id);
-        setFileContent(file.content);
-        setFileId(file.file_id);
+        setFileContent(file?.content || '');
+        setFileId(file?.file_id || null);
       } catch (err) {
         console.error('데이터 로드 실패:', err);
       }
