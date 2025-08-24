@@ -24,7 +24,7 @@ const DraftPatentCard = ({ patent, onClick }) => (
           <span>출원번호: {patent.applicationNumber || 'N/A'}</span> | <span>출원일: {patent.applicationDate || 'N/A'}</span>
         </p>
         <p>
-          <span>출원인: {patent.inventor || 'N/A'}</span> | <span>상태: <span className="font-semibold text-yellow-600 bg-yellow-100 px-1.5 py-0.5 rounded">{patent.status}</span></span>
+          <span>출원인: {patent.inventor || patent.applicantName || '미지정'}</span> | <span>상태: <span className="font-semibold text-yellow-600 bg-yellow-100 px-1.5 py-0.5 rounded">{patent.status}</span></span>
         </p>
       </div>
       <p className="text-sm text-gray-700 mt-2 line-clamp-2">
