@@ -1,5 +1,5 @@
 package com.patentsight.file.domain;
-
+ 
 import com.patentsight.patent.domain.Patent;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
