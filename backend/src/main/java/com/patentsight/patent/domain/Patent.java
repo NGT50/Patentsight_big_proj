@@ -54,7 +54,8 @@ public class Patent {
 
     @ElementCollection
     @CollectionTable(name = "patent_claims", joinColumns = @JoinColumn(name = "patent_id"))
-    @Column(name = "claim_text", columnDefinition = "TEXT")
+    @Lob
+    @Column(name = "claim_text", columnDefinition = "LONGTEXT")
     private List<String> claims;
 
     // getters and setters
