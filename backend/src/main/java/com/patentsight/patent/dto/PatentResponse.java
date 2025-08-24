@@ -16,8 +16,10 @@ public class PatentResponse {
     private List<Long> attachmentIds;
     private String cpc;
     private String applicationNumber;
+
     @JsonProperty("applicationDate")
     @JsonFormat(shape = JsonFormat.Shape.STRING)
+
     private LocalDate applicationDate;
     private String inventor;
     private String technicalField;
