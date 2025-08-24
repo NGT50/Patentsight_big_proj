@@ -83,7 +83,9 @@ public class PatentService {
         patent.setType(request.getType());
         patent.setApplicantId(applicantId);
         patent.setStatus(PatentStatus.DRAFT);
-        patent.setCpc(request.getCpc());
+        // DB에서는 CPC 코드가 NOT NULL 제약을 가질 수 있으므로
+        // null이 전달되면 빈 문자열로 치환하여 저장한다.
+        patent.setCpc(request.getCpc() != null ? request.getCpc() : "");
         patent.setTechnicalField(request.getTechnicalField());
         patent.setBackgroundTechnology(request.getBackgroundTechnology());
 
