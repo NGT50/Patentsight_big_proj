@@ -291,7 +291,15 @@ public class PatentService {
         if (request.getTitle() != null) patent.setTitle(request.getTitle());
         if (request.getType() != null) patent.setType(request.getType());
         if (request.getCpc() != null) patent.setCpc(request.getCpc());
-        if (request.getInventor() != null) patent.setInventor(request.getInventor());
+        // ✅ inventor 자동 세팅 로직 추가
+        if (request.getInventor() == null || request.getInventor().isBlank()) {
+            String userName = userRepository.findById(patent.getApplicantId())
+                    .map(User::getName)
+                    .orElse("미지정");
+            patent.setInventor(userName);
+        } else {
+            patent.setInventor(request.getInventor());
+        }
         if (request.getTechnicalField() != null) patent.setTechnicalField(request.getTechnicalField());
         if (request.getBackgroundTechnology() != null) patent.setBackgroundTechnology(request.getBackgroundTechnology());
 
@@ -326,7 +334,15 @@ public class PatentService {
         if (request.getTitle() != null) patent.setTitle(request.getTitle());
         if (request.getType() != null) patent.setType(request.getType());
         if (request.getCpc() != null) patent.setCpc(request.getCpc());
-        if (request.getInventor() != null) patent.setInventor(request.getInventor());
+        // ✅ inventor 자동 세팅 로직 추가
+        if (request.getInventor() == null || request.getInventor().isBlank()) {
+            String userName = userRepository.findById(patent.getApplicantId())
+                    .map(User::getName)
+                    .orElse("미지정");
+            patent.setInventor(userName);
+        } else {
+            patent.setInventor(request.getInventor());
+        }
         if (request.getTechnicalField() != null) patent.setTechnicalField(request.getTechnicalField());
         if (request.getBackgroundTechnology() != null) patent.setBackgroundTechnology(request.getBackgroundTechnology());
 
