@@ -61,6 +61,12 @@ const STATUS_SET = new Set([
   'APPROVE', 'REJECT',
 ]);
 
+
+const short255 = (s) => {
+  const t = String(s ?? '');
+  return t.length > 255 ? (t.slice(0, 252) + '…') : t;
+};
+
 const TYPE_SET = new Set(['PATENT', 'DESIGN']);
 
 /** 내부 유틸: 여러 파라미터 키 후보로 리스트 요청을 시도(항상 배열로 리턴) */
@@ -222,62 +228,19 @@ const mapDecisionForServer = (d) => {
  * @param {{ patentId:number, reviewId?:number, review_id?:number, decision:string, comment?:string }} requestData
  */
 export const submitReview = async (requestData) => {
-  const payloadJson = {
-    patentId: requestData?.patentId,
-    reviewId: requestData?.reviewId ?? requestData?.review_id,
-    decision: mapDecisionForServer(requestData?.decision),
-    comment:  requestData?.comment ?? '',
-  };
+  const patentId = requestData?.patentId;
+  const decision = mapDecisionForServer(requestData?.decision);
+  const comment  = requestData?.comment ?? '';
 
-  // 1) JSON
-  try {
-    const { data } = await axiosInstance.post('/api/reviews/submit', payloadJson, {
-      validateStatus: okOrClientErr,
-    });
-    return asObject(data);
-  } catch (e1) {
-    // 2) x-www-form-urlencoded
-    try {
-      const params = new URLSearchParams();
-      if (payloadJson.patentId != null) params.set('patentId', String(payloadJson.patentId));
-      if (payloadJson.reviewId != null) params.set('reviewId', String(payloadJson.reviewId));
-      if (payloadJson.decision)        params.set('decision', payloadJson.decision);
-      if (payloadJson.comment)         params.set('comment', payloadJson.comment);
+  if (!patentId) throw new Error('patentId is required');
+  if (!decision) throw new Error('decision is required');
 
-      const { data } = await axiosInstance.post('/api/reviews/submit', params, {
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        validateStatus: okOrClientErr,
-      });
-      return asObject(data);
-    } catch (e2) {
-      // 3) snake_case(JSON)
-      try {
-        const snake = {
-          patent_id: payloadJson.patentId,
-          review_id: payloadJson.reviewId,
-          decision:  payloadJson.decision,
-          comment:   payloadJson.comment,
-        };
-        const { data } = await axiosInstance.post('/api/reviews/submit', snake, {
-          validateStatus: okOrClientErr,
-        });
-        return asObject(data);
-      } catch (e3) {
-        // 4) snake_case + form-urlencoded
-        const params2 = new URLSearchParams();
-        if (payloadJson.patentId != null) params2.set('patent_id', String(payloadJson.patentId));
-        if (payloadJson.reviewId != null) params2.set('review_id', String(payloadJson.reviewId));
-        if (payloadJson.decision)        params2.set('decision',  payloadJson.decision);
-        if (payloadJson.comment)         params2.set('comment',   payloadJson.comment);
-
-        const { data } = await axiosInstance.post('/api/reviews/submit', params2, {
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          validateStatus: okOrClientErr,
-        });
-        return asObject(data);
-      }
-    }
-  }
+  const { data } = await axiosInstance.post(
+    '/api/reviews/submit',
+    { patentId, decision, comment },
+    { validateStatus: okOnly }
+  );
+  return asObject(data);
 };
 
 /**
