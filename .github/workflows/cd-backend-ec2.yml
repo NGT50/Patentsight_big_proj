@@ -39,18 +39,20 @@ jobs:
         # [수정] --refresh-dependencies 옵션을 추가하여 손상된 캐시를 무시하고 모든 라이브러리를 새로 받도록 강제합니다.
         run: ./gradlew clean bootJar -x test --refresh-dependencies
         
-      - name: Find artifact (jar path)
+      - name: Prepare artifact (jar path)
         id: findjar
         shell: bash
         run: |
-          JAR=$(ls -t backend/build/libs/*.jar 2>/dev/null | grep -v plain | head -n 1)
+          ORIG_JAR="backend/build/libs/backend-0.0.1-${{ steps.vars.outputs.sha }}.jar"
+          if [ ! -f "$ORIG_JAR" ]; then
 
-          if [ -z "$JAR" ]; then
             echo "Jar not found" >&2
             exit 1
           fi
+          JAR="backend/build/libs/backend-0.0.1-${{ steps.vars.outputs.sha }}-${{ github.run_number }}.jar"
+          mv "$ORIG_JAR" "$JAR"
           echo "jar=$JAR" >> $GITHUB_OUTPUT
-          echo "Found JAR: $JAR"
+          echo "Prepared JAR: $JAR"
 
       - name: Ensure releases dir exists on EC2
         uses: appleboy/ssh-action@v1.1.0
@@ -89,4 +91,5 @@ jobs:
               echo "ERROR: $TARGET_JAR not found"; exit 1
             fi
 
-            "$APP_DIR"/deploy.sh "$TARGET_JAR"
+            "$APP_DIR/deploy.sh" "$TARGET_JAR"
+
