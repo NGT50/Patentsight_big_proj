@@ -236,7 +236,7 @@ public class ReviewServiceImpl implements ReviewService {
     public Review submitReview(SubmitReviewRequest request) {
         Review review;
     
-        // 🔸 1. reviewId가 전달되면 그 ID로 Review를 조회
+        // 🔸 1. reviewId가 전달되면 그 ID로 Review 조회
         if (request.getReviewId() != null) {
             review = reviewRepository.findById(request.getReviewId())
                     .orElseThrow(() -> new IllegalArgumentException("Review not found"));
@@ -247,7 +247,7 @@ public class ReviewServiceImpl implements ReviewService {
                 throw new IllegalArgumentException("Review not found");
             }
     
-            // reviewedAt 기준으로 가장 최근 것 선택 (없으면 생성 순서로 처리)
+            // reviewedAt 기준으로 가장 최근 것 선택
             reviews.sort((a, b) -> {
                 LocalDateTime t1 = a.getReviewedAt() != null ? a.getReviewedAt() : LocalDateTime.MIN;
                 LocalDateTime t2 = b.getReviewedAt() != null ? b.getReviewedAt() : LocalDateTime.MIN;
@@ -256,16 +256,17 @@ public class ReviewServiceImpl implements ReviewService {
             review = reviews.get(reviews.size() - 1);
         }
     
-        // 🔸 3. 상태/코멘트 갱신
+        // 🔸 3. Review 상태/코멘트 갱신
         review.setDecision(Review.Decision.valueOf(request.getDecision().toUpperCase()));
         review.setComment(request.getComment());
         review.setReviewedAt(LocalDateTime.now());
-
-        // ✅ Patent 상태도 Review와 동기화
+    
+        // 🔸 4. Patent 상태도 Review와 동기화
         Patent patent = review.getPatent();
         patent.setStatus(convertToPatentStatus(review.getDecision()));
-        patentRepository.save(patent);
+        patentRepository.saveAndFlush(patent); // ✅ DB에 강제 반영
     
+        // 🔸 5. Review 저장
         Review updatedReview = reviewRepository.save(review);
     
         // 🔔 알림 로직 유지
