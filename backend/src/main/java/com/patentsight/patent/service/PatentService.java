@@ -604,6 +604,7 @@ public class PatentService {
         response.setInventor(patent.getInventor());
         response.setTechnicalField(patent.getTechnicalField());
         response.setBackgroundTechnology(patent.getBackgroundTechnology());
+        response.setIpc(patent.getIpc());
     
         PatentResponse.InventionDetails details = new PatentResponse.InventionDetails();
         details.setProblemToSolve(patent.getProblemToSolve());
