@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { submitPatent, getLatestDocument, updateDocument, validatePatentDocument, generateFullDraft } from '../api/patents';
+import { submitPatent, getPatentDetail, updateDocument, validatePatentDocument, generateFullDraft } from '../api/patents';
 import { uploadFile } from '../api/files';
 import { 
   FileText, Save, Download, Send, Bot, Box, CheckCircle, AlertCircle, X,
@@ -31,8 +31,8 @@ const DocumentEditor = () => {
 
   // --- 데이터 로딩 (React Query) ---
   const { data, isLoading, isError } = useQuery({
-    queryKey: ['patentDocument', patentId],
-    queryFn: () => getLatestDocument(patentId),
+    queryKey: ['patentDetail', patentId],
+    queryFn: () => getPatentDetail(patentId),
     enabled: !!patentId && patentId !== 'new-from-pdf',
   });
 
@@ -47,17 +47,22 @@ const DocumentEditor = () => {
       isDataLoadedFromServerRef.current = true;
       return;
     }
-    if (data?.document && !isDataLoadedFromServerRef.current) {
-      const docFromServer = data.document;
-      const initialState = {
-        ...initialDocumentState, ...docFromServer,
-        inventionDetails: { ...initialDocumentState.inventionDetails, ...docFromServer.inventionDetails },
-        claims: docFromServer.claims && docFromServer.claims.length > 0 ? docFromServer.claims : [''],
-      };
-      setDocument(initialState);
-      if (docFromServer.originalFile) setAttachedPdf(docFromServer.originalFile);
-      isDataLoadedFromServerRef.current = true;
-    }
+  if (data && !isDataLoadedFromServerRef.current) {
+    const docFromServer = data;
+    const initialState = {
+      ...initialDocumentState,
+      ...docFromServer,
+      inventionDetails: {
+        ...initialDocumentState.inventionDetails,
+        problemToSolve: docFromServer.problemToSolve,
+        solution: docFromServer.solution,
+        effect: docFromServer.effect,
+      },
+      claims: docFromServer.claims && docFromServer.claims.length > 0 ? docFromServer.claims : [''],
+    };
+    setDocument(initialState);
+    isDataLoadedFromServerRef.current = true;
+  }
   }, [data, location.state, patentId]);
 
   useEffect(() => {
