@@ -81,26 +81,27 @@ public class PatentService {
         patent.setInventor(request.getInventor());
         patent.setTechnicalField(request.getTechnicalField());
         patent.setBackgroundTechnology(request.getBackgroundTechnology());
-
+    
         if (request.getInventionDetails() != null) {
             patent.setProblemToSolve(request.getInventionDetails().getProblemToSolve());
             patent.setSolution(request.getInventionDetails().getSolution());
             patent.setEffect(request.getInventionDetails().getEffect());
         }
-
+    
         patent.setSummary(request.getSummary());
         patent.setDrawingDescription(request.getDrawingDescription());
         patent.setClaims(request.getClaims());
-
+    
         log.info("[CREATE] Before save - patentId: {}, status: {}", patent.getPatentId(), patent.getStatus());
         try {
-            patentRepository.save(patent);
+            // save 후 flush → patentId 확정 보장
+            patentRepository.saveAndFlush(patent);
             log.info("[CREATE] After save - patentId: {}, status: {}", patent.getPatentId(), patent.getStatus());
         } catch (Exception e) {
             log.error("[CREATE] Error saving patent - patentId: {}, status: {}", patent.getPatentId(), patent.getStatus(), e);
             throw e;
         }
-
+    
         // 알림
         notificationService.createNotification(
                 NotificationRequest.builder()
@@ -111,28 +112,42 @@ public class PatentService {
                         .targetId(patent.getPatentId())
                         .build()
         );
-
+    
         List<FileAttachment> attachments = java.util.Collections.emptyList();
-
+    
         PatentResponse response = toPatentResponse(patent, attachments);
-
+    
+        // ---- SpecVersion 저장 ----
         try {
             SpecVersion initial = new SpecVersion();
             initial.setPatent(patent);
             initial.setApplicantId(applicantId);
             initial.setChangeSummary("initial draft");
-            initial.setDocument(objectMapper.writeValueAsString(response));
+    
+            try {
+                initial.setDocument(objectMapper.writeValueAsString(response));
+            } catch (Exception e) {
+                log.warn("[CREATE] JSON 변환 실패, 빈 JSON 저장", e);
+                initial.setDocument("{}");
+            }
+    
             initial.setVersionNo(1);
             initial.setCurrent(true);
             LocalDateTime now = LocalDateTime.now();
             initial.setCreatedAt(now);
             initial.setUpdatedAt(now);
+    
             specVersionService.save(initial);
+            log.info("[CREATE] Initial SpecVersion 저장 완료 - patentId: {}", patent.getPatentId());
+    
         } catch (Exception e) {
-            // log and continue without rolling back main transaction
+            log.error("[CREATE] SpecVersion 생성 실패 - patentId={}", patent.getPatentId(), e);
+            throw e; // rollback → 불완전한 데이터 방지
         }
+    
         return response;
     }
+
 
     // ------------------- READ -------------------
     @Transactional(readOnly = true)
