@@ -18,6 +18,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/patents")
+@CrossOrigin(origins = {"http://35.175.253.22:3000", "http://35.175.253.22:3001"})
 public class PatentController {
 
     private final PatentService patentService;
