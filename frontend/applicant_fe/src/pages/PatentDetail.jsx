@@ -24,7 +24,15 @@ const PatentDetail = () => {
   const handleSubmit = async () => {
     setSubmitStatus('');
     try {
-      const response = await submitPatent(id);
+      const response = await submitPatent(id, {
+        title: patent.title,
+        technicalField: patent.technicalField,
+        backgroundTechnology: patent.backgroundTechnology,
+        inventionDetails: patent.inventionDetails,
+        summary: patent.summary,
+        claims: patent.claims,
+        drawingDescription: patent.drawingDescription,
+      });
       setPatent((prev) => ({ ...prev, status: response.status }));
       queryClient.invalidateQueries(['myPatents']);
       setSubmitStatus('✅ 제출 완료되었습니다.');
@@ -35,6 +43,7 @@ const PatentDetail = () => {
       setTimeout(() => setSubmitStatus(''), 3000);
     }
   };
+
 
   // ✅ 최초 로딩
   useEffect(() => {
