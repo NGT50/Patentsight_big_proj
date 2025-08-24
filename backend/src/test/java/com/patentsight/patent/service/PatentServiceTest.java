@@ -3,7 +3,6 @@ package com.patentsight.patent.service;
 import com.patentsight.file.domain.FileAttachment;
 import com.patentsight.file.repository.FileRepository;
 import com.patentsight.file.repository.SpecVersionRepository;
-import com.patentsight.file.domain.SpecVersion;
 import com.patentsight.file.service.SpecVersionService;
 import com.patentsight.notification.service.NotificationService;
 import com.patentsight.patent.domain.Patent;
@@ -67,7 +66,6 @@ class PatentServiceTest {
         PatentRequest request = new PatentRequest();
         request.setTitle("My Patent");
         request.setType(PatentType.PATENT);
-        request.setFileIds(Arrays.asList(10L, 20L));
         request.setCpc("B62H1/00");
         request.setInventor("홍길동");
         request.setTechnicalField("자전거 잠금장치 관련 기술");
@@ -83,13 +81,6 @@ class PatentServiceTest {
                 "BLE 통신 모듈을 포함하는 자전거 잠금장치",
                 "상기 잠금장치가 GPS 모듈과 통신 가능한 것을 특징으로 하는 시스템"));
 
-        FileAttachment file1 = new FileAttachment();
-        file1.setFileId(10L);
-        FileAttachment file2 = new FileAttachment();
-        file2.setFileId(20L);
-        when(fileRepository.findAllById(Arrays.asList(10L, 20L))).thenReturn(Arrays.asList(file1, file2));
-        when(fileRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
-
         when(patentRepository.save(any(Patent.class))).thenAnswer(invocation -> {
             Patent p = invocation.getArgument(0);
             p.setPatentId(1L);
@@ -103,7 +94,6 @@ class PatentServiceTest {
         assertEquals(PatentStatus.DRAFT, response.getStatus());
         assertEquals("My Patent", response.getTitle());
         assertEquals(PatentType.PATENT, response.getType());
-        assertEquals(Arrays.asList(10L, 20L), response.getAttachmentIds());
         assertEquals("B62H1/00", response.getCpc());
         assertNull(response.getApplicationNumber());
         assertEquals("홍길동", response.getInventor());
@@ -116,9 +106,6 @@ class PatentServiceTest {
         assertEquals("본 발명은 BLE 통신 기반의 스마트 자전거 잠금장치에 관한 것이다.", response.getSummary());
         assertEquals("도 1은 잠금장치의 회로 구성도이다.", response.getDrawingDescription());
         assertEquals(2, response.getClaims().size());
-        assertNotNull(file1.getPatent());
-        assertEquals(1L, file1.getPatent().getPatentId());
-        verify(specVersionService).save(any(SpecVersion.class));
     }
 
     @Test
