@@ -80,9 +80,11 @@ public class PatentController {
     @PatchMapping("/{id}/document")
     public ResponseEntity<DocumentContentResponse> updateDocumentContent(
             @PathVariable("id") Long id,
-            @RequestBody PatentRequest request) {
+            @RequestBody Map<String, Object> body) {
     
-        // 🔎 변환된 DTO 찍기
+        // JSON → DTO 변환 (null-safe)
+        PatentRequest request = objectMapper.convertValue(body, PatentRequest.class);
+    
         System.out.println("Converted PatentRequest: " + request);
     
         DocumentContentResponse res = patentService.updateDocument(id, request);
