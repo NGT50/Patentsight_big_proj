@@ -45,6 +45,7 @@ jobs:
         run: |
           ORIG_JAR="backend/build/libs/backend-0.0.1-${{ steps.vars.outputs.sha }}.jar"
           if [ ! -f "$ORIG_JAR" ]; then
+
             echo "Jar not found" >&2
             exit 1
           fi
@@ -91,3 +92,4 @@ jobs:
             fi
 
             "$APP_DIR/deploy.sh" "$TARGET_JAR"
+
