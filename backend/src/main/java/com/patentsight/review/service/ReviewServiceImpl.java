@@ -260,6 +260,11 @@ public class ReviewServiceImpl implements ReviewService {
         review.setDecision(Review.Decision.valueOf(request.getDecision().toUpperCase()));
         review.setComment(request.getComment());
         review.setReviewedAt(LocalDateTime.now());
+
+        // ✅ Patent 상태도 Review와 동기화
+        Patent patent = review.getPatent();
+        patent.setStatus(convertToPatentStatus(review.getDecision()));
+        patentRepository.save(patent);
     
         Review updatedReview = reviewRepository.save(review);
     
