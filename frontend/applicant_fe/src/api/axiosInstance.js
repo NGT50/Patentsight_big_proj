@@ -1,5 +1,5 @@
 import axios from 'axios';
-
+ 
 // 🚀 1. FastAPI에서 계속 사용할 엔드포인트 목록
 const FAST_API_PREFIXES = [
   '/api/patents/parse-pdf',
