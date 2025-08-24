@@ -1,20 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
-
-    <springProperty scope="context" name="AWS_REGION" source="aws.region"/>
-    <springProperty scope="context" name="LOG_GROUP" source="logging.cloudwatch.log-group"/>
-
-    <appender name="CLOUDWATCH" class="ch.qos.logback.more.appenders.CloudWatchLogbackAppenderV2">
-        <awsConfig>
-            <region>${AWS_REGION}</region>
-        </awsConfig>
-        <logGroupName>${LOG_GROUP}</logGroupName>
-        <logStreamName>${HOSTNAME}</logStreamName>
-        <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss} %-5level %logger{36} - %msg%n</pattern>
-        </encoder>
-    </appender>
-
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
             <pattern>%d{yyyy-MM-dd HH:mm:ss} %-5level %logger{36} - %msg%n</pattern>
@@ -23,8 +8,5 @@
 
     <root level="INFO">
         <appender-ref ref="CONSOLE"/>
-        <appender-ref ref="CLOUDWATCH"/>
     </root>
-
 </configuration>
-
