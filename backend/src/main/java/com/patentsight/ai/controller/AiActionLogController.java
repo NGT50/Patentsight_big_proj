@@ -1,5 +1,5 @@
 package com.patentsight.ai.controller;
-
+ 
 import com.patentsight.ai.dto.ActionLogResponse;
 import com.patentsight.ai.service.ActionLogService;
 import org.springframework.http.ResponseEntity;
