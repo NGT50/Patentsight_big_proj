@@ -243,14 +243,92 @@ export const submitReview = async (requestData) => {
 /**
  * 6. 의견서 작성
  */
-export const createOpinionNotice = async (reviewId, requestData) => {
-  const { data } = await axiosInstance.post(
-    `/api/reviews/${reviewId}/opinion-notices`,
-    requestData,
-    { validateStatus: okOrClientErr }
-  );
-  return asObject(data);
+// 교체: opinion-notice 생성 (plural/singular + JSON/FORM + camel/snake 모두 시도)
+export const createOpinionNotice = async (reviewId, req = {}) => {
+  if (!reviewId) throw new Error('reviewId is required');
+
+  // 백엔드가 최소로 받을 가능성이 높은 조합들만 순차 시도
+  const attempts = [
+    // A) JSON (필수 최소형)
+    {
+      path: `/api/reviews/${reviewId}/opinion-notices`,
+      headers: {}, // axios가 JSON 자동 설정
+      body: { content: req.content ?? '' },
+    },
+    // B) JSON (camel)
+    {
+      path: `/api/reviews/${reviewId}/opinion-notices`,
+      headers: {},
+      body: {
+        content: req.content ?? '',
+        type: req.type,                 // 'APPROVAL' | 'EXAMINER_OPINION' | 'REJECTION'
+        status: req.status ?? 'SUBMITTED',
+        isAiDrafted: !!req.is_ai_drafted,
+        structuredContent: req.structured_content ?? null,
+        responseDueDate: req.response_due_date ?? null,
+      },
+    },
+    // C) JSON (snake)
+    {
+      path: `/api/reviews/${reviewId}/opinion-notices`,
+      headers: {},
+      body: {
+        content: req.content ?? '',
+        type: req.type,
+        status: req.status ?? 'SUBMITTED',
+        is_ai_drafted: !!req.is_ai_drafted,
+        structured_content: req.structured_content ?? null,
+        response_due_date: req.response_due_date ?? null,
+      },
+    },
+    // D) 같은 3세트를 단수 엔드포인트로 반복
+    { path: `/api/reviews/${reviewId}/opinion-notice`, headers: {}, body: { content: req.content ?? '' } },
+    {
+      path: `/api/reviews/${reviewId}/opinion-notice`,
+      headers: {}, body: {
+        content: req.content ?? '', type: req.type, status: req.status ?? 'SUBMITTED',
+        isAiDrafted: !!req.is_ai_drafted, structuredContent: req.structured_content ?? null,
+        responseDueDate: req.response_due_date ?? null,
+      }
+    },
+    {
+      path: `/api/reviews/${reviewId}/opinion-notice`,
+      headers: {}, body: {
+        content: req.content ?? '', type: req.type, status: req.status ?? 'SUBMITTED',
+        is_ai_drafted: !!req.is_ai_drafted, structured_content: req.structured_content ?? null,
+        response_due_date: req.response_due_date ?? null,
+      }
+    },
+    // E) x-www-form-urlencoded (snake, 최소형)
+    {
+      path: `/api/reviews/${reviewId}/opinion-notices`,
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: (() => { const p = new URLSearchParams(); p.set('content', req.content ?? ''); return p; })(),
+    },
+    {
+      path: `/api/reviews/${reviewId}/opinion-notice`,
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: (() => { const p = new URLSearchParams(); p.set('content', req.content ?? ''); return p; })(),
+    },
+  ];
+
+  let lastErr;
+  for (const a of attempts) {
+    try {
+      const { data } = await axiosInstance.post(a.path, a.body, {
+        headers: a.headers, validateStatus: s => s >= 200 && s < 300,
+      });
+      return data;
+    } catch (e) {
+      lastErr = e;
+      // 400인 경우 다음 포맷으로 즉시 폴백
+      continue;
+    }
+  }
+  // 디버깅에 도움되게 서버 응답 메시지 노출
+  throw new Error(`createOpinionNotice failed: ${lastErr?.response?.status} ${JSON.stringify(lastErr?.response?.data)}`);
 };
+
 
 /**
  * 7. 의견서 목록 조회 (항상 배열)
