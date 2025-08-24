@@ -552,6 +552,12 @@ public class PatentService {
         response.setBackgroundTechnology(patent.getBackgroundTechnology());
         response.setIpc(patent.getIpc());
     
+        // ✅ applicantName 추가 로직
+        String applicantName = userRepository.findById(patent.getApplicantId())
+                .map(User::getName)
+                .orElse("미지정");
+        response.setApplicantName(applicantName);
+    
         PatentResponse.InventionDetails details = new PatentResponse.InventionDetails();
         details.setProblemToSolve(patent.getProblemToSolve());
         details.setSolution(patent.getSolution());
@@ -567,7 +573,6 @@ public class PatentService {
                     .map(FileAttachment::getFileId)
                     .collect(Collectors.toList()));
         } else {
-            // ★ 변경: 전체 findAll() → 특정 특허에 속한 파일만 조회
             List<Long> attachmentIds = fileRepository.findByPatent_PatentId(patent.getPatentId())
                     .stream()
                     .map(FileAttachment::getFileId)
