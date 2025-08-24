@@ -234,16 +234,28 @@ public class ReviewServiceImpl implements ReviewService {
     // 5️⃣ 심사 결과 제출
     @Override
     public Review submitReview(SubmitReviewRequest request) {
-        Review review = reviewRepository.findByPatent_PatentId(request.getPatentId())
-                .orElseThrow(() -> new IllegalArgumentException("Review not found"));
-
-        review.setDecision(Review.Decision.valueOf(request.getDecision().toUpperCase()));
+        Review review;
+    
+        // 🔸 1. reviewId가 전달되면 그 ID로 Review를 조회합니다.
+        if (request.getReviewId() != null) {
+            review = reviewRepository.findById(request.getReviewId())
+                    .orElseThrow(() -> new IllegalArgumentException("Review not found"));
+        } else {
+            // 🔸 2. 그렇지 않으면 기존처럼 patentId로 조회합니다.
+            review = reviewRepository.findByPatent_PatentId(request.getPatentId())
+                    .orElseThrow(() -> new IllegalArgumentException("Review not found"));
+        }
+    
+        // 🔸 3. 전달받은 decision 값을 열거형으로 변환합니다.
+        review.setDecision(
+                Review.Decision.valueOf(request.getDecision().toUpperCase())
+        );
         review.setComment(request.getComment());
         review.setReviewedAt(LocalDateTime.now());
-
+    
         Review updatedReview = reviewRepository.save(review);
-
-        // 🔔 알림 생성 - 출원인
+    
+        // 🔔 알림 로직은 그대로 유지
         if (review.getPatent().getApplicantId() != null) {
             notificationService.createNotification(NotificationRequest.builder()
                     .userId(review.getPatent().getApplicantId())
@@ -254,7 +266,7 @@ public class ReviewServiceImpl implements ReviewService {
                     .build()
             );
         }
-
+    
         return updatedReview;
     }
 
