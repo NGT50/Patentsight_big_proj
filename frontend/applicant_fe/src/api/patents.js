@@ -160,17 +160,17 @@ export const sendMessageToChatSession = async (sessionId, message) => {
 // 문서 내용 수정(임시저장) API
 export const updateDocument = async ({ patentId, documentData }) => {
   try {
-    // 프론트에서 받은 documentData 내부 필드를 최상단으로 펼쳐서 전송합니다.
-    // 백엔드가 body.title 등을 직접 기대하므로, 중첩된 구조를 제거합니다.
-    const res = await axios.patch(`/api/patents/${patentId}/document`, {
-      ...documentData,
-    });
+    // patentId는 URL로 이미 전달되므로 body에서 제거해야 함
+    const { patentId: _, ...cleanData } = documentData;
+
+    const res = await axios.patch(`/api/patents/${patentId}/document`, cleanData);
     return res.data;
   } catch (error) {
     console.error('문서 임시저장 실패:', error);
     throw error;
   }
 };
+
 
 // AI 기반 전체 문서 초안 생성 API (실제 API 호출로 변경)
 export const generateFullDraft = async ({ title }) => {
