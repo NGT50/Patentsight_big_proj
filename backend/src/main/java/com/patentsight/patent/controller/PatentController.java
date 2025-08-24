@@ -10,6 +10,8 @@ import com.patentsight.patent.dto.PatentResponse;
 import com.patentsight.patent.dto.SubmitPatentResponse;
 import com.patentsight.patent.service.PatentService;
 import com.patentsight.config.JwtTokenProvider;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -32,9 +34,12 @@ public class PatentController {
 
     // ------------------- CREATE -------------------
     @PostMapping
-    public ResponseEntity<PatentResponse> createPatent(@RequestBody PatentRequest request,
+    public ResponseEntity<PatentResponse> createPatent(@Valid @RequestBody PatentRequest request,
                                                        @RequestHeader("Authorization") String authorization) {
         Long userId = jwtTokenProvider.getUserIdFromHeader(authorization);
+        if (userId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
         PatentResponse response = patentService.createPatent(request, userId);
         return ResponseEntity.ok(response);
     }
@@ -49,6 +54,9 @@ public class PatentController {
     @GetMapping("/my")
     public ResponseEntity<List<PatentResponse>> getMyPatents(@RequestHeader("Authorization") String authorization) {
         Long userId = jwtTokenProvider.getUserIdFromHeader(authorization);
+        if (userId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
         List<PatentResponse> list = patentService.getMyPatents(userId);
         return ResponseEntity.ok(list);
     }
@@ -119,6 +127,9 @@ public class PatentController {
                                                                      @RequestBody DocumentVersionRequest request,
                                                                      @RequestHeader("Authorization") String authorization) {
         Long userId = jwtTokenProvider.getUserIdFromHeader(authorization);
+        if (userId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
         request.setApplicantId(userId);
         FileVersionResponse res = patentService.createDocumentVersion(id, request);
         return ResponseEntity.ok(res);

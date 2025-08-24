@@ -20,6 +20,8 @@ import com.patentsight.patent.dto.SubmitPatentResponse;
 import com.patentsight.ai.dto.PredictRequest;
 import com.patentsight.ai.dto.PredictResponse;
 import com.patentsight.patent.repository.PatentRepository;
+import com.patentsight.user.repository.UserRepository;
+import com.patentsight.user.domain.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -53,6 +55,7 @@ public class PatentService {
     private String fastApiIpcUrl;
 
     private final NotificationService notificationService;
+    private final UserRepository userRepository;
 
     public PatentService(PatentRepository patentRepository,
                          FileRepository fileRepository,
@@ -69,7 +72,7 @@ public class PatentService {
         this.restTemplate = restTemplate;
         this.notificationService = notificationService;
         this.reviewService = reviewService;
-        this.userRepository = userRepository;   // 👈 추가
+        this.userRepository = userRepository;
 
     }
 
