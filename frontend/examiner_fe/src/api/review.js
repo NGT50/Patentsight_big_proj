@@ -49,7 +49,9 @@ const asObject = (data) => {
 };
 
 // 4xx는 에러로, 204/빈 바디는 통과시키고 정규화할 수 있게
-const okOrClientErr = (s) => s < 500;
+// 2xx만 성공으로 간주
+const okOrClientErr = (s) => s >= 200 && s < 300;
+
 
 // 백엔드 구현 다양성 대응(리뷰 상태/결정 키워드)
 const STATUS_SET = new Set([
@@ -204,15 +206,78 @@ export const getReviewDetail = async (reviewId) => {
   return asObject(data);
 };
 
+/* -------------------- 결정 문자열 매핑 유틸 -------------------- */
+const mapDecisionForServer = (d) => {
+  const v = String(d || '').toUpperCase();
+  if (v === 'APPROVE') return 'APPROVED';
+  if (v === 'REJECT')  return 'REJECTED';
+  return v; // SUBMITTED, REVIEWING 등
+};
+
 /**
- * 5. 심사 결과 제출
- * @param {{ patentId:number, decision:'SUBMITTED'|'REVIEWING'|'APPROVE'|'REJECT', comment:string }} requestData
+ * 5. 심사 결과 제출 (안전 버전)
+ * - APPROVE → APPROVED, REJECT → REJECTED 자동 매핑
+ * - reviewId / review_id 모두 허용
+ * - JSON 실패 시 x-www-form-urlencoded → snake_case(JSON) → snake_case(form) 순으로 폴백
+ * @param {{ patentId:number, reviewId?:number, review_id?:number, decision:string, comment?:string }} requestData
  */
 export const submitReview = async (requestData) => {
-  const { data } = await axiosInstance.post('/api/reviews/submit', requestData, {
-    validateStatus: okOrClientErr,
-  });
-  return asObject(data);
+  const payloadJson = {
+    patentId: requestData?.patentId,
+    reviewId: requestData?.reviewId ?? requestData?.review_id,
+    decision: mapDecisionForServer(requestData?.decision),
+    comment:  requestData?.comment ?? '',
+  };
+
+  // 1) JSON
+  try {
+    const { data } = await axiosInstance.post('/api/reviews/submit', payloadJson, {
+      validateStatus: okOrClientErr,
+    });
+    return asObject(data);
+  } catch (e1) {
+    // 2) x-www-form-urlencoded
+    try {
+      const params = new URLSearchParams();
+      if (payloadJson.patentId != null) params.set('patentId', String(payloadJson.patentId));
+      if (payloadJson.reviewId != null) params.set('reviewId', String(payloadJson.reviewId));
+      if (payloadJson.decision)        params.set('decision', payloadJson.decision);
+      if (payloadJson.comment)         params.set('comment', payloadJson.comment);
+
+      const { data } = await axiosInstance.post('/api/reviews/submit', params, {
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        validateStatus: okOrClientErr,
+      });
+      return asObject(data);
+    } catch (e2) {
+      // 3) snake_case(JSON)
+      try {
+        const snake = {
+          patent_id: payloadJson.patentId,
+          review_id: payloadJson.reviewId,
+          decision:  payloadJson.decision,
+          comment:   payloadJson.comment,
+        };
+        const { data } = await axiosInstance.post('/api/reviews/submit', snake, {
+          validateStatus: okOrClientErr,
+        });
+        return asObject(data);
+      } catch (e3) {
+        // 4) snake_case + form-urlencoded
+        const params2 = new URLSearchParams();
+        if (payloadJson.patentId != null) params2.set('patent_id', String(payloadJson.patentId));
+        if (payloadJson.reviewId != null) params2.set('review_id', String(payloadJson.reviewId));
+        if (payloadJson.decision)        params2.set('decision',  payloadJson.decision);
+        if (payloadJson.comment)         params2.set('comment',   payloadJson.comment);
+
+        const { data } = await axiosInstance.post('/api/reviews/submit', params2, {
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          validateStatus: okOrClientErr,
+        });
+        return asObject(data);
+      }
+    }
+  }
 };
 
 /**
