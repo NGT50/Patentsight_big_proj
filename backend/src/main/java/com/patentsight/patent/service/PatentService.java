@@ -167,7 +167,15 @@ public class PatentService {
         if (latestRequest != null) {
             patent = updatePatentForSubmit(patentId, latestRequest);
         }
-    
+
+        // ✅ inventor 값이 비었으면 로그인한 사용자의 이름으로 세팅
+        if (patent.getInventor() == null || patent.getInventor().isBlank()) {
+            String userName = userRepository.findById(patent.getApplicantId())
+                    .map(User::getName)
+                    .orElse("미지정");
+            patent.setInventor(userName);
+        }
+
         // FastAPI 호출
         String firstClaim = patent.getClaims() != null && !patent.getClaims().isEmpty()
                 ? patent.getClaims().get(0) : "";
