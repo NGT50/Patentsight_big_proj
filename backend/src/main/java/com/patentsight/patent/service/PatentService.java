@@ -159,15 +159,28 @@ public class PatentService {
     }
 
     // ------------------- SUBMIT -------------------
-    public SubmitPatentResponse submitPatent(Long patentId, PatentRequest latestRequest) {
+    public SubmitPatentResponse submitPatent(Long patentId, PatentRequest latestRequest, Long userId) {
         Patent patent = patentRepository.findById(patentId).orElse(null);
         if (patent == null) return null;
-    
+
         // ✅ 최신 데이터가 들어온 경우 DB 업데이트 (임시저장용 updatePatent → 제출 전용 updatePatentForSubmit으로 변경)
         if (latestRequest != null) {
             patent = updatePatentForSubmit(patentId, latestRequest);
         }
-    
+
+        // ✅ 특허에 신청자 ID가 없으면 현재 사용자 ID로 설정
+        if (patent.getApplicantId() == null) {
+            patent.setApplicantId(userId);
+        }
+
+        // ✅ inventor 값이 비었으면 로그인한 사용자의 이름으로 세팅
+        if (patent.getInventor() == null || patent.getInventor().isBlank()) {
+            String userName = userRepository.findById(userId)
+                    .map(User::getName)
+                    .orElse("미지정");
+            patent.setInventor(userName);
+        }
+
         // FastAPI 호출
         String firstClaim = patent.getClaims() != null && !patent.getClaims().isEmpty()
                 ? patent.getClaims().get(0) : "";

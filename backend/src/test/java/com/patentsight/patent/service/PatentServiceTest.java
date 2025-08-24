@@ -11,8 +11,11 @@ import com.patentsight.patent.domain.PatentStatus;
 import com.patentsight.patent.domain.PatentType;
 import com.patentsight.patent.dto.PatentRequest;
 import com.patentsight.patent.dto.PatentResponse;
+import com.patentsight.patent.dto.SubmitPatentResponse;
 import com.patentsight.patent.repository.PatentRepository;
 import com.patentsight.review.service.ReviewService;
+import com.patentsight.user.domain.User;
+import com.patentsight.user.repository.UserRepository;
 import org.springframework.web.client.RestTemplate;
 import com.patentsight.ai.dto.PredictResponse;
 import org.junit.jupiter.api.Test;
@@ -52,6 +55,9 @@ class PatentServiceTest {
 
     @Mock
     private ReviewService reviewService;
+
+    @Mock
+    private UserRepository userRepository;
 
     @InjectMocks
     private PatentService patentService;
@@ -176,8 +182,12 @@ class PatentServiceTest {
         when(patentRepository.save(any(Patent.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(restTemplate.postForObject(any(), any(), eq(PredictResponse.class))).thenReturn(null);
         doNothing().when(reviewService).autoAssignWithSpecialty(any(Patent.class));
+        User user100 = new User();
+        user100.setUserId(100L);
+        user100.setName("User100");
+        when(userRepository.findById(100L)).thenReturn(Optional.of(user100));
 
-        PatentResponse res = patentService.submitPatent(1L, null);
+        SubmitPatentResponse res = patentService.submitPatent(1L, null, 100L);
 
         assertNotNull(res);
         assertEquals(PatentStatus.SUBMITTED, res.getStatus());
@@ -198,8 +208,12 @@ class PatentServiceTest {
         when(patentRepository.save(any(Patent.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(restTemplate.postForObject(any(), any(), eq(PredictResponse.class))).thenReturn(null);
         doNothing().when(reviewService).autoAssignWithSpecialty(any(Patent.class));
+        User user200 = new User();
+        user200.setUserId(200L);
+        user200.setName("User200");
+        when(userRepository.findById(200L)).thenReturn(Optional.of(user200));
 
-        PatentResponse res = patentService.submitPatent(2L, null);
+        SubmitPatentResponse res = patentService.submitPatent(2L, null, 200L);
 
         assertNotNull(res);
         assertEquals(200L, res.getApplicantId());
