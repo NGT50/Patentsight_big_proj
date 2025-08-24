@@ -576,7 +576,6 @@ public class PatentService {
         specVersionRepository.delete(version);
         return true;
     }
-
     // ------------------- HELPER -------------------
     private PatentResponse toPatentResponse(Patent patent, List<FileAttachment> attachments) {
         PatentResponse response = new PatentResponse();
@@ -590,30 +589,32 @@ public class PatentService {
         response.setInventor(patent.getInventor());
         response.setTechnicalField(patent.getTechnicalField());
         response.setBackgroundTechnology(patent.getBackgroundTechnology());
-
+    
         PatentResponse.InventionDetails details = new PatentResponse.InventionDetails();
         details.setProblemToSolve(patent.getProblemToSolve());
         details.setSolution(patent.getSolution());
         details.setEffect(patent.getEffect());
         response.setInventionDetails(details);
-
+    
         response.setSummary(patent.getSummary());
         response.setDrawingDescription(patent.getDrawingDescription());
         response.setClaims(patent.getClaims());
-
+    
         if (attachments != null) {
             response.setAttachmentIds(attachments.stream()
                     .map(FileAttachment::getFileId)
                     .collect(Collectors.toList()));
         } else {
-            List<Long> attachmentIds = fileRepository.findAll().stream()
-                    .filter(f -> f.getPatent() != null && f.getPatent().getPatentId().equals(patent.getPatentId()))
+            // ★ 변경: 전체 findAll() → 특정 특허에 속한 파일만 조회
+            List<Long> attachmentIds = fileRepository.findByPatent_PatentId(patent.getPatentId())
+                    .stream()
                     .map(FileAttachment::getFileId)
                     .collect(Collectors.toList());
             response.setAttachmentIds(attachmentIds);
         }
         return response;
     }
+
 
     private FileVersionResponse toFileVersionResponse(SpecVersion v) {
         FileVersionResponse res = new FileVersionResponse();
