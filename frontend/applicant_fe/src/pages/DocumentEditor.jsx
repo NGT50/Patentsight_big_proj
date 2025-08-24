@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { submitPatent, getLatestDocument, updateDocument, validatePatentDocument, generateFullDraft } from '../api/patents';
+import { uploadFile } from '../api/files';
 import { 
   FileText, Save, Download, Send, Bot, Box, CheckCircle, AlertCircle, X,
   Plus, Trash2, Eye, Edit3, AlertTriangle
@@ -22,6 +23,8 @@ const DocumentEditor = () => {
   const queryClient = useQueryClient();
   const location = useLocation();
   const [drawingFiles, setDrawingFiles] = useState([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState(null);
   const [attachedPdf, setAttachedPdf] = useState(null);
   const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
   const isDataLoadedFromServerRef = useRef(false);
@@ -76,9 +79,26 @@ const DocumentEditor = () => {
       setDocument(prev => ({ ...prev, claims: newClaims }));
     }
   };
-  const handleDrawingUpload = (event) => {
-    const files = Array.from(event.target.files).map(file => ({ file, preview: URL.createObjectURL(file) }));
-    setDrawingFiles(prev => [...prev, ...files]);
+  const handleDrawingUpload = async (event) => {
+    const files = Array.from(event.target.files);
+    setIsUploading(true);
+    setUploadError(null);
+    try {
+      const uploaded = await Promise.all(
+        files.map(async (file) => {
+          const { fileId, fileUrl, fileName } = await uploadFile({ file, patentId });
+          return { fileId, fileUrl, fileName };
+        })
+      );
+      setDrawingFiles(prev => [...prev, ...uploaded]);
+    } catch (error) {
+      console.error('도면 업로드 실패:', error);
+      setUploadError('도면 업로드에 실패했습니다. 다시 시도해주세요.');
+      alert('도면 업로드에 실패했습니다. 다시 시도해주세요.');
+    } finally {
+      setIsUploading(false);
+      event.target.value = '';
+    }
   };
 
   const saveMutation = useMutation({
@@ -270,7 +290,9 @@ const DocumentEditor = () => {
                 <div ref={el => fieldRefs.current['drawings'] = el} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                   <label className="block text-lg font-semibold text-gray-800 mb-3">도면 업로드</label>
                   <input type="file" multiple accept="image/png, image/jpeg" onChange={handleDrawingUpload} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"/>
-                  <div className="grid grid-cols-3 gap-4 mt-4">{drawingFiles.map((f, index) => (<div key={index} className="border rounded-lg overflow-hidden"><img src={f.preview} alt={`도면 미리보기 ${index + 1}`} className="w-full h-auto object-cover" /></div>))}</div>
+                  {isUploading && <p className="text-sm text-gray-500 mt-2">업로드 중...</p>}
+                  {uploadError && <p className="text-sm text-red-500 mt-2">{uploadError}</p>}
+                  <div className="grid grid-cols-3 gap-4 mt-4">{drawingFiles.map((f, index) => (<div key={f.fileId || index} className="border rounded-lg overflow-hidden"><img src={f.fileUrl} alt={`도면 미리보기 ${index + 1}`} className="w-full h-auto object-cover" /></div>))}</div>
                 </div>
               )}
             </div>
