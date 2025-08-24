@@ -1,5 +1,6 @@
 package com.patentsight.patent.service;
 
+import com.patentsight.user.repository.UserRepository;
 import com.patentsight.file.domain.FileAttachment;
 import com.patentsight.file.domain.SpecVersion;
 import com.fasterxml.jackson.databind.ObjectMapper;
