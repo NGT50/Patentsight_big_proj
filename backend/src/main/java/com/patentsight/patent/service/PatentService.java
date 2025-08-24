@@ -89,15 +89,16 @@ public class PatentService {
         patent.setTechnicalField(request.getTechnicalField());
         patent.setBackgroundTechnology(request.getBackgroundTechnology());
 
-        if (request.getInventor() != null && !request.getInventor().isBlank()) {
-            patent.setInventor(request.getInventor());
-        } else {
-            // inventor가 비어있으면 자동으로 User.name 넣기
+        // inventor 값이 없거나 공백이면 → 자동으로 출원인 이름으로 세팅
+        if (request.getInventor() == null || request.getInventor().isBlank()) {
             String userName = userRepository.findById(applicantId)
-                    .map(user -> user.getName())
+                    .map(User::getName)
                     .orElse("미지정");
             patent.setInventor(userName);
+        } else {
+            patent.setInventor(request.getInventor());
         }
+
     
         if (request.getInventionDetails() != null) {
             patent.setProblemToSolve(request.getInventionDetails().getProblemToSolve());
