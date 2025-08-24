@@ -39,11 +39,11 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
-    // ✅ CORS 설정 (allowedOriginPatterns 사용)
+    // ✅ CORS 설정
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(Arrays.asList(
+        configuration.setAllowedOrigins(Arrays.asList(
                 "http://35.175.253.22:3000",   // 출원인 프론트
                 "http://35.175.253.22:3001",   // 심사관 프론트
                 "http://localhost:3000",       // 로컬 출원인
@@ -51,18 +51,16 @@ public class SecurityConfig {
                 "http://35.175.253.22:5173",   // Vite 기본 포트
                 "http://localhost:5173"        // 로컬 vite
         ));
-        
-        // ✅ "PATCH"가 추가된 부분
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-        
         configuration.setAllowedHeaders(Collections.singletonList("*"));
+        configuration.setExposedHeaders(Arrays.asList("Authorization")); // 필요 시
         configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }
-    
+
     @Bean
     public JwtAuthenticationConverter jwtAuthenticationConverter() {
         JwtGrantedAuthoritiesConverter delegate = new JwtGrantedAuthoritiesConverter();
@@ -105,7 +103,7 @@ public class SecurityConfig {
                     "/api/users/verify-code",
                     "/h2-console/**"
                 ).permitAll()
-                .requestMatchers(HttpMethod.PATCH, "/api/opinions/**").hasRole("EXAMINER")     
+                .requestMatchers(HttpMethod.PATCH, "/api/opinions/**").hasRole("EXAMINER")
                 .anyRequest().authenticated()
             )
             .oauth2ResourceServer(oauth -> oauth
