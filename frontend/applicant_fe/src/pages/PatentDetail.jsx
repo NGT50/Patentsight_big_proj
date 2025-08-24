@@ -26,13 +26,17 @@ const PatentDetail = () => {
     try {
       const response = await submitPatent(id, {
         title: patent.title,
+        type: patent.type,   // ✅ 누락되면 백엔드에서 null 에러 발생
+        cpc: patent.cpc,
+        inventor: patent.inventor,
         technicalField: patent.technicalField,
         backgroundTechnology: patent.backgroundTechnology,
         inventionDetails: patent.inventionDetails,
         summary: patent.summary,
-        claims: patent.claims,
         drawingDescription: patent.drawingDescription,
+        claims: patent.claims,
       });
+  
       setPatent((prev) => ({ ...prev, status: response.status }));
       queryClient.invalidateQueries(['myPatents']);
       setSubmitStatus('✅ 제출 완료되었습니다.');
