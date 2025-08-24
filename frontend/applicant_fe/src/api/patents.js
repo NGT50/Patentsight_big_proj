@@ -160,10 +160,31 @@ export const sendMessageToChatSession = async (sessionId, message) => {
 // 문서 내용 수정(임시저장) API
 export const updateDocument = async ({ patentId, documentData }) => {
   try {
-    // patentId는 URL로 이미 전달되므로 body에서 제거해야 함
-    const { patentId: _, ...cleanData } = documentData;
+    const {
+      title,
+      type,
+      cpc,
+      inventor,
+      technicalField,
+      backgroundTechnology,
+      inventionDetails,
+      summary,
+      drawingDescription,
+      claims,
+    } = documentData;
 
-    const res = await axios.patch(`/api/patents/${patentId}/document`, cleanData);
+    const res = await axios.patch(`/api/patents/${patentId}/document`, {
+      title,
+      type,
+      cpc,
+      inventor,
+      technicalField,
+      backgroundTechnology,
+      inventionDetails,
+      summary,
+      drawingDescription,
+      claims,
+    });
     return res.data;
   } catch (error) {
     console.error('문서 임시저장 실패:', error);
