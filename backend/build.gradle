@@ -55,7 +55,7 @@ dependencies {
         testImplementation 'org.springframework:spring-test'
 
         // ✅ DB
-        // runtimeOnly 'com.h2database:h2'
+//         runtimeOnly 'com.h2database:h2'
         runtimeOnly 'com.mysql:mysql-connector-j'
 
 	// ✅ Lombok

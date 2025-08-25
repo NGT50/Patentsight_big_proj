@@ -1,10 +1,10 @@
 spring:
-  datasource: 
+  datasource:
     url: jdbc:mysql://patent-db-new.c05iwow0ip8e.us-east-1.rds.amazonaws.com:3306/patent_db?useSSL=false&serverTimezone=UTC&characterEncoding=UTF-8
     driver-class-name: com.mysql.cj.jdbc.Driver
     username: admin
     password: tab20200782!
-    
+
   jpa:
     hibernate:
       ddl-auto: update   # 개발 단계는 update, 운영 배포는 validate 권장
@@ -16,7 +16,8 @@ spring:
 
   sql:
     init:
-      mode: never #always
+      mode: always
+      separator: "//"
 
 management:
   endpoints:
