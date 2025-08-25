@@ -13,7 +13,8 @@ import {
   sendChatMessageToServer,
   validatePatentDocument,
   generateRejectionDraft,
-  searchDesignImage
+  searchDesignImage,
+  searchDesignImageByBlob
 } from '../api/ai';
 
 // 파일 API
@@ -410,7 +411,7 @@ export default function DesignReview() {
       if (!url) return;
       try {
         setIsSearchingSimilarity(true);
-        const results = await searchDesignImage(url);
+        const results = await searchDesignImageByBlob(url);
         if (results && results.results) setSimilarityResults(results.results);
         else setSimilarityResults([]);
       } catch (e) {
@@ -611,14 +612,64 @@ ${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getD
   };
 
   // 서류 점검
+// 서류 점검
   const handleDocumentCheck = async () => {
     if (!design) return;
-    showMessageBox('AI가 출원 서류를 점검 중입니다...');
+
+    // 🔵 결과 나오기 전, 모달에 로딩 문구 먼저 표시
+    showMessageBox('오류 점검 중…');
+
     try {
       const results = await validatePatentDocument(design.patentId);
-      if (results && results.length > 0) {
-        const errorMessages = results.map(err => `[${err.error_type}] ${err.message}`).join('\n\n');
-        showMessageBox(`점검 결과:\n\n${errorMessages}`);
+
+      // ✅ 응답 정규화
+      const flat = [];
+      if (Array.isArray(results)) {
+        flat.push(...results);
+      } else if (results && typeof results === 'object') {
+        const { formatErrors, contextualErrors, missingSections } = results;
+
+        if (Array.isArray(formatErrors)) {
+          flat.push(...formatErrors.map(e => ({
+            type: 'FORMAT',
+            field: e.field,
+            message: e.message,
+            id: e.id,
+          })));
+        }
+        if (Array.isArray(contextualErrors)) {
+          flat.push(...contextualErrors.map(e => ({
+            type: 'CONTEXT',
+            field: e.field,
+            claim: e.claim,
+            claimIndex: e.claimIndex,
+            message: e.analysis || e.message,
+            id: e.id,
+          })));
+        }
+        if (Array.isArray(missingSections)) {
+          flat.push(...missingSections.map(e => ({
+            type: 'MISSING',
+            field: e.field,
+            message: e.message,
+            id: e.id,
+          })));
+        }
+      }
+
+      // 🔵 같은 모달에 결과로 교체
+      if (flat.length > 0) {
+        const pretty = flat.map((e, i) => {
+          const where =
+            e.claim ? ` (${e.claim}${typeof e.claimIndex === 'number' ? `#${e.claimIndex + 1}` : ''})` :
+            e.field ? ` [${e.field}]` : '';
+          const tag =
+            e.type === 'FORMAT'  ? '형식오류' :
+            e.type === 'CONTEXT' ? '맥락오류' :
+            e.type === 'MISSING' ? '누락섹션' : (e.type || '오류');
+          return `${i + 1}. [${tag}]${where} ${e.message}`;
+        }).join('\n');
+        showMessageBox(`점검 결과 ❗\n\n${pretty}`);
       } else {
         showMessageBox('점검 완료 ✨\n\n서류에서 특별한 오류가 발견되지 않았습니다.');
       }
@@ -627,6 +678,7 @@ ${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getD
       showMessageBox('오류: 서류 점검 중 문제가 발생했습니다.');
     }
   };
+
 
   // 의견서 그룹화(Part 통합)
   const groupedNotices = useMemo(() => {
