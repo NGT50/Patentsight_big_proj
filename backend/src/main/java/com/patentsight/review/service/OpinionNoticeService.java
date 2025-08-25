@@ -41,7 +41,6 @@ public class OpinionNoticeService {
         // Review 결정과 특허 상태를 함께 저장
         reviewRepository.save(review);
         patentRepository.saveAndFlush(review.getPatent());
-
         OpinionNotice notice = OpinionNotice.builder()
                 .review(review)
                 .type(request.getOpinionType())
