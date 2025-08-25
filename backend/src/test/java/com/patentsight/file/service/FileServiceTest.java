@@ -14,10 +14,12 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.web.multipart.MultipartFile;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
+import org.mockito.MockedStatic;
 
 @ExtendWith(MockitoExtension.class)
 class FileServiceTest {
@@ -51,19 +53,25 @@ class FileServiceTest {
         patent.setPatentId(10L);
         when(patentRepository.findById(10L)).thenReturn(java.util.Optional.of(patent));
 
-        FileResponse res = fileService.create(multipartFile, 99L, 10L);
+        try (MockedStatic<FileUtil> mocked = mockStatic(FileUtil.class)) {
+            mocked.when(() -> FileUtil.saveFile(any(MultipartFile.class))).thenReturn("stored/hello.pdf");
+            mocked.when(() -> FileUtil.getPublicUrl("stored/hello.pdf")).thenReturn("https://example.com/stored/hello.pdf");
+            mocked.when(() -> FileUtil.deleteFile(anyString())).thenAnswer(invocation -> null);
 
-        assertNotNull(res);
-        assertEquals(1L, res.getFileId());
-        assertEquals(99L, res.getUploaderId());
-        assertEquals(10L, res.getPatentId());
-        assertEquals("hello.pdf", res.getFileName());
-        assertEquals(FileType.PDF, res.getFileType());
-        assertNotNull(res.getFileUrl());
-        verify(fileRepository).save(any(FileAttachment.class));
+            FileResponse res = fileService.create(multipartFile, 99L, 10L);
 
-        // cleanup saved file
-        FileUtil.deleteFile(res.getFileUrl());
+            assertNotNull(res);
+            assertEquals(1L, res.getFileId());
+            assertEquals(99L, res.getUploaderId());
+            assertEquals(10L, res.getPatentId());
+            assertEquals("hello.pdf", res.getFileName());
+            assertEquals(FileType.PDF, res.getFileType());
+            assertEquals("https://example.com/stored/hello.pdf", res.getFileUrl());
+            verify(fileRepository).save(any(FileAttachment.class));
+
+            // cleanup saved file
+            FileUtil.deleteFile(res.getFileUrl());
+        }
     }
 }
 
