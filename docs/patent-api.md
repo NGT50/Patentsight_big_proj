@@ -143,8 +143,8 @@ curl -X POST "https://778efa9bea99.ngrok-free.app/generate" \
 
 | API 이름 | 설명 | Method | URL | 요청 데이터 | 응답 데이터 | 비고 |
 | --- | --- | --- | --- | --- | --- | --- |
-| UploadFile | 파일 업로드 | POST | /api/files | `file=@lock.png&patentId=1` | `{ "fileId":101,"patentId":1,"fileName":"lock.png","fileUrl":"/uploads/lock.png","uploaderId":1,"updatedAt":"2024-01-01T10:00:00" }` | Authorization 헤더 필요, multipart/form-data로 업로드 |
-| GetFileDetail | 파일 메타데이터 조회 | GET | /api/files/{fileId} | - | `{ "fileId":101,"patentId":1,"fileName":"lock.png","fileUrl":"/uploads/lock.png","uploaderId":1,"content":null,"updatedAt":"2024-01-01T10:00:00" }` | 실제 파일 다운로드는 fileUrl 사용 |
-| UpdateFile | 파일 교체 업로드 | PUT | /api/files/{fileId} | `file=@lock_v2.png` | `{ "fileId":101,"patentId":1,"fileName":"lock_v2.png","fileUrl":"/uploads/lock_v2.png","uploaderId":1,"updatedAt":"2024-01-02T09:00:00" }` | 기존 파일 삭제 후 새로 저장 |
+| UploadFile | 파일 업로드 | POST | /api/files | `file=@lock.png&patentId=1` | `{ "fileId":101,"patentId":1,"fileName":"lock.png","fileUrl":"https://bucket.s3.amazonaws.com/lock.png?X-Amz-Algorithm=...","uploaderId":1,"updatedAt":"2024-01-01T10:00:00" }` | Authorization 헤더 필요, multipart/form-data로 업로드 |
+| GetFileDetail | 파일 메타데이터 조회 | GET | /api/files/{fileId} | - | `{ "fileId":101,"patentId":1,"fileName":"lock.png","fileUrl":"https://bucket.s3.amazonaws.com/lock.png?X-Amz-Algorithm=...","uploaderId":1,"content":null,"updatedAt":"2024-01-01T10:00:00" }` | 실제 파일 다운로드는 fileUrl 사용 |
+| UpdateFile | 파일 교체 업로드 | PUT | /api/files/{fileId} | `file=@lock_v2.png` | `{ "fileId":101,"patentId":1,"fileName":"lock_v2.png","fileUrl":"https://bucket.s3.amazonaws.com/lock_v2.png?X-Amz-Algorithm=...","uploaderId":1,"updatedAt":"2024-01-02T09:00:00" }` | 기존 파일 삭제 후 새로 저장 |
 | DeleteFile | 파일 삭제 | DELETE | /api/files/{fileId} | - | `204 No Content` | 존재하지 않는 경우 404 반환 |
 

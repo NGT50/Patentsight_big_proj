@@ -1,7 +1,6 @@
 import axios from './axiosInstance';
 
 const API_ROOT = '/api/files';
-
 const isHttpUrl = (u) => /^https?:\/\//i.test(u);
 
 export function toAbsoluteFileUrl(u) {
@@ -9,12 +8,13 @@ export function toAbsoluteFileUrl(u) {
   if (isHttpUrl(u)) return u;
 
   const normalized = u.startsWith('/') ? u : `/${u.replace(/^\.?\//, '')}`;
+  const encPath = encodeURI(normalized);
   const base = axios.defaults.baseURL;
 
   if (base && isHttpUrl(base)) {
-    return base.replace(/\/+$/, '') + normalized;
+    return base.replace(/\/+$/, '') + encPath;
   }
-  return normalized;
+  return encPath;
 }
 
 export const parsePatentPdf = async (file) => {
@@ -33,7 +33,7 @@ export const parsePatentPdf = async (file) => {
 
 export const getFileDetail = async (fileId) => {
   const { data } = await axios.get(`${API_ROOT}/${fileId}`);
-  return data;
+  return { ...data, fileUrl: toAbsoluteFileUrl(data.fileUrl) };
 };
 
 const IMAGE_EXTS = new Set(['png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp', 'svg']);
@@ -88,7 +88,8 @@ export const uploadFile = async ({ file, patentId }) => {
     const res = await axios.post(API_ROOT, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
-    return res.data;
+    const data = res.data;
+    return { ...data, fileUrl: toAbsoluteFileUrl(data.fileUrl) };
   } catch (error) {
     console.error('파일 업로드 실패:', error);
     throw error;
