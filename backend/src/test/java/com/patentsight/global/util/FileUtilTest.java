@@ -17,4 +17,12 @@ class FileUtilTest {
         String s3 = "https://patentsight-artifacts-usea1.s3.us-east-1.amazonaws.com/test.png";
         assertEquals(s3, FileUtil.getPublicUrl(s3));
     }
+
+    @Test
+    void stripsFilesystemPaths() {
+        String local = "/home/ubuntu/uploads/sample.pdf";
+        String url = FileUtil.getPublicUrl(local);
+        assertTrue(url.contains("sample.pdf"));
+        assertTrue(url.contains("patentsight-artifacts-usea1"));
+    }
 }
