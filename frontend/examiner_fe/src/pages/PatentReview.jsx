@@ -881,13 +881,17 @@ ${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getD
                     {drawingSources.length > 0 ? (
                       drawingSources.map((srcLike, i) => {
                         const active = selectedDrawingIdx === i;
+                        const displayName =
+                          typeof srcLike === 'string'
+                            ? srcLike.split('/').pop()
+                            : srcLike.fileName;
                         return (
                           <button
                             type="button"
                             key={i}
                             onClick={() => setSelectedDrawingIdx(i)}
                             className={`relative border rounded-md overflow-hidden bg-white text-left transition-all focus:outline-none ${active ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-gray-200 hover:ring-1 hover:ring-gray-300'}`}
-                            title={typeof srcLike === 'string' ? srcLike : srcLike.fileName}
+                            title={displayName}
                           >
                             <SmartImage source={srcLike} alt={`도면 ${i + 1}`} className="w-full h-32 object-contain bg-white" />
                             {active && (
@@ -895,9 +899,7 @@ ${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getD
                                 선택됨
                               </span>
                             )}
-                            <div className="p-2 text-[11px] text-gray-600 truncate">
-                              {typeof srcLike === 'string' ? srcLike : `${srcLike.patentId}/${srcLike.fileName}`}
-                            </div>
+                            <div className="p-2 text-[11px] text-gray-600 truncate">{displayName}</div>
                           </button>
                         );
                       })

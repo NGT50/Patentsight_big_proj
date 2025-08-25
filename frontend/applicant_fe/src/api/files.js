@@ -1,5 +1,7 @@
 import axios from './axiosInstance';
 
+/* global S3_PUBLIC_BASE */
+
 const API_ROOT = '/api/files';
 const isHttpUrl = (u) => /^https?:\/\//i.test(u);
 
