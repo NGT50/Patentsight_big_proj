@@ -85,6 +85,7 @@ const PatentDetail = () => {
     REJECTED: 'text-red-600 bg-red-100',
   };
   const canEdit = !['SUBMITTED', 'APPROVED', 'REJECTED'].includes(patent.status);
+  
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-screen-xl mx-auto px-4 py-8">
@@ -161,6 +162,7 @@ const PatentDetail = () => {
             <h2 className="text-lg font-semibold text-gray-800 mb-2">요약</h2>
             <p className="text-gray-700 whitespace-pre-wrap">{patent.summary || 'N/A'}</p>
           </div>
+
           {(images.length > 0 || glbUrl) && (
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <h2 className="text-lg font-semibold text-gray-800 mb-4">첨부 파일</h2>
@@ -181,6 +183,7 @@ const PatentDetail = () => {
               </div>
             </div>
           )}
+
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h2 className="text-lg font-semibold text-gray-800 mb-2">도면의 간단한 설명</h2>
             <p className="text-gray-700 whitespace-pre-wrap">{patent.drawingDescription || 'N/A'}</p>

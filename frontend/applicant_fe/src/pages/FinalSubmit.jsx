@@ -18,11 +18,12 @@ const FinalSubmitPage = () => {
     mutationFn: submitPatent,
     onSuccess: (result) => {
       alert(`최종 제출이 완료되었습니다. (출원번호: ${result.applicationNumber})`);
-      
-      // 이 한 줄만 있으면 됩니다. 마이페이지 데이터를 새로고침하라는 명령.
+
+      // 마이페이지 및 상세보기 캐시 갱신
       queryClient.invalidateQueries(['myPatents']);
-      
-      navigate('/mypage');
+      queryClient.invalidateQueries(['patentDetail', patentId]);
+
+      navigate(`/patent/${patentId}`);
     },
     onError: (err) => {
       alert(`최종 제출 중 오류가 발생했습니다: ${err.message}`);
