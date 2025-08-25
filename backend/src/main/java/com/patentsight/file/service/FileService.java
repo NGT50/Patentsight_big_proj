@@ -8,6 +8,8 @@ import com.patentsight.file.repository.FileRepository;
 import com.patentsight.global.util.FileUtil;
 import com.patentsight.patent.domain.Patent;
 import com.patentsight.patent.repository.PatentRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -20,6 +22,8 @@ import java.time.LocalDateTime;
 @Transactional
 public class FileService {
 
+    private static final Logger log = LoggerFactory.getLogger(FileService.class);
+
     private final FileRepository fileRepository;
     private final PatentRepository patentRepository;
 
@@ -30,6 +34,10 @@ public class FileService {
 
     public FileResponse create(MultipartFile file, Long uploaderId, Long patentId) {
         try {
+            FileType fileType = determineFileType(file.getOriginalFilename());
+            if (fileType == null) {
+                throw new IllegalArgumentException("Unsupported file type");
+            }
             String path = FileUtil.saveFile(file);
             FileAttachment attachment = new FileAttachment();
             attachment.setUploaderId(uploaderId);
@@ -45,7 +53,8 @@ public class FileService {
             fileRepository.save(attachment);
             return toResponse(attachment);
         } catch (IOException e) {
-            throw new S3UploadException("Could not store file: " + e.getMessage(), e);
+            log.error("Could not store file on S3", e);
+            throw new S3UploadException("Could not store file on S3: " + e.getMessage(), e);
         }
     }
 
@@ -57,16 +66,21 @@ public class FileService {
         FileAttachment attachment = fileRepository.findById(id).orElse(null);
         if (attachment == null) return null;
         try {
+            FileType fileType = determineFileType(file.getOriginalFilename());
+            if (fileType == null) {
+                throw new IllegalArgumentException("Unsupported file type");
+            }
             FileUtil.deleteFile(attachment.getFileUrl());
             String path = FileUtil.saveFile(file);
             attachment.setFileName(file.getOriginalFilename());
             attachment.setFileUrl(path);
-            attachment.setFileType(determineFileType(file.getOriginalFilename()));
+            attachment.setFileType(fileType);
             attachment.setUpdatedAt(LocalDateTime.now());
             fileRepository.save(attachment);
             return toResponse(attachment);
         } catch (IOException e) {
-            throw new S3UploadException("Could not update file: " + e.getMessage(), e);
+            log.error("Could not update file on S3", e);
+            throw new S3UploadException("Could not update file on S3: " + e.getMessage(), e);
         }
     }
 

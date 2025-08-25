@@ -24,6 +24,8 @@ import java.time.Duration;
 @RequestMapping("/api/files")
 public class FileController {
 
+    private static final Logger log = LoggerFactory.getLogger(FileController.class);
+
     private final FileService fileService;
     private final JwtTokenProvider jwtTokenProvider;
 

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { submitPatent, getPatentDetail, updateDocument, validatePatentDocument, generateFullDraft } from '../api/patents';
-import { uploadFile } from '../api/files';
+import { uploadFile, toAbsoluteFileUrl } from '../api/files';
 import { 
   FileText, Save, Download, Send, Bot, Box, CheckCircle, AlertCircle, X,
   Plus, Trash2, Eye, Edit3, AlertTriangle
@@ -300,7 +300,7 @@ const DocumentEditor = () => {
                   <input type="file" multiple accept="image/png, image/jpeg" onChange={handleDrawingUpload} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"/>
                   {isUploading && <p className="text-sm text-gray-500 mt-2">업로드 중...</p>}
                   {uploadError && <p className="text-sm text-red-500 mt-2">{uploadError}</p>}
-                  <div className="grid grid-cols-3 gap-4 mt-4">{drawingFiles.map((f, index) => (<div key={f.fileId || index} className="border rounded-lg overflow-hidden"><img src={f.fileUrl} alt={`도면 미리보기 ${index + 1}`} className="w-full h-auto object-cover" /></div>))}</div>
+                  <div className="grid grid-cols-3 gap-4 mt-4">{drawingFiles.map((f, index) => (<div key={f.fileId || index} className="border rounded-lg overflow-hidden"><img src={toAbsoluteFileUrl(f.fileUrl)} alt={`도면 미리보기 ${index + 1}`} className="w-full h-auto object-cover" /></div>))}</div>
                 </div>
               )}
             </div>
