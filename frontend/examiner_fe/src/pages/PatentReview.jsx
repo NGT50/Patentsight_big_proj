@@ -224,6 +224,10 @@ export default function PatentReview() {
   const [attachmentImageUrls, setAttachmentImageUrls] = useState([]); // string[]
   const [attachmentOtherFiles, setAttachmentOtherFiles] = useState([]); // {id,name,url}[]
 
+
+  const [validationErrors, setValidationErrors] = useState([]);
+  const [hasValidated, setHasValidated] = useState(false); // 한 번이라도 점검했는지
+
   // 첨부에서 찾은 glb 뷰어 소스
   const [glbModelUrl, setGlbModelUrl] = useState('');
 
@@ -525,18 +529,69 @@ ${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getD
 
   const handleDocumentCheck = async () => {
     if (!patent) return;
-    showMessageBox('AI가 출원 서류를 점검 중입니다...');
     try {
       const results = await validatePatentDocument(patent.patentId);
-      if (results?.length) {
-        const msg = results.map(err => `[${err.error_type}] ${err.message}`).join('\n\n');
-        showMessageBox(`점검 결과:\n\n${msg}`);
-      } else showMessageBox('점검 완료 ✨\n\n서류에서 특별한 오류가 발견되지 않았습니다.');
+
+      // ✅ 응답 정규화
+      const flat = [];
+      if (Array.isArray(results)) {
+        flat.push(...results);
+      } else if (results && typeof results === 'object') {
+        const { formatErrors, contextualErrors, missingSections } = results;
+        if (Array.isArray(formatErrors)) {
+          flat.push(...formatErrors.map(e => ({
+            type: 'FORMAT',
+            field: e.field,
+            message: e.message,
+            id: e.id,
+          })));
+        }
+        if (Array.isArray(contextualErrors)) {
+          flat.push(...contextualErrors.map(e => ({
+            type: 'CONTEXT',
+            field: e.field,
+            claim: e.claim,
+            claimIndex: e.claimIndex,
+            message: e.analysis || e.message,
+            id: e.id,
+          })));
+        }
+        if (Array.isArray(missingSections)) {
+          flat.push(...missingSections.map(e => ({
+            type: 'MISSING',
+            field: e.field,
+            message: e.message,
+            id: e.id,
+          })));
+        }
+      }
+
+      // ✅ 페이지 본문에서도 보이도록 state 저장
+      setValidationErrors(flat);
+      setHasValidated(true);
+
+      // (선택) 모달 알림도 유지
+      if (flat.length > 0) {
+        const pretty = flat.map((e, i) => {
+          const where =
+            e.claim ? ` (${e.claim}${typeof e.claimIndex === 'number' ? `#${e.claimIndex + 1}` : ''})` :
+            e.field ? ` [${e.field}]` : '';
+          const tag =
+            e.type === 'FORMAT'  ? '형식오류' :
+            e.type === 'CONTEXT' ? '맥락오류' :
+            e.type === 'MISSING' ? '누락섹션' : (e.type || '오류');
+          return `${i + 1}. [${tag}]${where} ${e.message}`;
+        }).join('\n');
+        showMessageBox(`점검 결과 ❗\n\n${pretty}`);
+      } else {
+        showMessageBox('점검 완료 ✨\n\n서류에서 특별한 오류가 발견되지 않았습니다.');
+      }
     } catch (e) {
       console.error('출원 서류 점검 실패:', e);
       showMessageBox('오류: 서류 점검 중 문제가 발생했습니다.');
     }
   };
+
 
   if (loading) {
     return (
@@ -814,6 +869,56 @@ ${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getD
                   </div>
                 )}
               </div>
+
+              {/* AI 서류 점검 결과 */}
+              <div className="mt-6">
+                <h4 className="font-medium text-lg text-gray-800 flex items-center gap-1">
+                  <ScrollText className="w-4 h-4 text-blue-400" />
+                  AI 서류 점검 결과
+                </h4>
+
+                {/* 점검 후 오류 없음 배너 */}
+                {hasValidated && validationErrors.length === 0 && (
+                  <div className="mt-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+                    점검 완료 ✨ 서류에서 특별한 오류가 발견되지 않았습니다.
+                  </div>
+                )}
+
+                {/* 오류 리스트 */}
+                {validationErrors.length > 0 && (
+                  <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-4">
+                    <ul className="space-y-2">
+                      {validationErrors.map((e, i) => {
+                        const tag =
+                          e.type === 'FORMAT'  ? '형식오류' :
+                          e.type === 'CONTEXT' ? '맥락오류' :
+                          e.type === 'MISSING' ? '누락섹션' : (e.type || '오류');
+
+                        const where = e.claim
+                          ? ` (${e.claim}${typeof e.claimIndex === 'number' ? `#${e.claimIndex + 1}` : ''})`
+                          : (e.field ? ` [${e.field}]` : '');
+
+                        return (
+                          <li key={e.id || i} className="text-sm text-red-800">
+                            <span className="inline-flex items-center rounded-full border border-red-300 bg-white px-2 py-0.5 text-xs font-semibold text-red-700 mr-2">
+                              {tag}
+                            </span>
+                            <span className="font-medium">{where}</span> {e.message}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                )}
+
+                {/* 아직 점검 전 안내 */}
+                {!hasValidated && (
+                  <p className="mt-2 text-xs text-gray-500">
+                    ※ 상단의 <b>AI 서류 점검</b> 버튼을 눌러 결과를 확인하세요.
+                  </p>
+                )}
+              </div>
+
             </section>
           </div>
 
