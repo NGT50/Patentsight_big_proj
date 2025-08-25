@@ -111,20 +111,32 @@ export const searchDesignImage = async (input) => {
 };
 
 // 이미지 파일(blob)로 직접 유사 디자인 검색
+// 이미지 파일(blob)로 직접 유사 디자인 검색
 export async function searchDesignImageByBlob(imgUrl) {
-  const res = await fetch(imgUrl, { credentials: 'include' });
+  const token = localStorage.getItem('token');
+  const isApi = imgUrl.startsWith('/api/') || imgUrl.startsWith(`${window.location.origin}/api/`);
+
+  // 1) 원본 이미지 가져오기 (프리사인/내부 API 모두 대응)
+  const res = await fetch(imgUrl, {
+    headers: isApi && token ? { Authorization: `Bearer ${token}` } : {},
+    credentials: 'include',
+  });
   if (!res.ok) throw new Error('image fetch failed');
+
+  // 2) blob → form-data
   const blob = await res.blob();
   const form = new FormData();
   form.append('file', blob, 'drawing.png');
 
-  const r = await fetch('/api/search/design/image', {
-    method: 'POST',
-    body: form,
-  });
-  if (!r.ok) throw new Error('search api failed');
-  return r.json();
+  // 3) 백엔드 검색 API 호출 (axiosInstance 사용 + 토큰 자동첨부)
+  const { data } = await axiosInstance.post(
+    '/api/ai/search/design/image',
+    form,
+    { headers: { 'Content-Type': 'multipart/form-data' } }
+  );
+  return data;
 }
+
 
 
 /** [상표 이미지 검색] (스펙: POST /api/ai/search/trademark/image form-data[file]) */
