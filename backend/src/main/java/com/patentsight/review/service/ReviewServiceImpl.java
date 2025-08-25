@@ -166,17 +166,6 @@ public class ReviewServiceImpl implements ReviewService {
 
     }
 
-    // 🔹 Review.Decision → PatentStatus 변환
-    private PatentStatus convertToPatentStatus(Review.Decision decision) {
-        return switch (decision) {
-
-            case SUBMITTED -> PatentStatus.SUBMITTED;
-            case REVIEWING -> PatentStatus.REVIEWING;
-            case APPROVE -> PatentStatus.APPROVED;
-            case REJECT -> PatentStatus.REJECTED;
-        };
-    }
-
     // 🔹 출원인 이름 조회
     private String getApplicantName(Long applicantId) {
         return userRepository.findById(applicantId)
@@ -261,16 +250,10 @@ public class ReviewServiceImpl implements ReviewService {
         review.setDecision(decision);
         review.setComment(request.getComment());
         review.setReviewedAt(LocalDateTime.now());
-
-        // 🔸 4. Patent 상태 동기화 후 저장
-        Patent patent = review.getPatent();
-        patent.setStatus(convertToPatentStatus(decision));
-        patentRepository.saveAndFlush(patent);
-
-        // 🔸 5. Review 저장
+        // 🔸 4. Review 저장 (Patent 상태는 Review.setDecision에서 동기화)
         Review updatedReview = reviewRepository.save(review);
-    
         // 🔔 알림 로직 유지
+        Patent patent = review.getPatent();
         if (patent.getApplicantId() != null) {
             notificationService.createNotification(NotificationRequest.builder()
                     .userId(patent.getApplicantId())

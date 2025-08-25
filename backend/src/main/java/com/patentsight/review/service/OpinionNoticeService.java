@@ -1,7 +1,5 @@
 package com.patentsight.review.service;
 
-import com.patentsight.patent.domain.PatentStatus;
-import com.patentsight.patent.repository.PatentRepository;
 import com.patentsight.review.domain.OpinionNotice;
 import com.patentsight.review.domain.OpinionType;
 import com.patentsight.review.domain.OpinionStatus;
@@ -34,25 +32,13 @@ public class OpinionNoticeService {
 
         // ✅ OpinionType에 따라 Review/Patent 상태 동기화
         switch (request.getOpinionType()) {
-            case APPROVAL -> {
-                review.setDecision(Review.Decision.APPROVE);
-                review.getPatent().setStatus(PatentStatus.APPROVED);
-            }
-            case REJECTION -> {
-                review.setDecision(Review.Decision.REJECT);
-                review.getPatent().setStatus(PatentStatus.REJECTED);
-            }
-            case EXAMINER_OPINION -> {
-                review.setDecision(Review.Decision.REVIEWING);
-                review.getPatent().setStatus(PatentStatus.REVIEWING);
-            }
+            case APPROVAL -> review.setDecision(Review.Decision.APPROVE);
+            case REJECTION -> review.setDecision(Review.Decision.REJECT);
+            case EXAMINER_OPINION -> review.setDecision(Review.Decision.REVIEWING);
         }
 
         // Review 결정과 특허 상태를 함께 저장
         reviewRepository.save(review);
-
-        patentRepository.saveAndFlush(review.getPatent());
-
         OpinionNotice notice = OpinionNotice.builder()
                 .review(review)
                 .type(request.getOpinionType())
