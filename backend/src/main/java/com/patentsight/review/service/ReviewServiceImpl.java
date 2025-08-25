@@ -2,6 +2,7 @@ package com.patentsight.review.service;
 
 import com.patentsight.patent.domain.Patent;
 import com.patentsight.patent.domain.PatentStatus;
+import com.patentsight.patent.domain.PatentType;
 import com.patentsight.patent.repository.PatentRepository;
 import com.patentsight.review.domain.Review;
 import com.patentsight.review.dto.*;
@@ -91,9 +92,13 @@ public class ReviewServiceImpl implements ReviewService {
     // 2️⃣ 자동 배정 (전문분야 + 최소 업무량 기준, 없으면 대기 상태)
     @Override
     public void autoAssignWithSpecialty(Patent patent) {
-        Optional<User> examinerOpt = userRepository.findTopByDepartmentOrderByCurrentLoadAsc(
-                DepartmentType.valueOf(patent.getType().name())
-        ); // ✅ 세미콜론 누락 주의
+        DepartmentType dept = switch (patent.getType()) {
+            case PATENT, UTILITY_MODEL -> DepartmentType.PATENT;
+            case DESIGN -> DepartmentType.DESIGN;
+            case TRADEMARK -> DepartmentType.TRADEMARK;
+        };
+
+        Optional<User> examinerOpt = userRepository.findTopByDepartmentOrderByCurrentLoadAsc(dept);
 
         if (examinerOpt.isEmpty()) {
             patent.setStatus(PatentStatus.WAITING_ASSIGNMENT);
