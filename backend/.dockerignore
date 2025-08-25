@@ -2,3 +2,7 @@ __pycache__/
 *.pyc
 venv/
 .env
+ai_data/
+korpat_index.faiss
+korpat_index.faiss.meta.json
+장치-독립항-공개공보-청구항구조화정보.jsonl
