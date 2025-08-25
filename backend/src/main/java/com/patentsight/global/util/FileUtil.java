@@ -39,7 +39,7 @@ public class FileUtil {
 
     // Default bucket where files are stored. Mirrors the public bucket used by the frontend.
     private static final String BUCKET =
-            System.getenv().getOrDefault("S3_BUCKET", "patentsight-artifacts-use1");
+            System.getenv().getOrDefault("S3_BUCKET", "patentsight-artifacts-usea1");
     /**
      * Resolves the AWS region from {@code AWS_REGION} env var. If the provided value
      * does not match a known region, {@code us-east-1} is used instead so that

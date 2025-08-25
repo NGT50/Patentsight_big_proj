@@ -88,8 +88,26 @@ jobs:
             echo "Deploying: $TARGET_JAR"
 
             if [ ! -f "$TARGET_JAR" ]; then
-              echo "ERROR: $TARGET_JAR not found"; exit 1
+              echo "ERROR: $TARGET_JAR not found" >&2
+              exit 1
             fi
 
-            "$APP_DIR/deploy.sh" "$TARGET_JAR"
+            cd "$APP_DIR"
+
+            PIDS=$(ps -eo pid,comm,args | awk '$2=="java" && $0 ~ /current.jar/ {print $1}' || true)
+            if [ -n "$PIDS" ]; then
+              echo "> 실행 중인 애플리케이션(PID: $PIDS)을 종료합니다."
+              echo "$PIDS" | xargs -r kill || true
+              sleep 5
+              PIDS=$(ps -eo pid,comm,args | awk '$2=="java" && $0 ~ /current.jar/ {print $1}' || true)
+              if [ -n "$PIDS" ]; then
+                echo "> 프로세스가 아직 살아있습니다. 강제 종료합니다."
+                echo "$PIDS" | xargs -r kill -9 || true
+              fi
+            fi
+
+            ln -sfn "$TARGET_JAR" "$APP_DIR/current.jar"
+            nohup java -jar "$APP_DIR/current.jar" > "$APP_DIR/app.log" 2>&1 &
+            echo "> 새 애플리케이션 실행"
+            echo "✅ 배포 완료"
 
