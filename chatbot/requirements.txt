@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+pydantic>=2.0.0
+python-dotenv
+httpx
+tenacity
+openai>=1.2.0
+langgraph

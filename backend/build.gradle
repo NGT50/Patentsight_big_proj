@@ -1,0 +1,77 @@
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '3.5.4'
+	id 'io.spring.dependency-management' version '1.1.7'
+}
+
+import java.io.ByteArrayOutputStream
+
+group = 'com.patentsight'
+
+def gitHash() {
+    def stdout = new ByteArrayOutputStream()
+    exec {
+        commandLine 'git', 'rev-parse', '--short', 'HEAD'
+        standardOutput = stdout
+    }
+    return stdout.toString().trim()
+}
+
+version = "0.0.1-${gitHash()}"
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(17)
+	}
+}
+
+configurations {
+	compileOnly {
+		extendsFrom annotationProcessor
+	}
+}
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	// ✅ Web + WebFlux
+	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+
+	// ⬇ 추가: WebClient 사용을 위해 WebFlux 의존성
+        implementation 'org.springframework.boot:spring-boot-starter-webflux'
+
+        // ✅ Spring Security + JWT
+        implementation 'org.springframework.boot:spring-boot-starter-security'
+        implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
+        implementation 'io.jsonwebtoken:jjwt-api:0.12.5'
+        runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.5'
+        runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.5'
+
+        // Needed for MockMultipartFile
+        testImplementation 'org.springframework:spring-test'
+
+        // ✅ DB
+        // runtimeOnly 'com.h2database:h2'
+        runtimeOnly 'com.mysql:mysql-connector-j'
+
+	// ✅ Lombok
+	compileOnly 'org.projectlombok:lombok'
+	annotationProcessor 'org.projectlombok:lombok'
+
+	// PDFBox 라이브러리 추가
+        implementation 'org.apache.pdfbox:pdfbox:2.0.30'
+
+        // AWS S3 client
+        implementation 'software.amazon.awssdk:s3:2.25.12'
+
+        testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+// ✅ 테스트 실행 비활성화
+tasks.withType(Test) {
+	enabled = false
+}
