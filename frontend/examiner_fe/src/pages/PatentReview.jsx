@@ -14,7 +14,6 @@ import {
   sendChatMessageToServer,
   validatePatentDocument,
   generateRejectionDraft,
-  searchDesignImage,
   searchDesignImageByBlob, // 첫 번째 2D 도면으로 자동 유사이미지 검색
 } from '../api/ai';
 
@@ -84,7 +83,9 @@ function SmartImage({ source, className, alt }) {
         prevObjectUrlRef.current = objUrl;
         setResolvedSrc(objUrl);
         return;
-      } catch {}
+      } catch {
+        /* empty */
+      }
     }
     setResolvedSrc('https://placehold.co/400x300/e2e8f0/94a3b8?text=Image+Not+Found');
   };
@@ -133,12 +134,14 @@ function extractDrawingUrls(raw) {
   const toStr = (v) => (v == null ? '' : String(v)).trim();
   const isUrl = (s) => /^(https?:\/\/|\/|data:image\/)/i.test(toStr(s));
 
-  try {
-    const j = JSON.parse(raw);
-    if (Array.isArray(j)) {
-      return j.map(toStr).filter(isUrl);
+    try {
+      const j = JSON.parse(raw);
+      if (Array.isArray(j)) {
+        return j.map(toStr).filter(isUrl);
+      }
+    } catch {
+      /* empty */
     }
-  } catch {}
 
   const candidates = toStr(raw)
     .split(/[\s,;\n\r]+/)
@@ -263,13 +266,6 @@ export default function PatentReview() {
 
   const [selectedDrawingIdx, setSelectedDrawingIdx] = useState(0);
   useEffect(() => { setSelectedDrawingIdx(0); }, [drawingSources.length]);
-
-  const quickQuestions = [
-    { id: 'q1', text: '유사 특허', icon: Copy, query: '이 특허와 유사한 특허를 찾아줘' },
-    { id: 'q2', text: '진보성 분석', icon: Lightbulb, query: '이 특허의 진보성에 대해 분석해줘' },
-    { id: 'q3', text: '법적 근거', icon: Scale, query: '특허 등록 거절에 대한 법적 근거는 뭐야?' },
-    { id: 'q4', text: '심사 기준', icon: GanttChart, query: '특허 심사 기준에 대해 알려줘' },
-  ];
 
   // 🔧 상세 & 첨부 로딩 + 상태매핑
   useEffect(() => {
@@ -881,13 +877,17 @@ ${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getD
                     {drawingSources.length > 0 ? (
                       drawingSources.map((srcLike, i) => {
                         const active = selectedDrawingIdx === i;
+                        const displayName =
+                          typeof srcLike === 'string'
+                            ? decodeURIComponent(srcLike.split('/').pop().split('?')[0])
+                            : srcLike.fileName;
                         return (
                           <button
                             type="button"
                             key={i}
                             onClick={() => setSelectedDrawingIdx(i)}
                             className={`relative border rounded-md overflow-hidden bg-white text-left transition-all focus:outline-none ${active ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-gray-200 hover:ring-1 hover:ring-gray-300'}`}
-                            title={typeof srcLike === 'string' ? srcLike : srcLike.fileName}
+                            title={displayName}
                           >
                             <SmartImage source={srcLike} alt={`도면 ${i + 1}`} className="w-full h-32 object-contain bg-white" />
                             {active && (
@@ -895,9 +895,7 @@ ${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getD
                                 선택됨
                               </span>
                             )}
-                            <div className="p-2 text-[11px] text-gray-600 truncate">
-                              {typeof srcLike === 'string' ? srcLike : `${srcLike.patentId}/${srcLike.fileName}`}
-                            </div>
+                            <div className="p-2 text-[11px] text-gray-600 truncate">{displayName}</div>
                           </button>
                         );
                       })
