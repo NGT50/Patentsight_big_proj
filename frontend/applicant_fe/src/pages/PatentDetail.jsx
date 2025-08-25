@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { getPatentDetail, getLatestFile } from '../api/patents';
 import { getReviewByPatentId } from '../api/reviews';
 
+
 const PatentDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
