@@ -144,7 +144,7 @@ export default function PatentDashboard() {
           totalPatents: source.length,
           pending:   source.filter(i => ['SUBMITTED'].includes(normalizeStatus(i.status))).length,
           inReview:  source.filter(i => ['REVIEWING','PENDING'].includes(normalizeStatus(i.status))).length,
-          completed: source.filter(i => ['APPROVED'].includes(normalizeStatus(i.status))).length,
+          completed: source.filter(i => ['APPROVED','REJECTED'].includes(normalizeStatus(i.status))).length,
           onhold:    source.filter(i => ['REJECTED'].includes(normalizeStatus(i.status))).length,
         });
 
