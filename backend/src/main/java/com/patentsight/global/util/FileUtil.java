@@ -83,8 +83,9 @@ public class FileUtil {
             S3.putObject(req, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
             return name;
         } catch (Exception e) {
-            log.error("S3 upload failed: {}", e.getMessage());
-            throw new IOException("Failed to upload file to S3", e);
+            String message = "Failed to upload file to S3: " + e.getMessage();
+            log.error(message, e);
+            throw new IOException(message, e);
         }
     }
 
@@ -114,7 +115,13 @@ public class FileUtil {
     public static String getPublicUrl(String key) {
         if (key == null || key.isEmpty()) return "";
         if (key.startsWith("http://") || key.startsWith("https://")) return key;
-        if (key.startsWith("/")) return key;
+        // If an absolute file-system path was persisted (e.g. "/home/ubuntu/uploads/…"),
+        // strip the leading directories so the remaining segment can be treated as an
+        // S3 object key. This prevents leaking local paths back to clients.
+        if (key.startsWith("/")) {
+            int idx = key.lastIndexOf('/') + 1;
+            key = key.substring(idx);
+        }
         try {
             ensureAwsCredentials("generate presigned URL for '" + key + "'");
             GetObjectRequest get = GetObjectRequest.builder()

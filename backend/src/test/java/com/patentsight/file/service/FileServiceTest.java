@@ -3,6 +3,7 @@ package com.patentsight.file.service;
 import com.patentsight.file.domain.FileAttachment;
 import com.patentsight.file.domain.FileType;
 import com.patentsight.file.dto.FileResponse;
+import com.patentsight.file.exception.S3UploadException;
 import com.patentsight.file.repository.FileRepository;
 import com.patentsight.global.util.FileUtil;
 import com.patentsight.patent.domain.Patent;
@@ -20,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import org.mockito.MockedStatic;
+import java.io.IOException;
 
 @ExtendWith(MockitoExtension.class)
 class FileServiceTest {
@@ -71,6 +73,41 @@ class FileServiceTest {
 
             // cleanup saved file
             FileUtil.deleteFile(res.getFileUrl());
+        }
+    }
+
+    @Test
+    void createThrowsWhenLocalPathReturned() throws Exception {
+        MockMultipartFile multipartFile = new MockMultipartFile(
+                "file", "img.png", "image/png", "data".getBytes());
+
+        Patent patent = new Patent();
+        patent.setPatentId(10L);
+        when(patentRepository.findById(10L)).thenReturn(java.util.Optional.of(patent));
+
+        try (MockedStatic<FileUtil> mocked = mockStatic(FileUtil.class)) {
+            mocked.when(() -> FileUtil.saveFile(any(MultipartFile.class))).thenReturn("/tmp/img.png");
+            S3UploadException ex = assertThrows(S3UploadException.class,
+                    () -> fileService.create(multipartFile, 1L, 10L));
+            assertTrue(ex.getMessage().contains("file saved locally"));
+        }
+    }
+
+    @Test
+    void createPropagatesS3FailureMessage() throws Exception {
+        MockMultipartFile multipartFile = new MockMultipartFile(
+                "file", "img.png", "image/png", "data".getBytes());
+
+        Patent patent = new Patent();
+        patent.setPatentId(10L);
+        when(patentRepository.findById(10L)).thenReturn(java.util.Optional.of(patent));
+
+        try (MockedStatic<FileUtil> mocked = mockStatic(FileUtil.class)) {
+            mocked.when(() -> FileUtil.saveFile(any(MultipartFile.class)))
+                    .thenThrow(new IOException("AccessDenied"));
+            S3UploadException ex = assertThrows(S3UploadException.class,
+                    () -> fileService.create(multipartFile, 1L, 10L));
+            assertTrue(ex.getMessage().contains("AccessDenied"));
         }
     }
 }

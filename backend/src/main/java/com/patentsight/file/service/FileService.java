@@ -33,7 +33,7 @@ public class FileService {
      */
     public FileResponse create(MultipartFile file, Long uploaderId, Long patentId) {
         try {
-            String path = FileUtil.saveFile(file);
+            String path = ensureS3Key(FileUtil.saveFile(file));
             FileAttachment attachment = new FileAttachment();
             attachment.setUploaderId(uploaderId);
             attachment.setFileName(file.getOriginalFilename());
@@ -48,7 +48,7 @@ public class FileService {
             fileRepository.save(attachment);
             return toResponse(attachment);
         } catch (IOException e) {
-            throw new S3UploadException("Could not store file: " + e.getMessage(), e);
+            throw new S3UploadException("Could not store file on S3: " + e.getMessage(), e);
         }
     }
 
@@ -64,7 +64,7 @@ public class FileService {
         if (attachment == null) return null;
         try {
             FileUtil.deleteFile(attachment.getFileUrl());
-            String path = FileUtil.saveFile(file);
+            String path = ensureS3Key(FileUtil.saveFile(file));
             attachment.setFileName(file.getOriginalFilename());
             attachment.setFileUrl(path);
             attachment.setFileType(determineFileType(file.getOriginalFilename()));
@@ -72,7 +72,7 @@ public class FileService {
             fileRepository.save(attachment);
             return toResponse(attachment);
         } catch (IOException e) {
-            throw new S3UploadException("Could not update file: " + e.getMessage(), e);
+            throw new S3UploadException("Could not update file on S3: " + e.getMessage(), e);
         }
     }
 
@@ -85,6 +85,20 @@ public class FileService {
         }
         fileRepository.delete(attachment);
         return true;
+    }
+
+    /**
+     * Verifies that the provided storage path looks like an S3 object key. If the
+     * value resembles a local file-system path, an {@link S3UploadException} is
+     * thrown so callers can surface an error instead of continuing with an
+     * incorrect location.
+     */
+    private String ensureS3Key(String path) {
+        if (path == null || path.startsWith("/") || path.contains("uploads")) {
+            throw new S3UploadException(
+                    "S3 upload failed; file saved locally at '" + path + "'", null);
+        }
+        return path;
     }
 
     private FileResponse toResponse(FileAttachment attachment) {
