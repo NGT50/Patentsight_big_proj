@@ -177,17 +177,15 @@ public class PatentService {
             patent.setApplicantId(userId);
         }
 
-        // ✅ inventor 값이 비었거나 "미지정"이면 로그인한 사용자의 이름으로 세팅
-        if (patent.getInventor() == null || patent.getInventor().isBlank()
-                || "미지정".equals(patent.getInventor())) {
-            String userName = "미지정";
-            if (userId != null) {
-                userName = userRepository.findById(userId)
-                        .map(User::getName)
-                        .orElse("미지정");
-            }
-            patent.setInventor(userName);
+        // ✅ 최종 제출 시 inventor를 항상 신청자 이름으로 갱신
+        String inventorName = "미지정";
+        Long lookupId = userId != null ? userId : patent.getApplicantId();
+        if (lookupId != null) {
+            inventorName = userRepository.findById(lookupId)
+                    .map(User::getName)
+                    .orElse("미지정");
         }
+        patent.setInventor(inventorName);
 
         // FastAPI 호출
         String firstClaim = patent.getClaims() != null && !patent.getClaims().isEmpty()
@@ -310,6 +308,7 @@ public class PatentService {
         res.setApplicantId(patent.getApplicantId());
         res.setStatus(patent.getStatus());
         res.setApplicationDate(patent.getSubmittedAt() != null ? patent.getSubmittedAt().toLocalDate() : null);
+        res.setSubmittedAt(patent.getSubmittedAt());
         return res;
     }
 
@@ -604,6 +603,7 @@ public class PatentService {
         response.setApplicationDate(
                 patent.getSubmittedAt() != null ? patent.getSubmittedAt().toLocalDate() : null
         );
+        response.setSubmittedAt(patent.getSubmittedAt());
 
         // ✅ inventor가 비었거나 "미지정"이면 신청자 이름으로 대체
         String applicantName = userRepository.findById(patent.getApplicantId())
