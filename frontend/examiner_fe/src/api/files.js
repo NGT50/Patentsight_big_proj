@@ -4,16 +4,34 @@ import axiosInstance from './axiosInstance';
 const API_ROOT = '/api/files';
 const isHttpUrl = (u) => /^https?:\/\//i.test(u);
 
+// 전역에서 주입되지 않으면 기본 퍼블릭 버킷 URL을 사용
+const S3_PUBLIC_BASE =
+  (typeof globalThis !== 'undefined' && globalThis.S3_PUBLIC_BASE) ||
+  'https://patentsight-artifacts-usea1.s3.us-east-1.amazonaws.com';
+
 // 백엔드가 '/uploads/...' 같은 경로 또는 S3 키를 줄 때 절대 URL로 보정
 export function toAbsoluteFileUrl(u) {
   if (!u) return '';
-  if (isHttpUrl(u)) return u;
+
+  // 백엔드가 로컬 절대/상대 경로 혹은 http://.../uploads/... 형태를 줄 수 있다.
+  // 이런 경우 마지막 파일명만 추출해 S3 퍼블릭 URL로 변환
+  const toS3 = (p) => {
+    const [key, query] = p.split('?');
+    const name = key.substring(key.lastIndexOf('/') + 1);
+    const encoded = encodeURIComponent(name);
+    return `${S3_PUBLIC_BASE}/${encoded}${query ? `?${query}` : ''}`;
+  };
+
+  if (isHttpUrl(u)) {
+    if (u.includes('/uploads/')) return toS3(u);
+    return u;
+  }
+
+  if (u.includes('/uploads/')) return toS3(u);
 
   // S3 키(슬래시 없음)라면 퍼블릭 URL로 변환 + 인코딩
   if (!u.startsWith('/')) {
-    const [key, query] = u.split('?');
-    const encodedKey = encodeURIComponent(key);
-    return `${S3_PUBLIC_BASE}/${encodedKey}${query ? `?${query}` : ''}`;
+    return toS3(u);
   }
 
   const normalized = u.startsWith('/') ? u : `/${u.replace(/^\.?\//, '')}`;
