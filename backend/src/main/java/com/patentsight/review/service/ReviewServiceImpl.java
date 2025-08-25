@@ -215,11 +215,16 @@ public class ReviewServiceImpl implements ReviewService {
         Review review = reviewRepository.findTopByPatent_PatentIdOrderByReviewedAtDesc(patentId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "리뷰를 찾을 수 없습니다."));
 
+        String comment = review.getComment();
+        if (review.getDecision() == Review.Decision.SUBMITTED) {
+            comment = "심사전입니다";
+        }
+
         return ReviewDetailResponse.builder()
                 .reviewId(review.getReviewId())
                 .patentId(review.getPatent().getPatentId())
                 .decision(review.getDecision())
-                .comment(review.getComment())
+                .comment(comment)
                 .reviewedAt(review.getReviewedAt())
                 .aiChecks(List.of())
                 .build();
