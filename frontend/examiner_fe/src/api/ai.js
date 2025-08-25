@@ -110,6 +110,23 @@ export const searchDesignImage = async (input) => {
   throw new Error('searchDesignImage: File 또는 URL 문자열을 전달하세요.');
 };
 
+// 이미지 파일(blob)로 직접 유사 디자인 검색
+export async function searchDesignImageByBlob(imgUrl) {
+  const res = await fetch(imgUrl, { credentials: 'include' });
+  if (!res.ok) throw new Error('image fetch failed');
+  const blob = await res.blob();
+  const form = new FormData();
+  form.append('file', blob, 'drawing.png');
+
+  const r = await fetch('/api/search/design/image', {
+    method: 'POST',
+    body: form,
+  });
+  if (!r.ok) throw new Error('search api failed');
+  return r.json();
+}
+
+
 /** [상표 이미지 검색] (스펙: POST /api/ai/search/trademark/image form-data[file]) */
 export const searchTrademarkImage = async (input) => {
   const file = input instanceof File ? input : await toFileFromUrl(String(input), 'trademark-image.png');
