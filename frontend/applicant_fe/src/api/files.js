@@ -9,18 +9,21 @@ export function toAbsoluteFileUrl(u) {
   if (!u) return '';
   if (isHttpUrl(u)) return u;
 
-  // S3 키(슬래시 없음)라면 S3 퍼블릭 URL로 변환
+  // S3 키(슬래시 없음)라면 퍼블릭 URL로 변환 + 인코딩
   if (!u.startsWith('/')) {
-    return `${S3_PUBLIC_BASE}/${u}`;
+    const [key, query] = u.split('?');
+    const encodedKey = encodeURIComponent(key);
+    return `${S3_PUBLIC_BASE}/${encodedKey}${query ? `?${query}` : ''}`;
   }
 
   const normalized = u.startsWith('/') ? u : `/${u.replace(/^\.?\//, '')}`;
+  const encPath = encodeURI(normalized);
   const base = axios.defaults.baseURL;
 
   if (base && isHttpUrl(base)) {
-    return base.replace(/\/+$/, '') + normalized;
+    return base.replace(/\/+$/, '') + encPath;
   }
-  return normalized;
+  return encPath;
 }
 
 export const parsePatentPdf = async (file) => {
