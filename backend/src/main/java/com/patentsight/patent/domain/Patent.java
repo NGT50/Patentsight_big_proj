@@ -22,6 +22,7 @@ public class Patent {
     @Enumerated(EnumType.STRING)
     private PatentStatus status;
 
+    @Column(name = "submitted_at")
     private LocalDateTime submittedAt;
 
     private String cpc;

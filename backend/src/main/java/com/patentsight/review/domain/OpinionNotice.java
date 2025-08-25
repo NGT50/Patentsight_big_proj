@@ -21,11 +21,11 @@ public class OpinionNotice {
     private Review review;
 
     @Lob
-    @Column(name = "content")
+    @Column(name = "content", columnDefinition = "LONGTEXT")
     private String content;
 
     @Lob
-    @Column(name = "structured_content")
+    @Column(name = "structured_content", columnDefinition = "LONGTEXT")
     private String structuredContent; // JSON 구조
 
     @Column(name = "response_due_date")
