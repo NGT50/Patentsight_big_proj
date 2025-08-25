@@ -14,7 +14,8 @@ import {
   sendChatMessageToServer,
   validatePatentDocument,
   generateRejectionDraft,
-  searchDesignImage, // 첫 번째 2D 도면으로 자동 유사이미지 검색
+  searchDesignImage,
+  searchDesignImageByBlob, // 첫 번째 2D 도면으로 자동 유사이미지 검색
 } from '../api/ai';
 
 // 파일 API (메타 조회 → 안전한 URL 만들기)
@@ -361,7 +362,7 @@ export default function PatentReview() {
       if (!url) return;
       try {
         setIsSearchingSimilarity(true);
-        const results = await searchDesignImage(url);
+        const results = await searchDesignImageByBlob(url); // 변경: 파일 전송
         if (results && results.results) {
           setSimilarityResults(results.results);
         } else {
@@ -529,6 +530,10 @@ ${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getD
 
   const handleDocumentCheck = async () => {
     if (!patent) return;
+
+    // 🔵 먼저 모달을 로딩 상태로 띄움
+    showMessageBox('오류 점검 중…');
+
     try {
       const results = await validatePatentDocument(patent.patentId);
 
@@ -566,11 +571,11 @@ ${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getD
         }
       }
 
-      // ✅ 페이지 본문에서도 보이도록 state 저장
-      setValidationErrors(flat);
-      setHasValidated(true);
+      // 페이지 본문 표시용 state 사용 중이라면 여기도 유지
+      setValidationErrors?.(flat);
+      setHasValidated?.(true);
 
-      // (선택) 모달 알림도 유지
+      // 🔵 모달의 내용만 결과로 교체
       if (flat.length > 0) {
         const pretty = flat.map((e, i) => {
           const where =
@@ -591,6 +596,7 @@ ${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getD
       showMessageBox('오류: 서류 점검 중 문제가 발생했습니다.');
     }
   };
+
 
 
   if (loading) {
