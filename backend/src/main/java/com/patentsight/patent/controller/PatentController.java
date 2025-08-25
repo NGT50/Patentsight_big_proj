@@ -57,9 +57,11 @@ public class PatentController {
     // PatentController.java
     @PostMapping("/{id}/submit")
     public ResponseEntity<SubmitPatentResponse> submit(@PathVariable("id") Long id,
-                                                       @RequestBody(required = false) PatentRequest latestRequest) {
+                                                       @RequestBody(required = false) PatentRequest latestRequest,
+                                                       @RequestHeader("Authorization") String authorization) {
         // 프론트에서 보낸 JSON이 PatentRequest 구조와 동일해야 함 (title, technicalField 등 최상단에 위치)
-        SubmitPatentResponse res = patentService.submitPatent(id, latestRequest);
+        Long userId = jwtTokenProvider.getUserIdFromHeader(authorization);
+        SubmitPatentResponse res = patentService.submitPatent(id, latestRequest, userId);
         return ResponseEntity.ok(res);
     }
     
