@@ -793,6 +793,76 @@ ${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getD
                 </div>
               </div>
 
+              {/* 배경기술 */}
+              <div className="mb-4">
+                <h4 className="font-medium text-lg mb-2 text-gray-800 flex items-center gap-1">
+                  <Info className="w-4 h-4 text-blue-400" /> 배경기술
+                </h4>
+                {patent.backgroundTechnology ? (
+                  <div className="text-sm text-gray-700 leading-relaxed bg-gray-50 p-3 rounded-md border border-gray-100 max-h-32 overflow-y-auto">
+                    {patent.backgroundTechnology}
+                  </div>
+                ) : (
+                  <p className="text-gray-600 col-span-full text-sm bg-gray-50 p-3 rounded-md border border-gray-100">등록된 배경기술이 없습니다.</p>
+                )}
+              </div>
+
+              {/* 해결 과제 */}
+              <div className="mb-4">
+                <h4 className="font-medium text-lg mb-2 text-gray-800 flex items-center gap-1">
+                  <X className="w-4 h-4 text-blue-400" /> 해결 과제
+                </h4>
+                {patent.problemToSolve ? (
+                  <div className="text-sm text-gray-700 leading-relaxed bg-gray-50 p-3 rounded-md border border-gray-100 max-h-32 overflow-y-auto">
+                    {patent.problemToSolve}
+                  </div>
+                ) : (
+                  <p className="text-gray-600 col-span-full text-sm bg-gray-50 p-3 rounded-md border border-gray-100">등록된 해결 과제가 없습니다.</p>
+                )}
+              </div>
+
+              {/* 해결 수단 */}
+              <div className="mb-4">
+                <h4 className="font-medium text-lg mb-2 text-gray-800 flex items-center gap-1">
+                  <Check className="w-4 h-4 text-blue-400" /> 해결 수단
+                </h4>
+                {patent.solution ? (
+                  <div className="text-sm text-gray-700 leading-relaxed bg-gray-50 p-3 rounded-md border border-gray-100 max-h-32 overflow-y-auto">
+                    {patent.solution}
+                  </div>
+                ) : (
+                  <p className="text-gray-600 col-span-full text-sm bg-gray-50 p-3 rounded-md border border-gray-100">등록된 해결 수단이 없습니다.</p>
+                )}
+              </div>
+
+              {/* 발명의 효과 */}
+              <div className="mb-4">
+                <h4 className="font-medium text-lg mb-2 text-gray-800 flex items-center gap-1">
+                  <CheckCircle className="w-4 h-4 text-blue-400" /> 발명의 효과
+                </h4>
+                {patent.effect ? (
+                  <div className="text-sm text-gray-700 leading-relaxed bg-gray-50 p-3 rounded-md border border-gray-100 max-h-32 overflow-y-auto">
+                    {patent.effect}
+                  </div>
+                ) : (
+                  <p className="text-gray-600 col-span-full text-sm bg-gray-50 p-3 rounded-md border border-gray-100">등록된 발명의 효과가 없습니다.</p>
+                )}
+              </div>
+
+              {/* 도면 설명 */}
+              <div className="mb-4">
+                <h4 className="font-medium text-lg mb-2 text-gray-800 flex items-center gap-1">
+                  <FileText className="w-4 h-4 text-blue-400" /> 도면 설명
+                </h4>
+                {patent.drawingDescription ? (
+                  <div className="text-sm text-gray-700 leading-relaxed bg-gray-50 p-3 rounded-md border border-gray-100 max-h-32 overflow-y-auto">
+                    {patent.drawingDescription}
+                  </div>
+                ) : (
+                  <p className="text-gray-600 col-span-full text-sm bg-gray-50 p-3 rounded-md border border-gray-100">등록된 도면 설명이 없습니다.</p>
+                )}
+              </div>
+
               {/* 2D 도면 */}
               <div className="flex flex-col lg:flex-row gap-6 mb-4">
                 <div className="flex-1 w-full">
