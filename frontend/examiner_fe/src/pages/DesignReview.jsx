@@ -13,7 +13,6 @@ import {
   sendChatMessageToServer,
   validatePatentDocument,
   generateRejectionDraft,
-  searchDesignImage,
   searchDesignImageByBlob
 } from '../api/ai';
 
@@ -40,7 +39,9 @@ function extractDrawingUrls(raw) {
   try {
     const j = JSON.parse(raw);
     if (Array.isArray(j)) return j.map(String).filter(isUrl);
-  } catch {}
+  } catch {
+    /* empty */
+  }
   const candidates = String(raw).split(/[\s,;\n\r]+/).map(s => s.trim()).filter(Boolean);
   const urls = candidates.filter(isUrl);
   if (urls.length) return urls;
@@ -253,13 +254,6 @@ export default function DesignReview() {
   );
   const [selectedDrawingIdx, setSelectedDrawingIdx] = useState(0);
   useEffect(() => { setSelectedDrawingIdx(0); }, [drawingSources.length]);
-
-  const quickQuestions = [
-    { id: 'q1', text: '유사 디자인', icon: Copy, query: '이 디자인과 유사한 디자인을 찾아줘' },
-    { id: 'q2', text: '심미성 분석', icon: Lightbulb, query: '이 디자인의 심미성에 대해 분석해줘' },
-    { id: 'q3', text: '법적 근거', icon: Scale, query: '디자인 등록 거절에 대한 법적 근거는 뭐야?' },
-    { id: 'q4', text: '심사 기준', icon: GanttChart, query: '디자인 심사 기준에 대해 알려줘' },
-  ];
 
   const showMessageBox = (message) => { setModalMessage(message); setShowModal(true); };
 
@@ -872,7 +866,7 @@ ${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getD
                             const draft = await generateRejectionDraft(design.patentId);
                             setRejectionComment(draft.content);
                             showMessageBox('AI 거절 사유서 초안이 생성되었습니다.');
-                          } catch (e) {
+                          } catch {
                             showMessageBox('오류: AI 초안 생성에 실패했습니다.');
                           }
                         }}
@@ -993,7 +987,7 @@ ${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getD
                         const active = selectedDrawingIdx === i;
                         const displayName =
                           typeof srcLike === 'string'
-                            ? srcLike.split('/').pop()
+                            ? decodeURIComponent(srcLike.split('/').pop().split('?')[0])
                             : srcLike.fileName;
                         return (
                           <button
