@@ -2,12 +2,8 @@ import axios from './axiosInstance';
 
 const API_ROOT = '/api/files';
 const isHttpUrl = (u) => /^https?:\/\//i.test(u);
-// 전역에 주입된 값이 없으면 기본 버킷을 사용
-const S3_PUBLIC_BASE =
-  (typeof globalThis !== 'undefined' && globalThis.S3_PUBLIC_BASE) ||
-  'https://patentsight-artifacts-usea1.s3.us-east-1.amazonaws.com';
 
-// 전역에서 주입되지 않으면 기본 퍼블릭 버킷 URL을 사용
+// S3 공개 버킷 기본 URL. 런타임에서 globalThis.S3_PUBLIC_BASE로 덮어쓸 수 있습니다.
 const S3_PUBLIC_BASE =
   (typeof globalThis !== 'undefined' && globalThis.S3_PUBLIC_BASE) ||
   'https://patentsight-artifacts-usea1.s3.us-east-1.amazonaws.com';
