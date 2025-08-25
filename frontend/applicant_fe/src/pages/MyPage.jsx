@@ -16,7 +16,7 @@ import PatentListModal from '../components/PatentListModal';
 const statusMap = {
   DRAFT: '임시저장',
   SUBMITTED: '심사대기',
-  IN_REVIEW: '심사중',
+  REVIEWING: '심사중',
   APPROVED: '등록결정',
   REJECTED: '거절결정',
 };
@@ -155,7 +155,7 @@ const MyPage = () => {
                             <strong>출원인:</strong> {patent.inventor || patent.applicantName || '미지정'} |
                             <span
                               className={`ml-2 px-2 py-1 rounded text-xs font-medium ${
-                                patent.status === 'IN_REVIEW'
+                                patent.status === 'REVIEWING'
                                   ? 'bg-yellow-100 text-yellow-800'
                                   : patent.status === 'SUBMITTED'
                                   ? 'bg-blue-100 text-blue-800'
