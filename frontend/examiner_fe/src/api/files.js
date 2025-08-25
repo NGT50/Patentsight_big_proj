@@ -2,29 +2,38 @@
 import axiosInstance from './axiosInstance';
 
 const API_ROOT = '/api/files';
+const S3_PUBLIC_BASE = 'https://patentsight-artifacts-usea1.s3.amazonaws.com';
 
 const isHttpUrl = (u) => /^https?:\/\//i.test(u);
 
-// 백엔드가 '/uploads/...' 같은 경로를 줄 때 환경별 절대 URL로 보정
+// 백엔드가 '/uploads/...' 같은 경로 또는 S3 키를 줄 때 절대 URL로 보정
 export function toAbsoluteFileUrl(u) {
   if (!u) return '';
   if (isHttpUrl(u)) return u;
 
+  // S3 키(슬래시 없음)라면 퍼블릭 URL로 변환 + 인코딩
+  if (!u.startsWith('/')) {
+    const [key, query] = u.split('?');
+    const encodedKey = encodeURIComponent(key);
+    return `${S3_PUBLIC_BASE}/${encodedKey}${query ? `?${query}` : ''}`;
+  }
+
   const normalized = u.startsWith('/') ? u : `/${u.replace(/^\.?\//, '')}`;
+  const encPath = encodeURI(normalized);
   const base = axiosInstance.defaults.baseURL; // ''(dev) 또는 'http://35.175.253.22:8080'(prod)
 
   // prod에선 절대 baseURL을 붙여주고, dev에선 프록시/동일오리진 가정
   if (base && isHttpUrl(base)) {
-    return base.replace(/\/+$/, '') + normalized;
+    return base.replace(/\/+$/, '') + encPath;
   }
-  return normalized;
+  return encPath;
 }
 
 // 단건 메타 조회
 export async function getFileDetail(fileId) {
   const { data } = await axiosInstance.get(`${API_ROOT}/${fileId}`);
   // 예상 응답: { fileId, patentId, fileName, fileUrl, uploaderId, updatedAt, ... }
-  return data;
+  return { ...data, fileUrl: toAbsoluteFileUrl(data.fileUrl) };
 }
 
 const IMAGE_EXTS = new Set(['png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp', 'svg']);
@@ -83,7 +92,7 @@ export async function uploadFile({ file, patentId }) {
   const { data } = await axiosInstance.post(API_ROOT, form, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
-  return data; // { fileId, patentId, fileName, fileUrl, ... }
+  return { ...data, fileUrl: toAbsoluteFileUrl(data.fileUrl) }; // { fileId, patentId, fileName, fileUrl, ... }
 }
 
 export async function updateFile(fileId, file) {
@@ -92,7 +101,7 @@ export async function updateFile(fileId, file) {
   const { data } = await axiosInstance.put(`${API_ROOT}/${fileId}`, form, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
-  return data;
+  return { ...data, fileUrl: toAbsoluteFileUrl(data.fileUrl) };
 }
 
 export async function deleteFile(fileId) {
