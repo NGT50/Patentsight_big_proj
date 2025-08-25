@@ -90,6 +90,9 @@ jobs:
             if [ ! -f "$TARGET_JAR" ]; then
               echo "ERROR: $TARGET_JAR not found"; exit 1
             fi
+            # 이전에 실행 중인 백엔드 프로세스를 안전하게 종료합니다.
+            # deploy.sh 내부의 PID 처리 문제를 우회하기 위해 pkill을 사용합니다.
+            pkill -f "$APP_DIR/current.jar" || true
 
             "$APP_DIR/deploy.sh" "$TARGET_JAR"
 
