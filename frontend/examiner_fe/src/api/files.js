@@ -2,8 +2,6 @@
 import axiosInstance from './axiosInstance';
 
 const API_ROOT = '/api/files';
-const S3_PUBLIC_BASE = 'https://patentsight-artifacts-usea1.s3.amazonaws.com';
-
 const isHttpUrl = (u) => /^https?:\/\//i.test(u);
 
 // 백엔드가 '/uploads/...' 같은 경로 또는 S3 키를 줄 때 절대 URL로 보정

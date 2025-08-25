@@ -20,6 +20,12 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Exception;
+import software.amazon.awssdk.services.s3.model.ObjectCannedACL;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
+
+import java.time.Duration;
 
 /**
  * Utility helpers for storing uploaded files. The primary storage target is
@@ -32,9 +38,12 @@ public class FileUtil {
 
     private static final Logger log = LoggerFactory.getLogger(FileUtil.class);
 
-    private static final String BUCKET = System.getenv().getOrDefault("S3_BUCKET", "patentsight-artifacts-usea1");
+    // Default bucket where files are stored. Mirrors the public bucket used by the frontend.
+    private static final String BUCKET =
+            System.getenv().getOrDefault("S3_BUCKET", "patentsight-artifacts-use1");
     private static final Region REGION = Region.of(System.getenv().getOrDefault("AWS_REGION", "us-east-1"));
     private static final S3Client S3 = S3Client.builder().region(REGION).build();
+    private static final S3Presigner PRESIGNER = S3Presigner.builder().region(REGION).build();
 
     // Local fallback directory for environments without S3 credentials
     private static final Path BASE_DIR = Path.of("uploads");
@@ -64,6 +73,7 @@ public class FileUtil {
                     .bucket(BUCKET)
                     .key(name)
                     .contentType(file.getContentType())
+                    .acl(ObjectCannedACL.PUBLIC_READ)
                     .build();
             S3.putObject(req, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
             return name;
@@ -97,6 +107,31 @@ public class FileUtil {
             } catch (IOException ex) {
                 log.warn("Failed to delete local file '{}': {}", key, ex.getMessage());
             }
+        }
+    }
+
+    /**
+     * Generates a presigned URL for the provided S3 key. If the input already
+     * looks like a path or an absolute URL, it is returned unchanged.
+     */
+    public static String getPublicUrl(String key) {
+        if (key == null || key.isEmpty()) return "";
+        if (key.startsWith("http://") || key.startsWith("https://")) return key;
+        if (key.startsWith("/")) return key;
+        try {
+            ensureAwsCredentials("generate presigned URL for '" + key + "'");
+            GetObjectRequest get = GetObjectRequest.builder()
+                    .bucket(BUCKET)
+                    .key(key)
+                    .build();
+            GetObjectPresignRequest presign = GetObjectPresignRequest.builder()
+                    .getObjectRequest(get)
+                    .signatureDuration(Duration.ofHours(1))
+                    .build();
+            return PRESIGNER.presignGetObject(presign).url().toString();
+        } catch (Exception e) {
+            log.warn("Presign failed, returning unsigned URL: {}", e.getMessage());
+            return String.format("https://%s.s3.%s.amazonaws.com/%s", BUCKET, REGION.id(), key);
         }
     }
 }
