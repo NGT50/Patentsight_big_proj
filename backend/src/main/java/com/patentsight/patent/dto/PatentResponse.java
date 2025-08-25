@@ -18,7 +18,7 @@ public class PatentResponse {
     private String applicationNumber;
 
     @JsonProperty("applicationDate")
-    @JsonFormat(shape = JsonFormat.Shape.STRING)
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
 
     private LocalDate applicationDate;
     private String inventor;
