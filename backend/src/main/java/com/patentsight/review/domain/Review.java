@@ -29,6 +29,8 @@ public class Review {
     @Enumerated(EnumType.STRING)
     private Decision decision; // SUBMITTED / REVIEWING / APPROVE / REJECT
 
+    @Lob
+    @Column(columnDefinition = "LONGTEXT")
     private String comment;
     private LocalDateTime reviewedAt;
 
