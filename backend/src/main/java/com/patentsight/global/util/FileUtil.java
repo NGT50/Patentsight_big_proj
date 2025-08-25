@@ -115,23 +115,26 @@ public class FileUtil {
     public static String getPublicUrl(String key) {
         if (key == null || key.isEmpty()) return "";
 
+        // If the value is already a fully-qualified S3 URL (possibly presigned),
+        // simply return it.
         if (key.startsWith("http://") || key.startsWith("https://")) {
-            // If the URL already points to S3, return it unchanged. Otherwise strip any
-            // leading path segments so the trailing file name can be used as an S3 key.
             if (key.contains(".s3.") && key.contains("amazonaws.com")) {
                 return key;
             }
+            // Strip any leading directories from plain HTTP URLs so only the file
+            // name remains as the S3 object key.
             int idx = key.lastIndexOf('/') + 1;
             key = key.substring(idx);
         }
 
-        // If an absolute file-system path was persisted (e.g. "/home/ubuntu/uploads/…"),
-        // strip the leading directories so the remaining segment can be treated as an
-        // S3 object key. This prevents leaking local paths back to clients.
+        // Normalise Windows-style paths and remove leading directories from
+        // absolute file-system paths such as "/home/ubuntu/uploads/…".
+        key = key.replace('\\', '/');
         if (key.startsWith("/")) {
             int idx = key.lastIndexOf('/') + 1;
             key = key.substring(idx);
         }
+
         try {
             ensureAwsCredentials("generate presigned URL for '" + key + "'");
             GetObjectRequest get = GetObjectRequest.builder()
@@ -145,7 +148,8 @@ public class FileUtil {
             return PRESIGNER.presignGetObject(presign).url().toString();
         } catch (Exception e) {
             log.warn("Presign failed, returning unsigned URL: {}", e.getMessage());
-            return String.format("https://%s.s3.%s.amazonaws.com/%s", BUCKET, REGION.id(), key);
+            String encoded = java.net.URLEncoder.encode(key, java.nio.charset.StandardCharsets.UTF_8);
+            return String.format("https://%s.s3.%s.amazonaws.com/%s", BUCKET, REGION.id(), encoded);
         }
     }
 }

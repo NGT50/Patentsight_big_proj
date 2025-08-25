@@ -2,6 +2,10 @@ import axios from './axiosInstance';
 
 const API_ROOT = '/api/files';
 const isHttpUrl = (u) => /^https?:\/\//i.test(u);
+// 전역에 주입된 값이 없으면 기본 버킷을 사용
+const S3_PUBLIC_BASE =
+  (typeof globalThis !== 'undefined' && globalThis.S3_PUBLIC_BASE) ||
+  'https://patentsight-artifacts-usea1.s3.us-east-1.amazonaws.com';
 
 // 전역에서 주입되지 않으면 기본 퍼블릭 버킷 URL을 사용
 const S3_PUBLIC_BASE =
@@ -31,14 +35,11 @@ export function toAbsoluteFileUrl(u) {
     return toS3(u);
   }
 
-  const normalized = u.startsWith('/') ? u : `/${u.replace(/^\.?\//, '')}`;
-  const encPath = encodeURI(normalized);
-  const base = axios.defaults.baseURL;
-
-  if (base && isHttpUrl(base)) {
-    return base.replace(/\/+$/, '') + encPath;
-  }
-  return encPath;
+  // 로컬 경로나 키일 경우 마지막 파일명만 추출해 S3 URL 구성
+  const [key, query] = u.split('?');
+  const name = key.substring(key.lastIndexOf('/') + 1);
+  const encoded = encodeURIComponent(name);
+  return `${S3_PUBLIC_BASE}/${encoded}${query ? `?${query}` : ''}`;
 }
 
 export const parsePatentPdf = async (file) => {
