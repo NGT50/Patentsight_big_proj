@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.patentsight.patent.domain.PatentStatus;
 import com.patentsight.patent.domain.PatentType;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 public class PatentResponse {
@@ -19,6 +20,9 @@ public class PatentResponse {
     @JsonProperty("applicationDate")
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     private LocalDate applicationDate;
+    @JsonProperty("submittedAt")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
+    private LocalDateTime submittedAt;
     private String inventor;
     private String technicalField;
     private String backgroundTechnology;
@@ -47,6 +51,8 @@ public class PatentResponse {
     public void setApplicationNumber(String applicationNumber) { this.applicationNumber = applicationNumber; }
     public LocalDate getApplicationDate() { return applicationDate; }
     public void setApplicationDate(LocalDate applicationDate) { this.applicationDate = applicationDate; }
+    public LocalDateTime getSubmittedAt() { return submittedAt; }
+    public void setSubmittedAt(LocalDateTime submittedAt) { this.submittedAt = submittedAt; }
     public String getInventor() { return inventor; }
     public void setInventor(String inventor) { this.inventor = inventor; }
     public String getTechnicalField() { return technicalField; }

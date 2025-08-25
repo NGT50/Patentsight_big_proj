@@ -244,6 +244,7 @@ class PatentServiceTest {
         assertEquals(PatentType.PATENT, res.getType());
         assertEquals(List.of(10L), res.getAttachmentIds());
         assertEquals(LocalDate.of(2024, 1, 1), res.getApplicationDate());
+        assertEquals(LocalDateTime.of(2024, 1, 1, 0, 0), res.getSubmittedAt());
     }
 }
 

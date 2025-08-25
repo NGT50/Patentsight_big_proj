@@ -310,6 +310,7 @@ public class PatentService {
         res.setApplicantId(patent.getApplicantId());
         res.setStatus(patent.getStatus());
         res.setApplicationDate(patent.getSubmittedAt() != null ? patent.getSubmittedAt().toLocalDate() : null);
+        res.setSubmittedAt(patent.getSubmittedAt());
         return res;
     }
 
@@ -604,6 +605,7 @@ public class PatentService {
         response.setApplicationDate(
                 patent.getSubmittedAt() != null ? patent.getSubmittedAt().toLocalDate() : null
         );
+        response.setSubmittedAt(patent.getSubmittedAt());
 
         // ✅ inventor가 비었거나 "미지정"이면 신청자 이름으로 대체
         String applicantName = userRepository.findById(patent.getApplicantId())
