@@ -1,3 +1,6 @@
+-- Ensure review.comment can store long text
+ALTER TABLE review MODIFY COLUMN comment LONGTEXT//
+
 -- Ensure patent.status reflects review.decision changes
 DROP TRIGGER IF EXISTS review_decision_update//
 CREATE TRIGGER review_decision_update
