@@ -114,7 +114,17 @@ public class FileUtil {
      */
     public static String getPublicUrl(String key) {
         if (key == null || key.isEmpty()) return "";
-        if (key.startsWith("http://") || key.startsWith("https://")) return key;
+
+        if (key.startsWith("http://") || key.startsWith("https://")) {
+            // If the URL already points to S3, return it unchanged. Otherwise strip any
+            // leading path segments so the trailing file name can be used as an S3 key.
+            if (key.contains(".s3.") && key.contains("amazonaws.com")) {
+                return key;
+            }
+            int idx = key.lastIndexOf('/') + 1;
+            key = key.substring(idx);
+        }
+
         // If an absolute file-system path was persisted (e.g. "/home/ubuntu/uploads/…"),
         // strip the leading directories so the remaining segment can be treated as an
         // S3 object key. This prevents leaking local paths back to clients.
