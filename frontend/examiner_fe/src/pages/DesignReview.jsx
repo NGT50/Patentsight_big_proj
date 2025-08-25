@@ -234,6 +234,11 @@ export default function DesignReview() {
   // glb 뷰어 소스
   const [glbModelUrl, setGlbModelUrl] = useState('');
 
+  // AI 점검 결과 표시용
+  const [validationErrors, setValidationErrors] = useState([]);
+  const [hasValidated, setHasValidated] = useState(false);
+  const [isValidating, setIsValidating] = useState(false);
+
   // 도면 소스
   const drawingSources = useMemo(() => {
     const fromDesign = buildDesignDrawingSources(design);
@@ -612,11 +617,11 @@ ${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getD
   };
 
   // 서류 점검
-// 서류 점검
   const handleDocumentCheck = async () => {
     if (!design) return;
 
-    // 🔵 결과 나오기 전, 모달에 로딩 문구 먼저 표시
+    setIsValidating(true);
+    // 먼저 모달에 로딩 문구
     showMessageBox('오류 점검 중…');
 
     try {
@@ -657,7 +662,11 @@ ${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getD
         }
       }
 
-      // 🔵 같은 모달에 결과로 교체
+      // ✅ 페이지 본문에서도 보이도록 저장
+      setValidationErrors(flat);
+      setHasValidated(true);
+
+      // 모달 내용 교체
       if (flat.length > 0) {
         const pretty = flat.map((e, i) => {
           const where =
@@ -676,8 +685,11 @@ ${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getD
     } catch (error) {
       console.error('출원 서류 점검 실패:', error);
       showMessageBox('오류: 서류 점검 중 문제가 발생했습니다.');
+    } finally {
+      setIsValidating(false);
     }
   };
+
 
 
   // 의견서 그룹화(Part 통합)
@@ -1062,6 +1074,63 @@ ${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getD
                   </div>
                 )}
               </div>
+              {/* AI 서류 점검 결과 */}
+              <div className="mt-6">
+                <h4 className="font-medium text-lg text-gray-800 flex items-center gap-1">
+                  <ScrollText className="w-4 h-4 text-indigo-400" />
+                  AI 서류 점검 결과
+                </h4>
+
+                {/* ⏳ 로딩 배너 */}
+                {isValidating && (
+                  <div className="mt-3 flex items-center gap-3 rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-800">
+                    <div className="w-4 h-4 border-2 border-indigo-300 border-t-indigo-600 rounded-full animate-spin"></div>
+                    <span>AI가 출원 서류를 점검 중입니다…</span>
+                  </div>
+                )}
+
+                {/* 점검 후 오류 없음 */}
+                {!isValidating && hasValidated && validationErrors.length === 0 && (
+                  <div className="mt-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+                    점검 완료 ✨ 서류에서 특별한 오류가 발견되지 않았습니다.
+                  </div>
+                )}
+
+                {/* 오류 리스트 */}
+                {!isValidating && validationErrors.length > 0 && (
+                  <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-4">
+                    <ul className="space-y-2">
+                      {validationErrors.map((e, i) => {
+                        const tag =
+                          e.type === 'FORMAT'  ? '형식오류' :
+                          e.type === 'CONTEXT' ? '맥락오류' :
+                          e.type === 'MISSING' ? '누락섹션' : (e.type || '오류');
+
+                        const where = e.claim
+                          ? ` (${e.claim}${typeof e.claimIndex === 'number' ? `#${e.claimIndex + 1}` : ''})`
+                          : (e.field ? ` [${e.field}]` : '');
+
+                        return (
+                          <li key={e.id || i} className="text-sm text-red-800">
+                            <span className="inline-flex items-center rounded-full border border-red-300 bg-white px-2 py-0.5 text-xs font-semibold text-red-700 mr-2">
+                              {tag}
+                            </span>
+                            <span className="font-medium">{where}</span> {e.message}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                )}
+
+                {/* 아직 점검 전 안내 */}
+                {!isValidating && !hasValidated && (
+                  <p className="mt-2 text-xs text-gray-500">
+                    ※ 상단의 <b>AI 서류 점검</b> 버튼을 눌러 결과를 확인하세요.
+                  </p>
+                )}
+              </div>
+
             </section>
           </div>
 

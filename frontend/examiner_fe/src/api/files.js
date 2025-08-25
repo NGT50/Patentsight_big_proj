@@ -1,39 +1,16 @@
 // src/api/files.js
 import axiosInstance from './axiosInstance';
 
-const API_ROOT = '/api/files';
-const S3_PUBLIC_BASE = 'https://patentsight-artifacts-usea1.s3.amazonaws.com';
-
 const isHttpUrl = (u) => /^https?:\/\//i.test(u);
 
-// 백엔드가 '/uploads/...' 같은 경로 또는 S3 키를 줄 때 절대 URL로 보정
-export function toAbsoluteFileUrl(u) {
-  if (!u) return '';
-  if (isHttpUrl(u)) return u;
-
-  // S3 키(슬래시 없음)라면 퍼블릭 URL로 변환 + 인코딩
-  if (!u.startsWith('/')) {
-    const [key, query] = u.split('?');
-    const encodedKey = encodeURIComponent(key);
-    return `${S3_PUBLIC_BASE}/${encodedKey}${query ? `?${query}` : ''}`;
-  }
-
-  const normalized = u.startsWith('/') ? u : `/${u.replace(/^\.?\//, '')}`;
-  const encPath = encodeURI(normalized);
-  const base = axiosInstance.defaults.baseURL; // ''(dev) 또는 'http://35.175.253.22:8080'(prod)
-
-  // prod에선 절대 baseURL을 붙여주고, dev에선 프록시/동일오리진 가정
-  if (base && isHttpUrl(base)) {
-    return base.replace(/\/+$/, '') + encPath;
-  }
-  return encPath;
-}
+// 첨부 컨텐츠 스트리밍 API 경로
+export const toApiContentUrl = (fileId) => `/api/files/${fileId}/content`;
 
 // 단건 메타 조회
 export async function getFileDetail(fileId) {
   const { data } = await axiosInstance.get(`${API_ROOT}/${fileId}`);
-  // 예상 응답: { fileId, patentId, fileName, fileUrl, uploaderId, updatedAt, ... }
-  return { ...data, fileUrl: toAbsoluteFileUrl(data.fileUrl) };
+    // fileUrl은 DB 원본(S3 key) 그대로 둡니다. 표시에는 /content를 사용.
+    return data;
 }
 
 const IMAGE_EXTS = new Set(['png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp', 'svg']);
@@ -53,15 +30,7 @@ export async function getImageUrlsByIds(fileIds = []) {
   const metas = await fetchMetas(fileIds);
   return metas
     .filter((m) => isImageName(m.fileName || ''))
-    .map((m) => {
-      const primary = m.fileUrl || m.url || '';
-      if (primary) return toAbsoluteFileUrl(primary);
-      if (m.patentId && m.fileName) {
-        const enc = encodeURIComponent(m.fileName);
-        return toAbsoluteFileUrl(`/api/files/${m.patentId}/${enc}`);
-      }
-      return '';
-    })
+    .map((m) => toApiContentUrl(m.fileId))
     .filter(Boolean);
 }
 
@@ -71,16 +40,11 @@ export async function getNonImageFilesByIds(fileIds = []) {
   const metas = await fetchMetas(fileIds);
   return metas
     .filter((m) => !isImageName(m.fileName || ''))
-    .map((m) => {
-      const fallback =
-        m.patentId && m.fileName
-          ? `/api/files/${m.patentId}/${encodeURIComponent(m.fileName)}`
-          : '';
-      const url = toAbsoluteFileUrl(m.fileUrl || m.url || fallback);
-      return url
-        ? { id: m.fileId || m.id, name: m.fileName || m.name || '', url }
-        : null;
-    })
+    .map((m) => ({
+      id: m.fileId || m.id,
+      name: m.fileName || m.name || '',
+      url: toApiContentUrl(m.fileId),
+    }))
     .filter(Boolean);
 }
 

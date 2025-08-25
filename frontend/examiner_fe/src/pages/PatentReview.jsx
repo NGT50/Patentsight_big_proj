@@ -23,73 +23,18 @@ import { getImageUrlsByIds, getNonImageFilesByIds, toAbsoluteFileUrl } from '../
 
 /* ------------------------- 보조 ------------------------- */
 
-// 공개 경로(/files) → 실패 시 /api 로 폴백(fetch+토큰)해서 blob URL로 표출
 function SmartImage({ source, className, alt }) {
-  const [resolvedSrc, setResolvedSrc] = React.useState('');
-  const [triedAuthFetch, setTriedAuthFetch] = React.useState(false);
-  const prevObjectUrlRef = React.useRef(null);
+  // 문자열이면 그대로, 객체면 /api/files/{id}/content 로
+  const src =
+    typeof source === 'string'
+      ? source
+      : source && source.fileId
+      ? `/api/files/${source.fileId}/content`
+      : '';
 
-  const toPair = React.useMemo(() => {
-    if (typeof source === 'string') {
-      const abs = toAbsoluteFileUrl(source);
-      const isApi = /^\/api\/files\//.test(abs) || /^https?:\/\/.+\/api\/files\//.test(abs);
-      return {
-        publicUrl: abs.replace('/api/files/', '/files/'),
-        apiUrl: isApi ? abs : null,
-      };
-    }
-    if (source && source.patentId && source.fileName) {
-      const enc = encodeURIComponent(source.fileName);
-      return {
-        publicUrl: `/files/${source.patentId}/${enc}`,
-        apiUrl: `/api/files/${source.patentId}/${enc}`,
-      };
-    }
-    return { publicUrl: '', apiUrl: null };
-  }, [source]);
+  const [err, setErr] = React.useState(false);
 
-  React.useEffect(() => {
-    if (prevObjectUrlRef.current) {
-      URL.revokeObjectURL(prevObjectUrlRef.current);
-      prevObjectUrlRef.current = null;
-    }
-    setResolvedSrc(toPair.publicUrl || '');
-    setTriedAuthFetch(false);
-    return () => {
-      if (prevObjectUrlRef.current) {
-        URL.revokeObjectURL(prevObjectUrlRef.current);
-        prevObjectUrlRef.current = null;
-      }
-    };
-  }, [toPair.publicUrl, toPair.apiUrl]);
-
-  const handleError = async () => {
-    if (toPair.apiUrl && !triedAuthFetch) {
-      setTriedAuthFetch(true);
-      try {
-        const token =
-          localStorage.getItem('token') ||
-          localStorage.getItem('accessToken') ||
-          sessionStorage.getItem('token') ||
-          sessionStorage.getItem('accessToken') || '';
-
-        const res = await fetch(toPair.apiUrl, {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-          credentials: 'include',
-        });
-        if (!res.ok) throw new Error('auth fetch failed');
-
-        const blob = await res.blob();
-        const objUrl = URL.createObjectURL(blob);
-        prevObjectUrlRef.current = objUrl;
-        setResolvedSrc(objUrl);
-        return;
-      } catch {}
-    }
-    setResolvedSrc('https://placehold.co/400x300/e2e8f0/94a3b8?text=Image+Not+Found');
-  };
-
-  if (!resolvedSrc) {
+  if (!src || err) {
     return (
       <div className="w-full h-32 bg-gray-50 border border-gray-200 flex items-center justify-center text-xs text-gray-500">
         이미지 없음
@@ -97,8 +42,16 @@ function SmartImage({ source, className, alt }) {
     );
   }
 
-  return <img alt={alt} src={resolvedSrc} className={className} onError={handleError} />;
+  return (
+    <img
+      alt={alt}
+      src={src}
+      className={className}
+      onError={() => setErr(true)}
+    />
+  );
 }
+
 
 // 간단한 3D 뷰어: model-viewer 사용
 function ModelViewer3D({ src }) {
