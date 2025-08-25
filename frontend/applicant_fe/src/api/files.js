@@ -1,12 +1,18 @@
 import axios from './axiosInstance';
 
 const API_ROOT = '/api/files';
+const S3_PUBLIC_BASE = 'https://patentsight-artifacts-usea1.s3.amazonaws.com';
 
 const isHttpUrl = (u) => /^https?:\/\//i.test(u);
 
 export function toAbsoluteFileUrl(u) {
   if (!u) return '';
   if (isHttpUrl(u)) return u;
+
+  // S3 키(슬래시 없음)라면 S3 퍼블릭 URL로 변환
+  if (!u.startsWith('/')) {
+    return `${S3_PUBLIC_BASE}/${u}`;
+  }
 
   const normalized = u.startsWith('/') ? u : `/${u.replace(/^\.?\//, '')}`;
   const base = axios.defaults.baseURL;
@@ -33,7 +39,7 @@ export const parsePatentPdf = async (file) => {
 
 export const getFileDetail = async (fileId) => {
   const { data } = await axios.get(`${API_ROOT}/${fileId}`);
-  return data;
+  return { ...data, fileUrl: toAbsoluteFileUrl(data.fileUrl) };
 };
 
 const IMAGE_EXTS = new Set(['png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp', 'svg']);
@@ -88,7 +94,8 @@ export const uploadFile = async ({ file, patentId }) => {
     const res = await axios.post(API_ROOT, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
-    return res.data;
+    const data = res.data;
+    return { ...data, fileUrl: toAbsoluteFileUrl(data.fileUrl) };
   } catch (error) {
     console.error('파일 업로드 실패:', error);
     throw error;
