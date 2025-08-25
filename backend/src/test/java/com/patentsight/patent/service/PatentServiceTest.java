@@ -211,6 +211,26 @@ class PatentServiceTest {
     }
 
     @Test
+    void submitPatent_setsInventorName() {
+        Patent patent = new Patent();
+        patent.setPatentId(3L);
+        patent.setApplicantId(300L);
+        patent.setType(PatentType.PATENT);
+        when(patentRepository.findById(3L)).thenReturn(Optional.of(patent));
+        when(patentRepository.save(any(Patent.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(restTemplate.postForObject(any(), any(), eq(PredictResponse.class))).thenReturn(null);
+        doNothing().when(reviewService).autoAssignWithSpecialty(any(Patent.class));
+        User user = new User();
+        user.setUserId(300L);
+        user.setName("User300");
+        when(userRepository.findById(300L)).thenReturn(Optional.of(user));
+
+        patentService.submitPatent(3L, null, 300L);
+
+        assertEquals("User300", patent.getInventor());
+    }
+
+    @Test
     void deletePatent_removesRecord() {
         Patent patent = new Patent();
         patent.setPatentId(1L);
