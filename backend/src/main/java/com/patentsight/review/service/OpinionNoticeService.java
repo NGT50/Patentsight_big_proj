@@ -32,12 +32,24 @@ public class OpinionNoticeService {
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new IllegalArgumentException("Review not found"));
 
-        // ✅ OpinionType에 따라 Patent 상태 변경
+        // ✅ OpinionType에 따라 Review/Patent 상태 동기화
         switch (request.getOpinionType()) {
-            case APPROVAL -> review.getPatent().setStatus(PatentStatus.APPROVED);
-            case REJECTION -> review.getPatent().setStatus(PatentStatus.REJECTED);
-            case EXAMINER_OPINION -> review.getPatent().setStatus(PatentStatus.REVIEWING);
+            case APPROVAL -> {
+                review.setDecision(Review.Decision.APPROVE);
+                review.getPatent().setStatus(PatentStatus.APPROVED);
+            }
+            case REJECTION -> {
+                review.setDecision(Review.Decision.REJECT);
+                review.getPatent().setStatus(PatentStatus.REJECTED);
+            }
+            case EXAMINER_OPINION -> {
+                review.setDecision(Review.Decision.REVIEWING);
+                review.getPatent().setStatus(PatentStatus.REVIEWING);
+            }
         }
+
+        // Review 결정과 특허 상태를 함께 저장
+        reviewRepository.save(review);
 
         patentRepository.saveAndFlush(review.getPatent());
 
