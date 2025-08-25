@@ -113,49 +113,48 @@ export const searchDesignImage = async (input) => {
 // 이미지 파일(blob)로 직접 유사 디자인 검색
 // 이미지 파일(blob)로 직접 유사 디자인 검색
 export async function searchDesignImageByBlob(imgUrl) {
-  // /api/files/... 를 /stream 으로 강제 전환 (CORS 회피)
-  const toStreamUrl = (u) => {
-    try {
-      const url = new URL(u, window.location.origin);
-      if (url.pathname.startsWith('/api/files/')) {
-        if (url.pathname.endsWith('/content')) {
-          url.pathname = url.pathname.replace(/\/content$/, '/stream');
-        } else if (!url.pathname.endsWith('/stream')) {
-          url.pathname = url.pathname.replace(/\/$/, '') + '/stream';
-        }
-        return url.toString();
-      }
-    } catch {}
-    return u;
-  };
-
   const token =
     localStorage.getItem('token') ||
     localStorage.getItem('accessToken') ||
     sessionStorage.getItem('token') ||
     sessionStorage.getItem('accessToken') || '';
 
-  // 1) 이미지 바이트 가져오기 (서버 프록시 경유)
-  const res = await fetch(toStreamUrl(imgUrl), {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  // /api/files/** URL이면 CORS 회피용 /stream 으로 전환
+  const toStreamUrl = (u) => {
+    try {
+      const url = new URL(u, window.location.origin);
+      if (url.pathname.startsWith('/api/files/')) {
+        url.pathname = url.pathname
+          .replace(/\/content$/, '')
+          .replace(/\/$/, '') + '/stream';
+        return url.toString();
+      }
+    } catch {}
+    return u;
+  };
+
+  const fetchUrl = toStreamUrl(imgUrl);
+  const res = await fetch(fetchUrl, {
+    headers: fetchUrl.startsWith('/api/') && token ? { Authorization: `Bearer ${token}` } : {},
     credentials: 'include',
   });
   if (!res.ok) throw new Error(`image fetch failed: ${res.status}`);
-  const blob = await res.blob();
 
-  // 2) 백엔드로 업로드하여 유사 검색 실행
+  const blob = await res.blob();
   const form = new FormData();
   form.append('file', blob, 'drawing.png');
 
+  // 실제 백엔드 매핑
   const r = await fetch('/api/ai/search/design/image', {
     method: 'POST',
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
     body: form,
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
     credentials: 'include',
   });
   if (!r.ok) throw new Error(`search api failed: ${r.status}`);
   return r.json();
 }
+
 
 
 
