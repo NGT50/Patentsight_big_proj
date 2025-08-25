@@ -92,6 +92,18 @@ public class ReviewServiceImpl implements ReviewService {
     // 2️⃣ 자동 배정 (전문분야 + 최소 업무량 기준, 없으면 대기 상태)
     @Override
     public void autoAssignWithSpecialty(Patent patent) {
+        // 기존에 미완료 Review가 있으면 새로 생성하지 않고 재사용
+        Optional<Review> existingOpt = reviewRepository.findTopByPatent_PatentIdOrderByReviewedAtDesc(patent.getPatentId());
+        if (existingOpt.isPresent()) {
+            Review existing = existingOpt.get();
+            if (existing.getDecision() == Review.Decision.SUBMITTED || existing.getDecision() == Review.Decision.REVIEWING) {
+                existing.setDecision(Review.Decision.SUBMITTED);
+                existing.setReviewedAt(null);
+                reviewRepository.save(existing);
+                return;
+            }
+        }
+
         DepartmentType dept = switch (patent.getType()) {
             case PATENT, UTILITY_MODEL -> DepartmentType.PATENT;
             case DESIGN -> DepartmentType.DESIGN;

@@ -104,7 +104,7 @@ public class FileService {
         res.setPatentId(attachment.getPatent() != null ? attachment.getPatent().getPatentId() : null);
         res.setUploaderId(attachment.getUploaderId());
         res.setFileName(attachment.getFileName());
-        res.setFileUrl(attachment.getFileUrl());
+        res.setFileUrl(FileUtil.getPublicUrl(attachment.getFileUrl()));
         res.setFileType(attachment.getFileType());
         res.setContent(attachment.getContent());
         res.setUpdatedAt(attachment.getUpdatedAt());

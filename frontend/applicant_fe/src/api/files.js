@@ -1,8 +1,6 @@
 import axios from './axiosInstance';
 
 const API_ROOT = '/api/files';
-const S3_PUBLIC_BASE = 'https://patentsight-artifacts-usea1.s3.amazonaws.com';
-
 const isHttpUrl = (u) => /^https?:\/\//i.test(u);
 
 export function toAbsoluteFileUrl(u) {
