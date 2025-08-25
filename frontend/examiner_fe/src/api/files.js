@@ -87,19 +87,31 @@ export async function uploadFile({ file, patentId }) {
   const form = new FormData();
   form.append('file', file);
   if (patentId != null) form.append('patentId', patentId);
-  const { data } = await axiosInstance.post(API_ROOT, form, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
-  return { ...data, fileUrl: toAbsoluteFileUrl(data.fileUrl) }; // { fileId, patentId, fileName, fileUrl, ... }
+  try {
+    const { data } = await axiosInstance.post(API_ROOT, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return { ...data, fileUrl: toAbsoluteFileUrl(data.fileUrl) }; // { fileId, patentId, fileName, fileUrl, ... }
+  } catch (error) {
+    const msg = error.response?.data || error.message;
+    console.error('S3 업로드 실패:', msg);
+    throw new Error(msg);
+  }
 }
 
 export async function updateFile(fileId, file) {
   const form = new FormData();
   form.append('file', file);
-  const { data } = await axiosInstance.put(`${API_ROOT}/${fileId}`, form, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
-  return { ...data, fileUrl: toAbsoluteFileUrl(data.fileUrl) };
+  try {
+    const { data } = await axiosInstance.put(`${API_ROOT}/${fileId}`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return { ...data, fileUrl: toAbsoluteFileUrl(data.fileUrl) };
+  } catch (error) {
+    const msg = error.response?.data || error.message;
+    console.error('S3 업로드 실패:', msg);
+    throw new Error(msg);
+  }
 }
 
 export async function deleteFile(fileId) {

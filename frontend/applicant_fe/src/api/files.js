@@ -98,7 +98,8 @@ export const uploadFile = async ({ file, patentId }) => {
     const data = res.data;
     return { ...data, fileUrl: toAbsoluteFileUrl(data.fileUrl) };
   } catch (error) {
-    console.error('파일 업로드 실패:', error);
-    throw error;
+    const msg = error.response?.data || error.message;
+    console.error('S3 업로드 실패:', msg);
+    throw new Error(msg);
   }
 };
