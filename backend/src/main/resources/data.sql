@@ -1,5 +1,5 @@
 -- Ensure patent.status reflects review.decision changes
-DROP TRIGGER IF EXISTS review_decision_update;
+DROP TRIGGER IF EXISTS review_decision_update//
 CREATE TRIGGER review_decision_update
 AFTER UPDATE ON review
 FOR EACH ROW
@@ -14,9 +14,9 @@ BEGIN
         END
         WHERE patent_id = NEW.patent_id;
     END IF;
-END;
+END//
 
-DROP TRIGGER IF EXISTS review_decision_insert;
+DROP TRIGGER IF EXISTS review_decision_insert//
 CREATE TRIGGER review_decision_insert
 AFTER INSERT ON review
 FOR EACH ROW
@@ -29,4 +29,4 @@ BEGIN
         WHEN 'REJECT' THEN 'REJECTED'
     END
     WHERE patent_id = NEW.patent_id;
-END;
+END//
