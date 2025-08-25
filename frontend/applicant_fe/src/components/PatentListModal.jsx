@@ -7,7 +7,7 @@ import { DocumentTextIcon, ExclamationCircleIcon, CheckBadgeIcon, XMarkIcon } fr
 const statusMap = {
   DRAFT: '임시저장',
   SUBMITTED: '심사대기',
-  IN_REVIEW: '심사중',
+  REVIEWING: '심사중',
   APPROVED: '등록결정',
   REJECTED: '거절결정',
 };

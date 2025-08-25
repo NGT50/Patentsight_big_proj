@@ -2,6 +2,7 @@ package com.patentsight.review.domain;
 
 import com.patentsight.patent.domain.Patent;
 import com.patentsight.patent.domain.PatentType;
+import com.patentsight.patent.domain.PatentStatus;
 import com.patentsight.user.domain.User;
 import jakarta.persistence.*;
 import lombok.*;
@@ -36,6 +37,18 @@ public class Review {
     private PatentType reviewType;
 
     private boolean autoAssigned; // 자동 배정 여부
+
+    public void setDecision(Decision decision) {
+        this.decision = decision;
+        if (this.patent != null) {
+            this.patent.setStatus(switch (decision) {
+                case SUBMITTED -> PatentStatus.SUBMITTED;
+                case REVIEWING -> PatentStatus.REVIEWING;
+                case APPROVE -> PatentStatus.APPROVED;
+                case REJECT -> PatentStatus.REJECTED;
+            });
+        }
+    }
     
     public enum Decision {
         SUBMITTED,  // 심사대기 (심사관 배정 직후)
