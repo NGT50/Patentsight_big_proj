@@ -13,6 +13,7 @@ const DesignCheckListPage = () => {
   });
 
   const handleCardClick = (patentId) => {
+    // 상세보기 페이지로 이동
     navigate(`/patent/${patentId}`);
   };
 
@@ -20,7 +21,7 @@ const DesignCheckListPage = () => {
     <div className="min-h-screen bg-gray-100">
       <main className="p-8">
         <h1 className="text-3xl font-bold text-gray-800">디자인·상표 점검 (임시저장 목록)</h1>
-        <p className="mt-2 text-gray-600">임시저장된 디자인 및 상표 초안 목록입니다. 카드를 클릭하여 수정을 계속할 수 있습니다.</p>
+        <p className="mt-2 text-gray-600">임시저장된 디자인 및 상표 초안 목록입니다. 카드를 클릭하면 상세보기 페이지로 이동합니다.</p>
         <div className="mt-8 space-y-4">
           {isLoading && <p>목록을 불러오는 중입니다...</p>}
           {isError && <p>오류가 발생했습니다: {error.message}</p>}
