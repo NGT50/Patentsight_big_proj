@@ -41,7 +41,23 @@ public class FileUtil {
     // Default bucket where files are stored. Mirrors the public bucket used by the frontend.
     private static final String BUCKET =
             System.getenv().getOrDefault("S3_BUCKET", "patentsight-artifacts-use1");
-    private static final Region REGION = Region.of(System.getenv().getOrDefault("AWS_REGION", "us-east-1"));
+    /**
+     * Resolves the AWS region from {@code AWS_REGION} env var. If the provided value
+     * does not match a known region, {@code us-east-1} is used instead so that
+     * generated URLs still point to a valid S3 endpoint.
+     */
+    private static Region resolveRegion() {
+        String regionId = System.getenv().getOrDefault("AWS_REGION", "us-east-1");
+        return Region.regions().stream()
+                .filter(r -> r.id().equals(regionId))
+                .findFirst()
+                .orElseGet(() -> {
+                    log.warn("Unknown AWS region '{}', defaulting to us-east-1", regionId);
+                    return Region.US_EAST_1;
+                });
+    }
+
+    private static final Region REGION = resolveRegion();
     private static final S3Client S3 = S3Client.builder().region(REGION).build();
     private static final S3Presigner PRESIGNER = S3Presigner.builder().region(REGION).build();
 
