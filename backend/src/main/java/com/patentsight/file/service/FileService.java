@@ -44,6 +44,7 @@ public class FileService {
             attachment.setFileName(file.getOriginalFilename());
             attachment.setFileUrl(path); // DB에는 키/상대경로 저장
             attachment.setFileType(determineFileType(file.getOriginalFilename()));
+
             attachment.setUpdatedAt(LocalDateTime.now());
 
             Patent patent = patentRepository.findById(patentId)
