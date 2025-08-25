@@ -115,8 +115,15 @@ const PatentDetail = () => {
           </div>
           {showReview && review && (
             <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-              <p className="font-semibold text-gray-700">심사 결과: <span className="font-normal">{review.decision}</span></p>
-              <p className="mt-2 text-gray-700 whitespace-pre-wrap">심사 의견: {review.comment}</p>
+              <p className="font-semibold text-gray-700">
+                심사 결과: <span className="font-normal">{review.decision}</span>
+              </p>
+              <div className="mt-2">
+                <p className="font-semibold text-gray-700 mb-1">심사 의견</p>
+                <div className="text-gray-700 whitespace-pre-wrap max-h-48 overflow-y-auto p-2 border border-gray-200 rounded">
+                  {review.comment}
+                </div>
+              </div>
             </div>
           )}
         </div>
