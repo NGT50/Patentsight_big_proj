@@ -38,6 +38,12 @@ public class ReviewController {
         return reviewService.getReviewDetail(reviewId);
     }
 
+    // 4-1️⃣ 특정 특허의 최신 심사 결과 조회
+    @GetMapping("/patent/{patentId}")
+    public ReviewDetailResponse getLatestReviewByPatent(@PathVariable Long patentId) {
+        return reviewService.getLatestReviewByPatent(patentId);
+    }
+
     // 5️⃣ 심사 결과 제출
     @PostMapping("/submit")
     public Review submitReview(@RequestBody SubmitReviewRequest request) {

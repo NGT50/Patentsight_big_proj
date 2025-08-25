@@ -21,6 +21,9 @@ public interface ReviewService {
     // 4️⃣ 심사 상세 조회
     ReviewDetailResponse getReviewDetail(Long reviewId);
 
+    // 4-1️⃣ 특정 특허의 최신 심사 결과 조회
+    ReviewDetailResponse getLatestReviewByPatent(Long patentId);
+
     // 5️⃣ 심사 결과 제출
     Review submitReview(SubmitReviewRequest request);
 
