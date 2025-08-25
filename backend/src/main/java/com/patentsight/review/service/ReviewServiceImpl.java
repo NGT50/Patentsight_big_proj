@@ -250,10 +250,8 @@ public class ReviewServiceImpl implements ReviewService {
         review.setDecision(decision);
         review.setComment(request.getComment());
         review.setReviewedAt(LocalDateTime.now());
-
         // 🔸 4. Review 저장 (Patent 상태는 Review.setDecision에서 동기화)
         Review updatedReview = reviewRepository.save(review);
-
         // 🔔 알림 로직 유지
         Patent patent = review.getPatent();
         if (patent.getApplicantId() != null) {

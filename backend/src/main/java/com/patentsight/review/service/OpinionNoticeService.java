@@ -23,6 +23,7 @@ public class OpinionNoticeService {
 
     private final OpinionNoticeRepository opinionNoticeRepository;
     private final ReviewRepository reviewRepository;
+    private final PatentRepository patentRepository;
 
     // 1️⃣ 의견서 생성
     public OpinionNoticeResponse createOpinionNotice(Long reviewId, OpinionNoticeRequest request) {
@@ -38,7 +39,6 @@ public class OpinionNoticeService {
 
         // Review 결정과 특허 상태를 함께 저장
         reviewRepository.save(review);
-
         OpinionNotice notice = OpinionNotice.builder()
                 .review(review)
                 .type(request.getOpinionType())
