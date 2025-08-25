@@ -115,7 +115,7 @@ export default function DesignDashboard() {
           totalDesigns: listResponse.length,
           pending:   listResponse.filter(i => normalizeStatus(i.status) === 'SUBMITTED').length,
           inReview:  listResponse.filter(i => normalizeStatus(i.status) === 'REVIEWING').length,
-          completed: listResponse.filter(i => normalizeStatus(i.status) === 'APPROVED').length,
+          completed: listResponse.filter(i => ['APPROVED','REJECTED'].includes(normalizeStatus(i.status))).length,
           onhold:    listResponse.filter(i => normalizeStatus(i.status) === 'REJECTED').length,
         });
 
