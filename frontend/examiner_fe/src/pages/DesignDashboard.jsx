@@ -115,7 +115,7 @@ export default function DesignDashboard() {
           totalDesigns: listResponse.length,
           pending:   listResponse.filter(i => normalizeStatus(i.status) === 'SUBMITTED').length,
           inReview:  listResponse.filter(i => normalizeStatus(i.status) === 'REVIEWING').length,
-          completed: listResponse.filter(i => normalizeStatus(i.status) === 'APPROVED').length,
+          completed: listResponse.filter(i => ['APPROVED','REJECTED'].includes(normalizeStatus(i.status))).length,
           onhold:    listResponse.filter(i => normalizeStatus(i.status) === 'REJECTED').length,
         });
 
@@ -316,7 +316,7 @@ export default function DesignDashboard() {
                   case 'reception':    return { completed: true, current: false };
                   case 'waiting':      return { completed: ['REVIEWING','APPROVED','REJECTED'].includes(item.status), current: item.status === 'SUBMITTED' };
                   case 'examination':  return { completed: ['APPROVED','REJECTED'].includes(item.status), current: item.status === 'REVIEWING' };
-                  case 'decision':     return { completed: ['APPROVED'].includes(item.status), current: ['APPROVED','REJECTED'].includes(item.status) };
+                  case 'decision':     return { completed: ['APPROVED','REJECTED'].includes(item.status), current: ['APPROVED','REJECTED'].includes(item.status) };
                   case 'registration': return { completed: ['APPROVED'].includes(item.status), current: ['APPROVED'].includes(item.status) };
                   default:             return { completed: false, current: false };
                 }

@@ -144,7 +144,7 @@ export default function PatentDashboard() {
           totalPatents: source.length,
           pending:   source.filter(i => ['SUBMITTED'].includes(normalizeStatus(i.status))).length,
           inReview:  source.filter(i => ['REVIEWING','PENDING'].includes(normalizeStatus(i.status))).length,
-          completed: source.filter(i => ['APPROVED'].includes(normalizeStatus(i.status))).length,
+          completed: source.filter(i => ['APPROVED','REJECTED'].includes(normalizeStatus(i.status))).length,
           onhold:    source.filter(i => ['REJECTED'].includes(normalizeStatus(i.status))).length,
         });
 
@@ -356,7 +356,7 @@ export default function PatentDashboard() {
                   case 'reception':    return { completed: true, current: false };
                   case 'waiting':      return { completed: ['REVIEWING','PENDING','APPROVED','REJECTED'].includes(item.status), current: item.status === 'SUBMITTED' };
                   case 'examination':  return { completed: ['APPROVED','REJECTED'].includes(item.status), current: ['REVIEWING','PENDING'].includes(item.status) };
-                  case 'decision':     return { completed: ['APPROVED'].includes(item.status), current: ['APPROVED','REJECTED'].includes(item.status) };
+                  case 'decision':     return { completed: ['APPROVED','REJECTED'].includes(item.status), current: ['APPROVED','REJECTED'].includes(item.status) };
                   case 'registration': return { completed: ['APPROVED'].includes(item.status), current: ['APPROVED'].includes(item.status) };
                   default:             return { completed: false, current: false };
                 }
