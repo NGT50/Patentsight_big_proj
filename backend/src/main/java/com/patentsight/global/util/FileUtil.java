@@ -3,9 +3,6 @@ package com.patentsight.global.util;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.UUID;
 
 import org.slf4j.Logger;
@@ -19,8 +16,6 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
-import software.amazon.awssdk.services.s3.model.S3Exception;
-import software.amazon.awssdk.services.s3.model.ObjectCannedACL;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
@@ -29,10 +24,9 @@ import java.time.Duration;
 
 /**
  * Utility helpers for storing uploaded files. The primary storage target is
- * Amazon S3, but if AWS credentials are not configured or an upload/delete
- * operation fails, the file system under the {@code uploads} directory is used
- * as a graceful fallback so the application can continue to function in local
- * environments.
+ * Amazon S3. When S3 operations fail, an {@link IOException} is thrown so the
+ * caller can handle the error instead of silently falling back to the local
+ * file system.
  */
 public class FileUtil {
 
@@ -40,7 +34,7 @@ public class FileUtil {
 
     // Default bucket where files are stored. Mirrors the public bucket used by the frontend.
     private static final String BUCKET =
-            System.getenv().getOrDefault("S3_BUCKET", "patentsight-artifacts-use1");
+            System.getenv().getOrDefault("S3_BUCKET", "patentsight-artifacts-usea1");
     /**
      * Resolves the AWS region from {@code AWS_REGION} env var. If the provided value
      * does not match a known region, {@code us-east-1} is used instead so that
@@ -61,9 +55,6 @@ public class FileUtil {
     private static final S3Client S3 = S3Client.builder().region(REGION).build();
     private static final S3Presigner PRESIGNER = S3Presigner.builder().region(REGION).build();
 
-    // Local fallback directory for environments without S3 credentials
-    private static final Path BASE_DIR = Path.of("uploads");
-
     private static void ensureAwsCredentials(String action) throws IOException {
         try {
             DefaultCredentialsProvider.create().resolveCredentials();
@@ -74,9 +65,8 @@ public class FileUtil {
     }
 
     /**
-     * Saves the provided multipart file to S3. If credentials are missing or the
-     * upload fails, the file is stored on the local file system instead and the
-     * absolute path is returned.
+     * Saves the provided multipart file to S3 and returns the object key. If the
+     * upload fails for any reason, an {@link IOException} is thrown.
      */
     public static String saveFile(MultipartFile file) throws IOException {
         if (file == null || file.isEmpty()) {
@@ -89,23 +79,19 @@ public class FileUtil {
                     .bucket(BUCKET)
                     .key(name)
                     .contentType(file.getContentType())
-                    .acl(ObjectCannedACL.PUBLIC_READ)
                     .build();
             S3.putObject(req, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
             return name;
         } catch (Exception e) {
-            // Fall back to local file system
-            log.warn("S3 upload failed, storing file locally: {}", e.getMessage());
-            Files.createDirectories(BASE_DIR);
-            Path target = BASE_DIR.resolve(name).toAbsolutePath();
-            Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
-            return target.toString();
+            String message = "Failed to upload file to S3: " + e.getMessage();
+            log.error(message, e);
+            throw new IOException(message, e);
         }
     }
 
     /**
-     * Removes the stored file. Attempts S3 deletion first and falls back to
-     * deleting a local file if S3 interaction fails.
+     * Removes the stored file from S3. If deletion fails, an {@link IOException}
+     * is thrown so the caller can react accordingly.
      */
     public static void deleteFile(String key) throws IOException {
         if (key == null || key.isEmpty()) return;
@@ -117,12 +103,8 @@ public class FileUtil {
                     .build();
             S3.deleteObject(req);
         } catch (Exception e) {
-            log.warn("S3 delete failed, removing local file: {}", e.getMessage());
-            try {
-                Files.deleteIfExists(Path.of(key));
-            } catch (IOException ex) {
-                log.warn("Failed to delete local file '{}': {}", key, ex.getMessage());
-            }
+            log.error("S3 delete failed: {}", e.getMessage());
+            throw new IOException("Failed to delete file from S3", e);
         }
     }
 
@@ -132,8 +114,24 @@ public class FileUtil {
      */
     public static String getPublicUrl(String key) {
         if (key == null || key.isEmpty()) return "";
-        if (key.startsWith("http://") || key.startsWith("https://")) return key;
-        if (key.startsWith("/")) return key;
+
+        if (key.startsWith("http://") || key.startsWith("https://")) {
+            // If the URL already points to S3, return it unchanged. Otherwise strip any
+            // leading path segments so the trailing file name can be used as an S3 key.
+            if (key.contains(".s3.") && key.contains("amazonaws.com")) {
+                return key;
+            }
+            int idx = key.lastIndexOf('/') + 1;
+            key = key.substring(idx);
+        }
+
+        // If an absolute file-system path was persisted (e.g. "/home/ubuntu/uploads/…"),
+        // strip the leading directories so the remaining segment can be treated as an
+        // S3 object key. This prevents leaking local paths back to clients.
+        if (key.startsWith("/")) {
+            int idx = key.lastIndexOf('/') + 1;
+            key = key.substring(idx);
+        }
         try {
             ensureAwsCredentials("generate presigned URL for '" + key + "'");
             GetObjectRequest get = GetObjectRequest.builder()
