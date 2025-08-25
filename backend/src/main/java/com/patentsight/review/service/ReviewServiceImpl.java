@@ -166,17 +166,6 @@ public class ReviewServiceImpl implements ReviewService {
 
     }
 
-    // 🔹 Review.Decision → PatentStatus 변환
-    private PatentStatus convertToPatentStatus(Review.Decision decision) {
-        return switch (decision) {
-
-            case SUBMITTED -> PatentStatus.SUBMITTED;
-            case REVIEWING -> PatentStatus.REVIEWING;
-            case APPROVE -> PatentStatus.APPROVED;
-            case REJECT -> PatentStatus.REJECTED;
-        };
-    }
-
     // 🔹 출원인 이름 조회
     private String getApplicantName(Long applicantId) {
         return userRepository.findById(applicantId)
@@ -257,20 +246,16 @@ public class ReviewServiceImpl implements ReviewService {
         }
     
         // 🔸 3. Review 상태/코멘트 갱신
-        review.setDecision(Review.Decision.valueOf(request.getDecision().toUpperCase()));
+        Review.Decision decision = Review.Decision.valueOf(request.getDecision().toUpperCase());
+        review.setDecision(decision);
         review.setComment(request.getComment());
         review.setReviewedAt(LocalDateTime.now());
-    
-        // 🔸 4. Review 먼저 저장
+
+        // 🔸 4. Review 저장 (Patent 상태는 Review.setDecision에서 동기화)
         Review updatedReview = reviewRepository.save(review);
-    
-        // 🔸 5. Patent 다시 조회 후 상태 반영
-        Patent patent = patentRepository.findById(updatedReview.getPatent().getPatentId())
-                .orElseThrow(() -> new IllegalArgumentException("Patent not found"));
-        patent.setStatus(convertToPatentStatus(updatedReview.getDecision()));
-        patentRepository.saveAndFlush(patent); // DB에 즉시 반영
-    
+
         // 🔔 알림 로직 유지
+        Patent patent = review.getPatent();
         if (patent.getApplicantId() != null) {
             notificationService.createNotification(NotificationRequest.builder()
                     .userId(patent.getApplicantId())
