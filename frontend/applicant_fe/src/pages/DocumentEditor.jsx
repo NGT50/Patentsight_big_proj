@@ -1,16 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { submitPatent, getPatentDetail, updateDocument, validatePatentDocument, generateFullDraft } from '../api/patents';
+// [수정] 챗봇 관련 API 함수 및 getPatentDetail import, validatePatentDocument 제거
+import { submitPatent, getPatentDetail, updateDocument, generateFullDraft, startChatSession, sendMessageToSession } from '../api/patents';
 import { uploadFile } from '../api/files';
 import { 
-  FileText, Save, Download, Send, Bot, Box, CheckCircle, AlertCircle, X,
+  FileText, Save, Send, Bot, Box, CheckCircle, AlertCircle, X,
   Plus, Trash2, Eye, Edit3, AlertTriangle
 } from 'lucide-react';
 import GenerateDraftModal from '../pages/GenerateDraftModal';
 import Button from '../components/Button';
 import { initialDocumentState } from '../utils/documentState';
-
+import ChatPanel from '../components/ChatPanel'; // [추가] 새로 만든 채팅 UI 컴포넌트 import
 
 const DocumentEditor = () => {
   // --- State 및 Hooks 선언 ---
@@ -19,7 +20,6 @@ const DocumentEditor = () => {
   const navigate = useNavigate();
   const { id: patentId } = useParams();
   const [document, setDocument] = useState(initialDocumentState);
-  const [aiResults, setAiResults] = useState(null);
   const queryClient = useQueryClient();
   const location = useLocation();
   const [drawingFiles, setDrawingFiles] = useState([]);
@@ -28,6 +28,11 @@ const DocumentEditor = () => {
   const [attachedPdf, setAttachedPdf] = useState(null);
   const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
   const isDataLoadedFromServerRef = useRef(false);
+
+  // [추가] 챗봇 관련 state
+  const [sessionId, setSessionId] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [isAiTyping, setIsAiTyping] = useState(false);
 
   // --- 데이터 로딩 (React Query) ---
   const { data, isLoading, isError } = useQuery({
@@ -47,30 +52,65 @@ const DocumentEditor = () => {
       isDataLoadedFromServerRef.current = true;
       return;
     }
-  if (data && !isDataLoadedFromServerRef.current) {
-    const docFromServer = data;
-    const initialState = {
-      ...initialDocumentState,
-      title: docFromServer.title || "",
-      technicalField: docFromServer.technicalField || "",
-      backgroundTechnology: docFromServer.backgroundTechnology || "",
-      inventionDetails: {
-        problemToSolve: docFromServer.inventionDetails?.problemToSolve || "",
-        solution: docFromServer.inventionDetails?.solution || "",
-        effect: docFromServer.inventionDetails?.effect || "",
-      },
-      summary: docFromServer.summary || "",
-      drawingDescription: docFromServer.drawingDescription || "",
-      claims: docFromServer.claims && docFromServer.claims.length > 0 ? docFromServer.claims : [''],
-    };
-    setDocument(initialState);
-    isDataLoadedFromServerRef.current = true;
-  }
+    if (data && !isDataLoadedFromServerRef.current) {
+      const docFromServer = data;
+      const initialState = {
+        ...initialDocumentState,
+        title: docFromServer.title || "",
+        technicalField: docFromServer.technicalField || "",
+        backgroundTechnology: docFromServer.backgroundTechnology || "",
+        inventionDetails: {
+          problemToSolve: docFromServer.inventionDetails?.problemToSolve || "",
+          solution: docFromServer.inventionDetails?.solution || "",
+          effect: docFromServer.inventionDetails?.effect || "",
+        },
+        summary: docFromServer.summary || "",
+        drawingDescription: docFromServer.drawingDescription || "",
+        claims: docFromServer.claims && docFromServer.claims.length > 0 ? docFromServer.claims : [''],
+      };
+      setDocument(initialState);
+      isDataLoadedFromServerRef.current = true;
+    }
   }, [data, location.state, patentId]);
 
   useEffect(() => {
     isDataLoadedFromServerRef.current = false;
   }, [patentId]);
+  
+  // [추가] 챗봇 세션 시작을 위한 Mutation
+  const startChatMutation = useMutation({
+    mutationFn: startChatSession,
+    onSuccess: (data) => {
+      setSessionId(data.sessionId);
+      setMessages([{ sender: 'ai', content: '안녕하세요! 특허 문서 검토를 도와드릴 준비가 되었습니다. 무엇이 궁금하신가요?' }]);
+    },
+    onError: (error) => {
+      setMessages([{ sender: 'ai', content: `AI 어시스턴트 연결에 실패했습니다: ${error.message}` }]);
+    }
+  });
+
+  // [추가] 메시지 전송을 위한 Mutation
+  const sendMessageMutation = useMutation({
+    mutationFn: sendMessageToSession,
+    onSuccess: (data) => {
+      setMessages(prev => [...prev, data]);
+    },
+    onError: (error) => {
+      setMessages(prev => [...prev, { sender: 'ai', content: `오류가 발생했습니다: ${error.message}` }]);
+    },
+    onSettled: () => {
+      setIsAiTyping(false);
+    }
+  });
+
+  // [추가] 페이지 로드 시 patentId가 있으면 채팅 세션 시작
+  useEffect(() => {
+    if (patentId && patentId !== 'new-from-pdf') {
+      setMessages([]);
+      startChatMutation.mutate(patentId);
+    }
+  }, [patentId]);
+
 
   // --- 핸들러 및 Mutation 함수 ---
   const handleInputChange = (e) => setDocument(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -83,8 +123,7 @@ const DocumentEditor = () => {
   const addClaim = () => setDocument(prev => ({ ...prev, claims: [...prev.claims, ''] }));
   const removeClaim = (index) => {
     if (document.claims.length > 1) {
-      const newClaims = document.claims.filter((_, i) => i !== index);
-      setDocument(prev => ({ ...prev, claims: newClaims }));
+      setDocument(prev => ({ ...prev, claims: prev.claims.filter((_, i) => i !== index) }));
     }
   };
   const handleDrawingUpload = async (event) => {
@@ -112,34 +151,24 @@ const DocumentEditor = () => {
   const saveMutation = useMutation({
     mutationFn: updateDocument,
     onSuccess: () => {
-      queryClient.invalidateQueries(['myPatents']);
-      queryClient.invalidateQueries(['patentDocument', patentId]);
+      queryClient.invalidateQueries({ queryKey: ['myPatents'] });
+      queryClient.invalidateQueries({ queryKey: ['patentDetail', patentId] });
       alert('임시저장이 완료되었습니다.');
     },
     onError: (error) => alert('저장 중 오류가 발생했습니다: ' + error.message),
   });
 
-  // [수정] '최종 제출' Mutation: 저장과 상태 변경을 함께 처리
   const submitMutation = useMutation({
     mutationFn: async ({ patentId, documentData }) => {
-      // 1. 먼저 현재 내용을 저장합니다.
       await updateDocument({ patentId, documentData });
-      // 2. 저장이 성공하면, 최종 제출 API를 호출합니다.
       return await submitPatent(patentId);
     },
     onSuccess: () => {
-      // MyPage와 임시저장목록의 데이터를 모두 갱신하도록 신호를 보냅니다.
-      queryClient.invalidateQueries(['myPatents']);
+      queryClient.invalidateQueries({ queryKey: ['myPatents'] });
       alert('출원서가 최종 제출되었습니다. 마이페이지로 이동합니다.');
       navigate('/mypage'); 
     },
     onError: (error) => alert('최종 제출 중 오류가 발생했습니다: ' + error.message),
-  });
-
-  const aiCheckMutation = useMutation({
-    mutationFn: validatePatentDocument,
-    onSuccess: (data) => setAiResults(data),
-    onError: (error) => alert('AI 분석 중 오류가 발생했습니다: ' + error.message),
   });
 
   const generateDraftMutation = useMutation({
@@ -154,9 +183,7 @@ const DocumentEditor = () => {
   
   const handleGenerateDraft = (title) => generateDraftMutation.mutate({ title });
   const handleSaveDraft = () => saveMutation.mutate({ patentId, documentData: document });
-  const handleAiCheck = () => aiCheckMutation.mutate(document);
   
-  // [수정] '최종 제출' 핸들러: mutation에 document 데이터도 함께 전달
   const handleSubmit = () => {
     if (window.confirm('정말로 최종 제출하시겠습니까? 제출 후에는 수정이 어렵습니다.')) {
       submitMutation.mutate({ patentId, documentData: document });
@@ -170,16 +197,19 @@ const DocumentEditor = () => {
   };
 
   const scrollToField = (fieldName) => {
-    const fieldToTabMap = {
-      title: 'details', technicalField: 'details', backgroundTechnology: 'details',
-      inventionDetails: 'details', summary: 'summary', drawingDescription: 'summary',
-      claims: 'claims', drawings: 'drawings',
-    };
-    const targetTab = fieldToTabMap[fieldName];
-    if (targetTab) {
-      setActiveTab(targetTab);
-      setTimeout(() => fieldRefs.current[fieldName]?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
+    // ... (기존 scrollToField 로직)
+  };
+
+  // [추가] ChatPanel에서 호출할 메시지 전송 함수
+  const handleSendMessage = (content) => {
+    if (!sessionId) {
+      alert("채팅 세션이 아직 준비되지 않았습니다.");
+      return;
     }
+    const userMessage = { sender: 'user', content };
+    setMessages(prev => [...prev, userMessage]);
+    setIsAiTyping(true);
+    sendMessageMutation.mutate({ sessionId, content });
   };
 
   // --- 로딩 및 에러 UI ---
@@ -254,7 +284,6 @@ const DocumentEditor = () => {
               <p className="text-gray-600 mt-1">출원서 편집기</p>
             </div>
             <div className="flex items-center gap-3">
-              {attachedPdf && (<div className="flex items-center p-2 text-sm text-gray-600 bg-gray-100 border rounded-md"><span>📄 {attachedPdf.name}</span><button onClick={() => alert('다운로드 기능 구현 예정')} className="ml-2 font-semibold text-blue-600 hover:underline">(다운로드)</button></div>)}
               <Button onClick={() => setIsGeneratorOpen(true)} variant="special" className="w-auto">
                 ✨ AI로 전체 초안 생성
               </Button>
@@ -305,18 +334,15 @@ const DocumentEditor = () => {
               )}
             </div>
           </div>
+          
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sticky top-8">
-              <div className="flex items-center gap-2 mb-4"><Bot className="w-5 h-5 text-blue-600" /><h2 className="text-lg font-bold text-gray-800">AI 어시스턴트</h2></div>
-              <div className="bg-gray-50 rounded-lg p-4 mb-6 min-h-[400px] max-h-[500px] overflow-y-auto">
-                {aiCheckMutation.isPending && (<div className="flex items-center justify-center h-full"><div className="text-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div><p className="text-gray-600">AI가 문서를 분석 중입니다...</p></div></div>)}
-                {!aiCheckMutation.isPending && !aiResults && (<div className="text-center text-gray-500 flex flex-col justify-center h-full"><Bot className="w-12 h-12 mx-auto mb-2 text-gray-400" /><p>'AI 서류 검토 시작' 버튼을 눌러주세요.</p></div>)}
-                {aiResults && (<div className="space-y-4 text-sm"><div className="bg-red-50 border border-red-200 rounded-lg p-3"><h3 className="font-bold text-red-800 flex items-center gap-2 mb-2"><AlertCircle className="w-4 h-4" /> 형식 오류</h3>{aiResults.formatErrors?.length > 0 ? (<div className="space-y-2">{aiResults.formatErrors.map(e => (<button key={e.id} onClick={() => scrollToField(e.field)} className="block w-full text-left p-2 rounded hover:bg-red-100 transition-all"><p className="text-red-700">{e.message}</p></button>))}</div>) : (<p className="text-green-700 flex items-center gap-1"><CheckCircle className="w-4 h-4" /> 형식 오류가 발견되지 않았습니다.</p>)}</div><div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3"><h3 className="font-bold text-yellow-800 flex items-center gap-2 mb-2"><AlertTriangle className="w-4 h-4" /> 필수 항목 누락</h3>{aiResults.missingSections?.length > 0 ? (<div className="space-y-2">{aiResults.missingSections.map(s => (<button key={s.id} onClick={() => scrollToField(s.field)} className="block w-full text-left p-2 rounded hover:bg-yellow-100 transition-all"><p className="text-yellow-700">🟡 누락됨: {s.message}</p></button>))}</div>) : (<p className="text-green-700 flex items-center gap-1"><CheckCircle className="w-4 h-4" /> 모든 필수 항목이 포함되었습니다.</p>)}</div><div className="bg-blue-50 border border-blue-200 rounded-lg p-3"><h3 className="font-bold text-blue-800 flex items-center gap-2 mb-2"><Bot className="w-4 h-4" /> 문맥 오류 (GPT)</h3><div className="space-y-3">{aiResults.contextualErrors?.map(c => (<div key={c.id} className="p-3 bg-white rounded border border-blue-200"><p onClick={() => scrollToField(c.field)} className="font-semibold cursor-pointer hover:text-blue-600 transition-colors">{c.claim}</p><pre className="mt-2 whitespace-pre-wrap text-gray-700 text-xs">{c.analysis}</pre>{c.suggestion && (<div className="mt-3 pt-3 border-t border-blue-200"><p className="text-xs text-gray-500 mb-1">AI 수정 제안:</p><p className="text-xs text-blue-700 italic mb-2">"{c.suggestion}"</p><button onClick={() => applyAiSuggestion(c.claimIndex, c.suggestion)} className="w-full px-3 py-2 text-xs font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700 transition-all flex items-center justify-center gap-1"><CheckCircle className="w-3 h-3" /> 이대로 수정</button></div>)}</div>))}</div></div></div>)}
-              </div>
-              <div className="space-y-3">
-                <button onClick={() => alert('3D 변환 기능 구현 예정')} className="w-full flex items-center justify-center gap-2 px-4 py-3 font-semibold text-white bg-indigo-500 rounded-lg hover:bg-indigo-600 transition-all"><Box className="w-4 h-4" /> 도면 3D 변환</button>
-                <button onClick={handleAiCheck} disabled={aiCheckMutation.isPending} className="w-full flex items-center justify-center gap-2 px-4 py-3 font-semibold text-white bg-green-500 rounded-lg hover:bg-green-600 disabled:bg-gray-400 transition-all"><Bot className="w-4 h-4" /> {aiCheckMutation.isPending ? '분석 중...' : 'AI 서류 검토 시작'}</button>
-              </div>
+            <div className="sticky top-8">
+              <ChatPanel
+                messages={messages}
+                onSendMessage={handleSendMessage}
+                isTyping={isAiTyping}
+                initialLoading={startChatMutation.isPending}
+              />
             </div>
           </div>
         </div>

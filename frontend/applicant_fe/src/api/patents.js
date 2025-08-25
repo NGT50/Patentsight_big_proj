@@ -109,18 +109,7 @@ export const validatePatentDocument = async (documentData) => {
   }
 };
 
-export const startChatSession = async (patentId) => {
-  try {
-    const res = await axios.post('/api/ai/chat/sessions', {
-      patent_id: patentId,
-      session_type: 'DRAFT',
-    });
-    return res.data;
-  } catch (error) {
-    console.error('챗봇 세션 시작 실패:', error);
-    throw error;
-  }
-}
+
 
 // fetch를 사용하던 함수들을 axios로 통일합니다.
 export const getDocumentVersions = async (patentId) => {
@@ -198,5 +187,27 @@ export const generateFullDraft = async ({ title }) => {
   } catch (error) {
     console.error('AI 초안 생성 실패:', error);
     throw new Error(error.response?.data?.detail || 'AI 초안 생성에 실패했습니다.');
+  }
+};
+
+// [추가] 챗봇 세션 시작 API
+export const startChatSession = async (patentId) => {
+  try {
+    const res = await axios.post('/api/ai/chat/sessions', { patentId });
+    return res.data; // { sessionId: "..." } 를 반환
+  } catch (error) {
+    console.error('챗봇 세션 시작 실패:', error);
+    throw error;
+  }
+};
+
+// [추가] 챗봇 메시지 전송 API
+export const sendMessageToSession = async ({ sessionId, content }) => {
+  try {
+    const res = await axios.post(`/api/ai/chat/sessions/${sessionId}/messages`, { content });
+    return res.data; // { sender: "ai", content: "..." } 를 반환
+  } catch (error) {
+    console.error('챗봇 메시지 전송 실패:', error);
+    throw error;
   }
 };
