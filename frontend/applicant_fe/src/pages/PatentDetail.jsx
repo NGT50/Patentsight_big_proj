@@ -6,6 +6,7 @@ import {
   updateFileContent,
   submitPatent
 } from '../api/patents';
+import { getReviewByPatentId } from '../api/reviews';
 import { useQueryClient } from '@tanstack/react-query';
 
 const PatentDetail = () => {
@@ -15,6 +16,7 @@ const PatentDetail = () => {
   const [patent, setPatent] = useState(null);
   const [fileContent, setFileContent] = useState('');
   const [fileId, setFileId] = useState(null);
+  const [review, setReview] = useState(null);
 
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState('');
@@ -64,6 +66,13 @@ const PatentDetail = () => {
         const file = await getLatestFile(id);
         setFileContent(file?.content || '');
         setFileId(file?.file_id || null);
+
+        try {
+          const reviewData = await getReviewByPatentId(id);
+          setReview(reviewData);
+        } catch (err) {
+          console.error('리뷰 조회 실패:', err);
+        }
       } catch (err) {
         console.error('데이터 로드 실패:', err);
       }
@@ -94,12 +103,19 @@ const PatentDetail = () => {
   if (!patent) return <div>로딩 중...</div>;
 
   const isSubmitted = patent.status === 'SUBMITTED';
+  const showReview = ['REVIEWING', 'APPROVED', 'REJECTED'].includes(patent.status);
 
   return (
     <div style={{ padding: '24px' }}>
       <h1>출원 상세: {patent.title}</h1>
       <p>유형: {patent.type}</p>
       <p>상태: {patent.status}</p>
+      {showReview && review && (
+        <div style={{ marginTop: '12px' }}>
+          <p>심사 결과: {review.decision}</p>
+          <p>심사 의견: {review.comment}</p>
+        </div>
+      )}
 
       <h2>📄 문서 본문</h2>
       <textarea
