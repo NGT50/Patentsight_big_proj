@@ -19,7 +19,7 @@ import {
 } from '../api/ai';
 
 // 파일 API (메타 조회 → 안전한 URL 만들기)
-import { getImageUrlsByIds, getNonImageFilesByIds, toAbsoluteFileUrl } from '../api/files';
+import { getImageUrlsByIds, getNonImageFilesByIds} from '../api/files';
 
 /* ------------------------- 보조 ------------------------- */
 
@@ -127,7 +127,7 @@ function buildPatentDrawingSources(p) {
   const out = [];
   for (const it of list) {
     if (typeof it === 'string') {
-      const abs = toAbsoluteFileUrl(it);
+      const abs = String(it);
       if (!seen.has(abs)) { seen.add(abs); out.push(abs); }
     } else out.push(it);
   }
@@ -136,7 +136,7 @@ function buildPatentDrawingSources(p) {
 
 // 실제 호출용 URL로 변환 (객체는 /api/files 경로, 파일명 인코딩)
 function resolveToUrl(srcLike) {
-  if (typeof srcLike === 'string') return toAbsoluteFileUrl(srcLike);
+  if (typeof srcLike === 'string') return srcLike;
   if (srcLike && srcLike.patentId && srcLike.fileName) {
     const enc = encodeURIComponent(srcLike.fileName);
     return `/api/files/${srcLike.patentId}/${enc}`;

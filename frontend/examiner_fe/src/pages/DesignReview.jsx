@@ -18,7 +18,7 @@ import {
 } from '../api/ai';
 
 // 파일 API
-import { getImageUrlsByIds, getNonImageFilesByIds, toAbsoluteFileUrl } from '../api/files';
+import { getImageUrlsByIds, getNonImageFilesByIds } from '../api/files';
 
 /* ------------------------- 유틸 & 보조 컴포넌트 ------------------------- */
 
@@ -90,9 +90,9 @@ function buildDesignDrawingSources(d) {
   const list = [];
   list.push(...extractDrawingUrls(d.drawingDescription));
   if (Array.isArray(d.drawings) && d.drawings.length > 0) {
-    list.push(...d.drawings.map((s) => typeof s === 'string' ? toAbsoluteFileUrl(s) : s));
+    list.push(...d.drawings.map((s) => s));
   }
-  if (d.drawingImageUrl) list.push(toAbsoluteFileUrl(d.drawingImageUrl));
+  if (d.drawingImageUrl) list.push(d.drawingImageUrl);
   if (Array.isArray(d.drawingFileNames) && d.drawingFileNames.length > 0) {
     list.push(...d.drawingFileNames.map(fn => ({ patentId: d.patentId, fileName: fn })));
   }
@@ -100,8 +100,8 @@ function buildDesignDrawingSources(d) {
   const out = [];
   for (const it of list) {
     if (typeof it === 'string') {
-      const abs = toAbsoluteFileUrl(it);
-      if (!seen.has(abs)) { seen.add(abs); out.push(abs); }
+      const s = String(it);
+      if (!seen.has(s)) { seen.add(s); out.push(s); }
     } else {
       out.push(it);
     }
@@ -111,7 +111,7 @@ function buildDesignDrawingSources(d) {
 
 // srcLike → URL
 function resolveToUrl(srcLike) {
-  if (typeof srcLike === 'string') return toAbsoluteFileUrl(srcLike);
+  if (typeof srcLike === 'string') return srcLike;
   if (srcLike && srcLike.patentId && srcLike.fileName) {
     const encoded = encodeURIComponent(srcLike.fileName);
     return `/api/files/${srcLike.patentId}/${encoded}`;
