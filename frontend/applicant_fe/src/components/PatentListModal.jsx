@@ -104,7 +104,15 @@ const PatentListModal = ({ onClose, patents, isLoading, isError, error }) => {
                         <h3 className="text-lg font-semibold text-gray-900">{patent.title}</h3>
                         <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600 mt-2">
                           <span><strong>출원번호:</strong> {patent.applicationNumber || '미부여'}</span>
-                          <span><strong>출원일:</strong> {patent.applicationDate || '미지정'}</span>
+                          <span>
+                            <strong>출원일:</strong>{' '}
+                            {(() => {
+                              const displayDate =
+                                patent.applicationDate ||
+                                (patent.submittedAt ? patent.submittedAt.split('T')[0] : null);
+                              return displayDate || '미지정';
+                            })()}
+                          </span>
                         </div>
                         <p className="text-sm text-gray-700 mt-1">
                           <strong>출원인:</strong> {patent.inventor}

@@ -131,38 +131,50 @@ const MyPage = () => {
             
             {allPatentsList.length > 0 && (  // ✅ 수정됨
               <div className="space-y-4">
-                {allPatentsList.map((patent) => (  // ✅ 수정됨
-                  <div
-                    key={patent.patentId}
-                    onClick={() => handleCardClick(patent.patentId)}
-                    className="p-4 border border-gray-200 rounded-lg hover:shadow-md transition-shadow cursor-pointer bg-gradient-to-r from-gray-50 to-white"
-                  >
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-2">{patent.title}</h3>
-                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600">
-                          <span><strong>출원번호:</strong> {patent.applicationNumber || '미부여'}</span>
-                          <span><strong>출원일:</strong> {patent.applicationDate || '미지정'}</span>
-                          <span><strong>IPC:</strong> {patent.ipc || 'N/A'}</span>
-                          <span><strong>CPC:</strong> {patent.cpc || 'N/A'}</span>
+                {allPatentsList.map((patent) => {
+                  const displayDate =
+                    patent.applicationDate ||
+                    (patent.submittedAt ? patent.submittedAt.split('T')[0] : null);
+
+                  return (
+                    <div
+                      key={patent.patentId}
+                      onClick={() => handleCardClick(patent.patentId)}
+                      className="p-4 border border-gray-200 rounded-lg hover:shadow-md transition-shadow cursor-pointer bg-gradient-to-r from-gray-50 to-white"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <h3 className="text-lg font-semibold text-gray-900 mb-2">{patent.title}</h3>
+                          <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600">
+                            <span><strong>출원번호:</strong> {patent.applicationNumber || '미부여'}</span>
+                            <span><strong>출원일:</strong> {displayDate || '미지정'}</span>
+                            <span><strong>IPC:</strong> {patent.ipc || 'N/A'}</span>
+                            <span><strong>CPC:</strong> {patent.cpc || 'N/A'}</span>
+                          </div>
+                          <p className="text-sm text-gray-700 mt-2">
+                            <strong>출원인:</strong> {patent.inventor || patent.applicantName || '미지정'} |
+                            <span
+                              className={`ml-2 px-2 py-1 rounded text-xs font-medium ${
+                                patent.status === 'IN_REVIEW'
+                                  ? 'bg-yellow-100 text-yellow-800'
+                                  : patent.status === 'SUBMITTED'
+                                  ? 'bg-blue-100 text-blue-800'
+                                  : patent.status === 'APPROVED'
+                                  ? 'bg-green-100 text-green-800'
+                                  : patent.status === 'REJECTED'
+                                  ? 'bg-red-100 text-red-800'
+                                  : 'bg-gray-100 text-gray-800'
+                              }`}
+                            >
+                              {statusMap[patent.status] || patent.status}
+                            </span>
+                          </p>
+                          <p className="mt-2 text-sm text-gray-600">📌 <em>{patent.summary || '요약 없음'}</em></p>
                         </div>
-                        <p className="text-sm text-gray-700 mt-2">
-                          <strong>출원인:</strong> {patent.inventor || patent.applicantName || '미지정'} | 
-                          <span className={`ml-2 px-2 py-1 rounded text-xs font-medium ${
-                            patent.status === 'IN_REVIEW' ? 'bg-yellow-100 text-yellow-800' :
-                            patent.status === 'SUBMITTED' ? 'bg-blue-100 text-blue-800' :
-                            patent.status === 'APPROVED' ? 'bg-green-100 text-green-800' :
-                            patent.status === 'REJECTED' ? 'bg-red-100 text-red-800' :
-                            'bg-gray-100 text-gray-800'
-                          }`}>
-                            {statusMap[patent.status] || patent.status}
-                          </span>
-                        </p>
-                        <p className="mt-2 text-sm text-gray-600">📌 <em>{patent.summary || '요약 없음'}</em></p>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
