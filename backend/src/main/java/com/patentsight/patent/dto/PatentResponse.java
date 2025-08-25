@@ -16,6 +16,7 @@ public class PatentResponse {
     private List<Long> attachmentIds;
     private String cpc;
     private String applicationNumber;
+  
     @JsonProperty("applicationDate")
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     private LocalDate applicationDate;
