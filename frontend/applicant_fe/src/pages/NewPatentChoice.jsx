@@ -16,7 +16,7 @@ const NewPatentChoicePage = () => {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['myPatents'] });
       // [FIXED] 경로 맨 앞에 '/'를 추가하여 올바른 절대 경로로 수정합니다.
-      navigate(`/patent/${data.patentId}`);
+      navigate(`/patent/${data.patentId}/edit`);
     },
     onError: (err) => alert(`출원서 생성에 실패했습니다: ${err.message}`),
   });
