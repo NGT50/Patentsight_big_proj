@@ -94,15 +94,15 @@ jobs:
 
             cd "$APP_DIR"
 
-            PID=$(pgrep -f "current.jar" || true)
-            if [ -n "$PID" ]; then
-              echo "> 실행 중인 애플리케이션(PID: $PID)을 종료합니다."
-              echo "$PID" | xargs -r kill || true
+            PIDS=$(ps -eo pid,comm,args | awk '$2=="java" && $0 ~ /current.jar/ {print $1}' || true)
+            if [ -n "$PIDS" ]; then
+              echo "> 실행 중인 애플리케이션(PID: $PIDS)을 종료합니다."
+              echo "$PIDS" | xargs -r kill || true
               sleep 5
-              PID=$(pgrep -f "current.jar" || true)
-              if [ -n "$PID" ]; then
+              PIDS=$(ps -eo pid,comm,args | awk '$2=="java" && $0 ~ /current.jar/ {print $1}' || true)
+              if [ -n "$PIDS" ]; then
                 echo "> 프로세스가 아직 살아있습니다. 강제 종료합니다."
-                echo "$PID" | xargs -r kill -9 || true
+                echo "$PIDS" | xargs -r kill -9 || true
               fi
             fi
 
