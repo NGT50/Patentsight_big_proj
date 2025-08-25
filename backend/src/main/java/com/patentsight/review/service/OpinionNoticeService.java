@@ -8,6 +8,7 @@ import com.patentsight.review.dto.OpinionNoticeRequest;
 import com.patentsight.review.dto.OpinionNoticeResponse;
 import com.patentsight.review.repository.OpinionNoticeRepository;
 import com.patentsight.review.repository.ReviewRepository;
+import com.patentsight.patent.repository.PatentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,6 +40,7 @@ public class OpinionNoticeService {
 
         // Review 결정과 특허 상태를 함께 저장
         reviewRepository.save(review);
+        patentRepository.saveAndFlush(review.getPatent());
         OpinionNotice notice = OpinionNotice.builder()
                 .review(review)
                 .type(request.getOpinionType())
