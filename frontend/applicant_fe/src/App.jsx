@@ -4,6 +4,7 @@ import styled from 'styled-components';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 
+
 // 팀의 공용 컴포넌트
 import Navigation from './components/Navigation';
 import SubNavigation from './components/SubNavigation';
