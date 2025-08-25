@@ -59,7 +59,7 @@ const DraftsListPage = () => {
   ) || [];
 
   const handleCardClick = (patentId) => {
-    // 임시저장된 문서는 편집기 페이지로 이동
+    // 문서를 클릭하면 상세보기 페이지로 이동
     navigate(`/patent/${patentId}`);
   };
 
@@ -67,7 +67,7 @@ const DraftsListPage = () => {
     <div className="max-w-screen-xl mx-auto px-4 py-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-800">특허·실용신안 점검 (임시저장 목록)</h1>
-        <p className="mt-2 text-gray-600">임시저장된 특허 및 실용신안 초안 목록입니다. 카드를 클릭하여 수정을 계속할 수 있습니다.</p>
+        <p className="mt-2 text-gray-600">임시저장된 특허 및 실용신안 초안 목록입니다. 카드를 클릭하면 상세보기 페이지로 이동합니다.</p>
       </div>
 
       {isLoading && (

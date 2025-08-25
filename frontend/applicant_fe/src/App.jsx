@@ -100,7 +100,8 @@ function App() {
               <Route path="/new-patent-choice" element={<NewPatentChoicePage />} />
               <Route path="/check/patents" element={<DraftsListPage />} />
               <Route path="/check/designs" element={<DesignCheckListPage />} />
-              <Route path="/patent/:id" element={<DocumentEditor />} />
+              <Route path="/patent/:id" element={<PatentDetail />} />
+              <Route path="/patent/:id/edit" element={<DocumentEditor />} />
               <Route path="/submit/:id" element={<FinalSubmitPage />} />
             </Routes>
           </MainContent>
