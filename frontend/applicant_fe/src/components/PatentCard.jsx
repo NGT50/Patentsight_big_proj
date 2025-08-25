@@ -25,7 +25,16 @@ const PatentCard = ({ data, onClick }) => {
           <strong>IPC:</strong> {data.ipc || 'N/A'} | <strong>CPC:</strong> {data.cpc || 'N/A'}
         </p>
         <p className="text-xs text-gray-500">
-          <strong>출원번호:</strong> {data.applicationNumber || 'N/A'} | <strong>출원일:</strong> {data.applicationDate || 'N/A'}
+          {(() => {
+            const displayDate =
+              data.applicationDate ||
+              (data.submittedAt ? data.submittedAt.split('T')[0] : null);
+            return (
+              <>
+                <strong>출원번호:</strong> {data.applicationNumber || 'N/A'} | <strong>출원일:</strong> {displayDate || 'N/A'}
+              </>
+            );
+          })()}
         </p>
         <p className="text-sm text-gray-700">
           {/* API 명세서에 따라 'applicant' 대신 'inventor'를 사용합니다. */}

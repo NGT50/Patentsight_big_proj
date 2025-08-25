@@ -177,7 +177,6 @@ public class PatentService {
             patent.setApplicantId(userId);
         }
 
-
         // ✅ inventor 값이 비었거나 "미지정"이면 로그인한 사용자의 이름으로 세팅
         if (patent.getInventor() == null || patent.getInventor().isBlank()
                 || "미지정".equals(patent.getInventor())) {
@@ -187,7 +186,6 @@ public class PatentService {
                         .map(User::getName)
                         .orElse("미지정");
             }
-
             patent.setInventor(userName);
         }
 
@@ -603,18 +601,26 @@ public class PatentService {
         response.setStatus(patent.getStatus());
         response.setCpc(patent.getCpc());
         response.setApplicationNumber(patent.getApplicationNumber());
-        response.setApplicationDate(patent.getSubmittedAt() != null ? patent.getSubmittedAt().toLocalDate() : null);
-        response.setInventor(patent.getInventor());
-        response.setTechnicalField(patent.getTechnicalField());
-        response.setBackgroundTechnology(patent.getBackgroundTechnology());
-        response.setIpc(patent.getIpc());
-    
-        // ✅ applicantName 추가 로직
+        response.setApplicationDate(
+                patent.getSubmittedAt() != null ? patent.getSubmittedAt().toLocalDate() : null
+        );
+
+        // ✅ inventor가 비었거나 "미지정"이면 신청자 이름으로 대체
         String applicantName = userRepository.findById(patent.getApplicantId())
                 .map(User::getName)
                 .orElse("미지정");
+        String inventor = patent.getInventor();
+        if (inventor == null || inventor.isBlank() || "미지정".equals(inventor)) {
+            inventor = applicantName;
+        }
+        response.setInventor(inventor);
+        response.setTechnicalField(patent.getTechnicalField());
+        response.setBackgroundTechnology(patent.getBackgroundTechnology());
+        response.setIpc(patent.getIpc());
+
+        // ✅ applicantName 추가 로직
         response.setApplicantName(applicantName);
-    
+
         PatentResponse.InventionDetails details = new PatentResponse.InventionDetails();
         details.setProblemToSolve(patent.getProblemToSolve());
         details.setSolution(patent.getSolution());
