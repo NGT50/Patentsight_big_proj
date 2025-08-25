@@ -8,6 +8,8 @@ import com.patentsight.file.repository.FileRepository;
 import com.patentsight.global.util.FileUtil;
 import com.patentsight.patent.domain.Patent;
 import com.patentsight.patent.repository.PatentRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -18,6 +20,8 @@ import java.time.LocalDateTime;
 @Service
 @Transactional
 public class FileService {
+
+    private static final Logger log = LoggerFactory.getLogger(FileService.class);
 
     private final FileRepository fileRepository;
     private final PatentRepository patentRepository;
@@ -48,6 +52,7 @@ public class FileService {
             fileRepository.save(attachment);
             return toResponse(attachment);
         } catch (IOException e) {
+            log.error("Could not store file on S3", e);
             throw new S3UploadException("Could not store file on S3: " + e.getMessage(), e);
         }
     }
@@ -72,6 +77,7 @@ public class FileService {
             fileRepository.save(attachment);
             return toResponse(attachment);
         } catch (IOException e) {
+            log.error("Could not update file on S3", e);
             throw new S3UploadException("Could not update file on S3: " + e.getMessage(), e);
         }
     }
@@ -95,6 +101,7 @@ public class FileService {
      */
     private String ensureS3Key(String path) {
         if (path == null || path.startsWith("/") || path.contains("uploads")) {
+            log.error("S3 upload failed; file stored locally at {}", path);
             throw new S3UploadException(
                     "S3 upload failed; file saved locally at '" + path + "'", null);
         }
