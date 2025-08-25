@@ -163,17 +163,17 @@ const PatentDetail = () => {
             <p className="text-gray-700 whitespace-pre-wrap">{patent.summary || 'N/A'}</p>
           </div>
 
-          {(images.length > 0 || glbUrl) && (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-800 mb-4">첨부 파일</h2>
-              <div className="space-y-4">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h2 className="text-lg font-semibold text-gray-800 mb-2">도면의 간단한 설명</h2>
+            {(images.length > 0 || glbUrl) && (
+              <div className="space-y-4 mb-4">
                 {images.length > 0 && (
                   <div className="flex flex-wrap gap-4">
                     {images.map((src, idx) => (
                       <img
                         key={idx}
                         src={src}
-                        alt={`attachment-${idx}`}
+                        alt={`drawing-${idx}`}
                         className="max-w-full h-48 object-contain rounded border border-gray-200"
                       />
                     ))}
@@ -181,11 +181,7 @@ const PatentDetail = () => {
                 )}
                 {glbUrl && <ModelViewer3D src={glbUrl} />}
               </div>
-            </div>
-          )}
-
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-800 mb-2">도면의 간단한 설명</h2>
+            )}
             <p className="text-gray-700 whitespace-pre-wrap">{patent.drawingDescription || 'N/A'}</p>
           </div>
 
