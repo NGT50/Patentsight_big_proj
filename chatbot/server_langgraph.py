@@ -1,4 +1,4 @@
-
+#!/usr/bin/env python3
 import os
 import json
 from typing import Any, Dict, List, Optional, TypedDict
@@ -14,29 +14,51 @@ from langgraph.graph import StateGraph, START, END
 # 환경설정
 # =========================
 load_dotenv()
-# 실제 AI 모델 서버 주소들
-VALIDATE_URL = "http://3.26.101.212:8000/api/ai/validations"  # 형식/문맥 오류 탐지
-CLAIM_DRAFT_URL = "http://3.26.101.212:8000/generate"         # 청구항 초안 생성
-ANALYZE_URL = "http://13.236.174.54:8000/analyze"             # 유사 특허 + 거절사유 분석
 
-# ★ 여기 수정: httpx.Timeout은 4개 파라미터(connect/read/write/pool) 모두 지정 필요
-TIMEOUT = httpx.Timeout(connect=20.0, read=60.0, write=20.0, pool=20.0)
-HEADERS = {"Content-Type": "application/json"}
+# 문서 점검 API (명세서 점검)
+VALIDATE_URL = os.getenv("VALIDATE_URL", "http://3.26.101.212:8000/api/ai/validations")
+
+# 유사특허/거절 분석 API (한 엔드포인트에서 유사검색 + 거절분석 수행)
+# 사용자 요청이 "유사만"일 때는 여기 결과에서 유사특허 부분만 추출
+# 사용자가 /docs/analyze 라고 지시했으므로 우선 시도하되, 일반 /analyze 로 폴백도 추가
+ANALYZE_ENDPOINTS = [
+    u.strip() for u in os.getenv(
+        "ANALYZE_URLS",
+        "http://13.236.174.54:8000/docs/analyze,"
+        "http://13.236.174.54:8000/analyze,"
+        "http://127.0.0.1:8000/analyze"
+    ).split(",") if u.strip()
+]
+
+# 윈도우 호환: Timeout 4개 파라미터 모두 지정
+# TIMEOUT = httpx.Timeout(connect=20.0, read=90.0, write=20.0, pool=20.0)
+TIMEOUT = httpx.Timeout(connect=30.0, read=600.0, write=60.0, pool=30.0)
+HEADERS_JSON = {"Content-Type": "application/json"}
 
 # =========================
 # HTTP 유틸
 # =========================
 async def http_post(url: str, payload: Dict[str, Any]) -> Dict[str, Any]:
-    async with httpx.AsyncClient(timeout=TIMEOUT, headers=HEADERS) as c:
+    async with httpx.AsyncClient(timeout=TIMEOUT, headers=HEADERS_JSON) as c:
         r = await c.post(url, json=payload)
         r.raise_for_status()
         return r.json()
 
-async def http_get(url: str, params: Dict[str, Any]) -> Dict[str, Any]:
-    async with httpx.AsyncClient(timeout=TIMEOUT, headers=HEADERS) as c:
-        r = await c.get(url, params=params)
-        r.raise_for_status()
-        return r.json()
+async def http_post_failover(urls: List[str], payload: Dict[str, Any]) -> Dict[str, Any]:
+    """여러 후보 URL로 순차 시도; 모두 실패 시 상세 에러를 묶어 raise."""
+    errors = []
+    for u in urls:
+        try:
+            async with httpx.AsyncClient(timeout=TIMEOUT, headers=HEADERS_JSON) as c:
+                r = await c.post(u, json=payload)
+                r.raise_for_status()
+                print(f"🔗 analyze OK -> {u}")
+                return r.json()
+        except Exception as e:
+            err = f"{u} -> {repr(e)}"
+            print(f"⚠️ analyze 실패: {err}")
+            errors.append(err)
+    raise RuntimeError(" ; ".join(errors))
 
 # =========================
 # 요청/상태 스키마
@@ -44,23 +66,19 @@ async def http_get(url: str, params: Dict[str, Any]) -> Dict[str, Any]:
 class ChatRequest(BaseModel):
     session_id: str
     user_msg: str
-    application_text: str = ""
-    claims_text: str = ""
+    application_text: str = ""   # 명세서 본문(선택)
+    claims_text: str = ""        # 청구항 본문(선택)
     forced_intent: Optional[str] = None  # "validate_doc" 등 강제
 
 class BotState(TypedDict, total=False):
-    # 입력/맥락
     user_msg: str
     application_text: str
     claims_text: str
     forced_intent: Optional[str]
 
-    # 의도/결과
     intent: Optional[str]
     results: Dict[str, Any]
     final_answer: str
-
-    # 대화 히스토리
     history: List[Dict[str, str]]
 
 def new_state() -> BotState:
@@ -76,272 +94,219 @@ def new_state() -> BotState:
     }
 
 # =========================
-# 분류 노드 (규칙 우선, 한글 키워드 강화)
+# 의도 분류 (심사관 사용 문구 강화)
 # =========================
-VALIDATE_KEYWORDS = [
-    "문제점", "문제", "오류", "에러", "검토", "확인", "체크", "점검",
-    "유효성", "validation", "validate", "형식", "문맥", "누락", "오탈자"
+VALIDATE_KEYS = [
+    "오류", "문제", "점검", "검토", "확인",
+    "유효성", "validation", "형식", "문맥",
+    "지금 선택한 서류", "심사중", "현재 서류"
 ]
-SIMILAR_KEYWORDS = ["유사", "선행", "검색", "비슷한", "같은", "참고"]
-CLAIM_KEYWORDS = ["청구항", "초안", "생성", "작성", "claim", "draft"]
-REJECTION_KEYWORDS = ["거절", "통지", "거부", "rejection", "reject"]
+SIMILAR_KEYS = [
+    "유사", "선행", "비슷", "검색", "찾아줘", "특허공보",
+    "기술적으로 유사", "유사특허", "similar"
+]
+REJECT_KEYS = [
+    "거절", "거절사유", "통지", "전체적으로 검토", "의견제출통지서", "rejection"
+]
 
 async def node_classify(s: BotState) -> BotState:
-    forced = s.get("forced_intent")
-    if forced:
-        s["intent"] = forced
+    if s.get("forced_intent"):
+        s["intent"] = s["forced_intent"]
         return s
 
-    m = s.get("user_msg", "") or ""
-    print(f"🔍 분류 중: '{m}'")
+    m = (s.get("user_msg") or "").lower()
+    print(f"🔍 분류 중: {m}")
 
-    if any(k in m for k in VALIDATE_KEYWORDS):
-        s["intent"] = "validate_doc"
-        print("✅ validate_doc로 분류됨")
-    elif any(k in m for k in SIMILAR_KEYWORDS):
-        s["intent"] = "similar_patent"
-        print("✅ similar_patent로 분류됨")
-    elif any(k in m for k in CLAIM_KEYWORDS):
-        s["intent"] = "claim_draft"
-        print("✅ claim_draft로 분류됨")
-    elif any(k in m for k in REJECTION_KEYWORDS):
+    if any(k in m for k in REJECT_KEYS):
         s["intent"] = "rejection_draft"
-        print("✅ rejection_draft로 분류됨")
+    elif any(k in m for k in SIMILAR_KEYS):
+        s["intent"] = "similar_patent"
+    elif any(k in m for k in VALIDATE_KEYS):
+        s["intent"] = "validate_doc"
     else:
         s["intent"] = "small_talk"
-        print("✅ small_talk로 분류됨")
+    print(f"✅ intent = {s['intent']}")
     return s
 
 # =========================
-# analyze 페이로드 헬퍼 (main.py의 extract_text_from_json 기대 스키마)
+# 페이로드 빌더
 # =========================
+def build_validate_payload(s: BotState) -> Dict[str, Any]:
+    """
+    사용자 명세서/청구항을 점검 API 스키마에 맞춰 포장.
+    명세서 전체를 어디에 넣을지 명확치 않으므로, 최소 필드를 맞추고
+    application_text는 backgroundTechnology로 임시 매핑.
+    """
+    claims_list: List[str] = []
+    txt = (s.get("claims_text") or "").strip()
+    if txt:
+        parts = [p.strip() for p in txt.split("\n") if p.strip()]
+        claims_list = parts if parts else [txt]
+
+    return {
+        "title": "",  # 필요 시 클라이언트에서 제목 채워서 보내도록 확장
+        "technicalField": "",
+        "backgroundTechnology": (s.get("application_text") or "").strip(),
+        "claims": claims_list,
+        "inventionDetails": {
+            "problemToSolve": "",
+            "solution": "",
+            "effect": ""
+        }
+    }
+
 def build_analyze_payload(s: BotState) -> Dict[str, Any]:
+    """
+    유사/거절 통합 분석 서버 입력(JSON).
+    '유사만' 요청 시에도 동일 바디 전송 후, 응답에서 유사 부분만 추출.
+    """
     app_text = (s.get("application_text") or "").strip()
     claims_text = (s.get("claims_text") or "").strip()
+    claims = []
+    if claims_text:
+        claims.append({"claimNumber": 1, "claimType": "independent", "claimText": claims_text})
     return {
         "title": "출원문 자동 분석",
-        "summary": (s.get("user_msg") or "").strip(),
+        "summary": s.get("user_msg") or "",
         "applicationContent": app_text,
-        "claims": (
-            [{"claimNumber": 1, "claimType": "independent", "claimText": claims_text}]
-            if claims_text else []
-        ),
-        # 필요 시 technicalField, backgroundTechnology 등 확장 가능
+        "claims": claims
     }
 
 # =========================
 # 기능 노드
 # =========================
 async def node_validate(s: BotState) -> BotState:
-    payload = {
-        "title": "인공지능 특허 검색 시스템",
-        "technicalField": "인공지능, 특허 검색",
-        "backgroundTechnology": "기존 수동 검색 방식의 한계",
-        "claims": [s.get("claims_text","")] if s.get("claims_text") else [],
-        "inventionDetails": {
-            "problemToSolve": "수동 검색의 비효율성",
-            "solution": "AI 기반 자동 검색",
-            "effect": "검색 효율성 향상"
-        },
-        "application_text": s.get("application_text",""),
-    }
     try:
-        result = await http_post(VALIDATE_URL, payload)
-        print(f"🔍 AI 모델 응답(검증): {json.dumps(result, ensure_ascii=False)[:1000]}")
+        result = await http_post(VALIDATE_URL, build_validate_payload(s))
     except Exception as e:
-        result = {"error": f"validation call failed: {e}"}
-        print(f"❌ AI 모델 호출 실패(검증): {e}")
-
+        result = {"error": f"validation failed: {e}"}
     s.setdefault("results", {})["validate_doc"] = result
     return s
 
 async def node_similar_patent(s: BotState) -> BotState:
-    payload = build_analyze_payload(s)
+    """
+    한 엔드포인트에서 유사검색+거절분석을 같이 하지만,
+    '유사만' 요청이므로 유사특허 파트만 추출해서 보여준다.
+    """
     try:
-        full_result = await http_post(ANALYZE_URL, payload)
-        print(f"✅ analyze 호출 성공: keys={list(full_result.keys())}")
-        # main.py는 "similar_patents" 키로 반환
-        if "similar_patents" in full_result:
-            result = {
-                "patents": full_result["similar_patents"],
-                "extracted_from": "analyze_endpoint"
-            }
-        else:
-            # 구조가 달라도 원본을 그대로 보관
-            result = full_result
+        full = await http_post_failover(ANALYZE_ENDPOINTS, build_analyze_payload(s))
+        # 가능한 키 후보에서 유사특허만 추출
+        similar = (
+            full.get("similar_patents")
+            or full.get("patents")
+            or full.get("results", {}).get("similar_patents")
+            or []
+        )
+        result = {"patents": similar, "raw": full}
     except Exception as e:
         result = {"error": f"similar search failed: {e}"}
-        print(f"❌ analyze 호출 실패(유사특허): {e}")
-
     s.setdefault("results", {})["similar_patent"] = result
     return s
 
-async def node_claim_draft(s: BotState) -> BotState:
-    payload = {
-        "query": s.get("user_msg") or "발명 요약",
-        "top_k": 5
-    }
-    try:
-        result = await http_post(CLAIM_DRAFT_URL, payload)
-    except Exception as e:
-        result = {"error": f"claim draft failed: {e}"}
-    s.setdefault("results", {})["claim_draft"] = result
-    return s
-
 async def node_rejection_draft(s: BotState) -> BotState:
-    # 1) 유사 특허 (analyze)
+    """
+    종합 거절 판단: (1) analyze 호출 (유사+거절 분석 포함) + (2) validations 호출
+    두 결과를 합쳐 요약 응답 생성.
+    """
     try:
-        similar_patents_result = await http_post(ANALYZE_URL, build_analyze_payload(s))
-        print(f"✅ analyze 호출 성공(거절사유): keys={list(similar_patents_result.keys())}")
+        analyze_full = await http_post_failover(ANALYZE_ENDPOINTS, build_analyze_payload(s))
     except Exception as e:
-        similar_patents_result = {"error": f"similar search failed: {e}"}
-        print(f"❌ analyze 호출 실패(거절사유): {e}")
+        analyze_full = {"error": f"analyze failed: {e}"}
 
-    # 2) 형식/문맥 검증
     try:
-        validation_payload = {
-            "title": "인공지능 특허 검색 시스템",
-            "technicalField": "인공지능, 특허 검색",
-            "backgroundTechnology": "기존 수동 검색 방식의 한계",
-            "claims": [s.get("claims_text","")] if s.get("claims_text") else [],
-            "inventionDetails": {
-                "problemToSolve": "수동 검색의 비효율성",
-                "solution": "AI 기반 자동 검색",
-                "effect": "검색 효율성 향상"
-            },
-            "application_text": s.get("application_text",""),
-        }
-        validation_result = await http_post(VALIDATE_URL, validation_payload)
-        print(f"🔍 형식/문맥 검사 결과: {json.dumps(validation_result, ensure_ascii=False)[:1000]}")
+        validate_res = await http_post(VALIDATE_URL, build_validate_payload(s))
     except Exception as e:
-        validation_result = {"error": f"validation failed: {e}"}
-        print(f"❌ 형식/문맥 검사 실패: {e}")
+        validate_res = {"error": f"validation failed: {e}"}
 
-    combined_result = {
-        "similar_patents": similar_patents_result,
-        "validation_errors": validation_result,
-        "combined_analysis": {
-            "timestamp": __import__("datetime").datetime.utcnow().isoformat() + "Z",
-            "analysis_type": "comprehensive_rejection_analysis"
+    combined = {
+        "analyze": analyze_full,
+        "validation": validate_res,
+        "summary": {
+            "analysis_type": "combined_rejection_review",
+            "timestamp": __import__("datetime").datetime.utcnow().isoformat() + "Z"
         }
     }
-    s.setdefault("results", {})["rejection_draft"] = combined_result
+    s.setdefault("results", {})["rejection_draft"] = combined
     return s
 
 async def node_small_talk(s: BotState) -> BotState:
-    s["final_answer"] = "안녕하세요! 특허 문서 점검, 유사특허 검색, 청구항 초안, 거절 사유 초안 중 무엇을 도와드릴까요?"
+    s["final_answer"] = "안녕하세요! ‘문서 점검’, ‘유사특허 검색’, ‘거절사유 검토’ 중 무엇을 도와드릴까요?"
     return s
 
 # =========================
-# 결과 합성
+# 결과 합성 (텍스트)
 # =========================
-def summarize_validate(result: Dict[str, Any]) -> str:
-    if "error" in result:
-        return f"⚠️ 점검 API 호출 오류: {result['error']}"
-    lines = ["[문서 점검 결과]", "원본 AI 모델 응답:", json.dumps(result, ensure_ascii=False, indent=2), "\n[사용자 친화적 요약]"]
-    fmt = result.get("formatErrors") or []
-    ctx = result.get("contextualErrors") or []
-    miss = result.get("missingSections") or []
-    if not fmt and not ctx and not miss:
-        lines.append("• 뚜렷한 형식/문맥 오류가 발견되지 않았습니다.")
+def summarize_validate(res: Dict[str, Any]) -> str:
+    if "error" in res:
+        return f"⚠️ 점검 오류: {res['error']}"
+    lines = ["[문서 점검 결과]"]
+    fe = res.get("formatErrors") or []
+    ms = res.get("missingSections") or []
+    ce = res.get("contextualErrors") or []
+    if not fe and not ms and not ce:
+        lines.append("• 뚜렷한 오류가 발견되지 않았습니다.")
     else:
-        if fmt:
+        if fe:
             lines.append("• 형식 오류:")
-            for e in fmt:
-                lines.append(f"  - ({e.get('severity','')}) {e.get('message','')}")
-        if ctx:
-            lines.append("• 문맥/내용 오류:")
-            for e in ctx:
-                lines.append(f"  - {e.get('analysis','') or e.get('message','')}")
-        if miss:
-            lines.append("• 누락된 섹션:")
-            for e in miss:
+            for e in fe:
+                lines.append(f"  - {e.get('message','')}")
+        if ms:
+            lines.append("• 누락 섹션:")
+            for e in ms:
                 lines.append(f"  - {e.get('message','') or e.get('field','')}")
-    lines.append("\n다음 액션 제안: 1) 문제 문구/섹션 보완  2) 유사특허 검색으로 차별점 확인  3) 보완 후 재점검")
+        if ce:
+            lines.append("• 문맥/내용 오류:")
+            for e in ce:
+                lines.append(f"  - {e.get('analysis','') or e.get('message','')}")
     return "\n".join(lines)
 
-def summarize_similar(result: Dict[str, Any]) -> str:
-    if "error" in result:
-        return f"⚠️ 유사 특허 검색 오류: {result['error']}"
-    lines = ["[유사 특허 검색 결과]", "원본 AI 모델 응답:", json.dumps(result, ensure_ascii=False, indent=2), "\n[사용자 친화적 요약]"]
-    patents = result.get("patents") or []
+def summarize_similar(res: Dict[str, Any]) -> str:
+    if "error" in res:
+        return f"⚠️ 유사특허 검색 오류: {res['error']}"
+    patents = res.get("patents") or []
     if not patents:
-        lines.append("• 유사한 특허를 찾지 못했습니다.")
-    else:
-        lines.append(f"• 발견된 유사 특허 {len(patents)}개:")
-        for i, patent in enumerate(patents[:5], 1):
-            lines.append(f"  - {i}. {patent.get('title', '제목 없음')}")
-            lines.append(f"    유사도: {patent.get('similarity', patent.get('score', 'N/A'))}")
-            if patent.get('abstract'):
-                lines.append(f"    요약: {patent.get('abstract', '')[:100]}...")
+        return "[유사특허 검색 결과]\n• 유사 특허를 찾지 못했습니다."
+    lines = [f"[유사특허 검색 결과] • {len(patents)}건"]
+    for i, p in enumerate(patents[:5], 1):
+        title = p.get("title") or p.get("plain_text", "")[:30] or "제목 없음"
+        sim = p.get("similarity", p.get("score", "N/A"))
+        lines.append(f"  - {i}. {title} (유사도: {sim})")
     return "\n".join(lines)
 
-def summarize_claim_draft(result: Dict[str, Any]) -> str:
-    if "error" in result:
-        return f"⚠️ 청구항 초안 생성 오류: {result['error']}"
-    claims = result.get("claims") or []
-    lines = ["[청구항 초안 생성 결과]"]
-    if not claims:
-        lines.append("• 청구항 초안을 생성하지 못했습니다.")
-    else:
-        for i, claim in enumerate(claims, 1):
-            lines.append(f"• 청구항 {i}: {claim}")
-    return "\n".join(lines)
+def summarize_rejection(res: Dict[str, Any]) -> str:
+    # 우리 쪽 종합: analyze + validation
+    analyze = res.get("analyze", {})
+    valid   = res.get("validation", {})
+    lines = ["[거절사유 종합 검토]"]
 
-def summarize_rejection(result: Dict[str, Any]) -> str:
-    if "error" in result:
-        return f"⚠️ 거절사유 종합 분석 오류: {result['error']}"
-    lines = ["[거절사유 종합 분석 결과]", "원본 AI 모델 응답:", json.dumps(result, ensure_ascii=False, indent=2), "\n[사용자 친화적 요약]"]
-    similar_patents = result.get("similar_patents", {})
-    if "error" in similar_patents:
-        lines.append("• 유사 특허 검색 실패")
+    # 유사/거절 분석 요약
+    if "error" in analyze:
+        lines.append(f"• 유사/거절 분석 오류: {analyze['error']}")
     else:
-        patents = similar_patents.get("patents") or similar_patents.get("similar_patents") or []
-        if patents:
-            lines.append("• 발견된 유사 특허:")
-            for i, patent in enumerate(patents[:3], 1):
-                score = patent.get('similarity', patent.get('score', 'N/A'))
-                lines.append(f"  - {i}. {patent.get('title', '제목 없음')} (유사도: {score})")
-        else:
-            lines.append("• 유사한 특허를 찾지 못했습니다.")
+        sim = (
+            analyze.get("similar_patents")
+            or analyze.get("patents")
+            or analyze.get("results", {}).get("similar_patents")
+            or []
+        )
+        lines.append(f"• 유사특허 후보: {len(sim)}건")
+        # 거절 판단 텍스트가 있으면 스니펫 노출
+        opinion = analyze.get("opinion") or analyze.get("results", {}).get("opinion")
+        if isinstance(opinion, str) and opinion.strip():
+            lines.append("• 거절 판단 요지:")
+            lines.append(f"  " + opinion.strip()[:400] + ("..." if len(opinion.strip()) > 400 else ""))
 
-    validation_errors = result.get("validation_errors", {})
-    if "error" in validation_errors:
-        lines.append("• 형식/문맥 오류 검사 실패")
+    # 점검 결과 요약
+    if "error" in valid:
+        lines.append(f"• 문서 점검 오류: {valid['error']}")
     else:
-        fmt_errors = validation_errors.get("formatErrors") or []
-        ctx_errors = validation_errors.get("contextualErrors") or []
-        miss_sections = validation_errors.get("missingSections") or []
-        if fmt_errors or ctx_errors or miss_sections:
-            lines.append("• 발견된 문서 오류:")
-            if fmt_errors:
-                lines.append("  - 형식 오류:")
-                for e in fmt_errors[:3]:
-                    lines.append(f"    * {e.get('message', '')}")
-            if ctx_errors:
-                lines.append("  - 문맥 오류:")
-                for e in ctx_errors[:3]:
-                    lines.append(f"    * {e.get('analysis', '') or e.get('message', '')}")
-            if miss_sections:
-                lines.append("  - 누락된 섹션:")
-                for e in miss_sections[:3]:
-                    lines.append(f"    * {e.get('message', '')}")
-        else:
-            lines.append("• 뚜렷한 문서 오류가 발견되지 않았습니다.")
+        fe = valid.get("formatErrors") or []
+        ms = valid.get("missingSections") or []
+        ce = valid.get("contextualErrors") or []
+        cnt = len(fe)+len(ms)+len(ce)
+        lines.append(f"• 문서 오류 발견: {cnt}건")
 
-    lines.append("\n[종합 거절사유 제안]")
-    has_similar = similar_patents and "error" not in similar_patents and (similar_patents.get("patents") or similar_patents.get("similar_patents"))
-    has_errors = validation_errors and "error" not in validation_errors and (
-        validation_errors.get("formatErrors") or validation_errors.get("contextualErrors") or validation_errors.get("missingSections")
-    )
-    if has_similar and has_errors:
-        lines.append("• 선행기술에 의한 거절 + 문서 형식/문맥 오류")
-    elif has_similar:
-        lines.append("• 선행기술에 의한 거절")
-    elif has_errors:
-        lines.append("• 문서 형식/문맥 오류로 인한 거절")
-    else:
-        lines.append("• 현재로서는 명확한 거절사유가 발견되지 않았습니다.")
+    lines.append("• 결론: 선행기술 대비 및 문서 오류를 함께 고려하여 거절사유 가능성을 평가했습니다.")
     return "\n".join(lines)
 
 async def node_synthesize(s: BotState) -> BotState:
@@ -351,14 +316,10 @@ async def node_synthesize(s: BotState) -> BotState:
         s["final_answer"] = summarize_validate(resmap.get("validate_doc", {}))
     elif intent == "similar_patent":
         s["final_answer"] = summarize_similar(resmap.get("similar_patent", {}))
-    elif intent == "claim_draft":
-        s["final_answer"] = summarize_claim_draft(resmap.get("claim_draft", {}))
     elif intent == "rejection_draft":
         s["final_answer"] = summarize_rejection(resmap.get("rejection_draft", {}))
-    elif intent == "small_talk" and s.get("final_answer"):
-        pass
     else:
-        s["final_answer"] = "요청을 처리했습니다."
+        s["final_answer"] = "요청을 이해했습니다. ‘문서 점검/유사검색/거절사유’ 중에서 선택해 주세요."
     s.setdefault("history", []).append({"user": s.get("user_msg",""), "bot": s["final_answer"]})
     return s
 
@@ -369,7 +330,6 @@ graph = StateGraph(BotState)
 graph.add_node("classify", node_classify)
 graph.add_node("validate_doc", node_validate)
 graph.add_node("similar_patent", node_similar_patent)
-graph.add_node("claim_draft", node_claim_draft)
 graph.add_node("rejection_draft", node_rejection_draft)
 graph.add_node("small_talk", node_small_talk)
 graph.add_node("synthesize", node_synthesize)
@@ -381,14 +341,12 @@ graph.add_conditional_edges(
     {
         "validate_doc": "validate_doc",
         "similar_patent": "similar_patent",
-        "claim_draft": "claim_draft",
         "rejection_draft": "rejection_draft",
         "small_talk": "small_talk",
     },
 )
 graph.add_edge("validate_doc", "synthesize")
 graph.add_edge("similar_patent", "synthesize")
-graph.add_edge("claim_draft", "synthesize")
 graph.add_edge("rejection_draft", "synthesize")
 graph.add_edge("small_talk", "synthesize")
 graph.add_edge("synthesize", END)
@@ -398,56 +356,38 @@ app_graph = graph.compile()
 # =========================
 # FastAPI
 # =========================
-app = FastAPI(title="LangGraph Patent Chatbot")
+app = FastAPI(title="Inspector LangGraph Chatbot (No Claim Draft)")
 
-# CORS
 from fastapi.middleware.cors import CORSMiddleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 개발용
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# 인메모리 세션 저장
 SESSIONS: Dict[str, BotState] = {}
 
 @app.get("/health")
 async def health():
-    return {"ok": True, "validate_url": VALIDATE_URL is not None}
+    return {
+        "ok": True,
+        "validate_url": VALIDATE_URL,
+        "analyze_first": ANALYZE_ENDPOINTS[0] if ANALYZE_ENDPOINTS else None
+    }
 
 @app.post("/chat", response_class=PlainTextResponse)
 async def chat(req: ChatRequest):
-    """
-    body:
-    {
-      "session_id": "u1",
-      "user_msg": "...",
-      "application_text": "...",
-      "claims_text": "...",
-      "forced_intent": "rejection_draft"  # 옵션
-    }
-    """
     try:
-        print(f"📨 요청 받음: session_id={req.session_id}, user_msg='{req.user_msg}'")
         state: BotState = SESSIONS.get(req.session_id) or new_state()
-
-        # 최신 입력 반영
         state["user_msg"] = req.user_msg
         state["application_text"] = req.application_text
         state["claims_text"] = req.claims_text
         state["forced_intent"] = req.forced_intent
 
-        # 그래프 실행
         final: BotState = await app_graph.ainvoke(state)
-
-        # 세션 저장
         SESSIONS[req.session_id] = final
-
-        answer = final.get("final_answer", "응답을 생성하지 못했습니다.")
-        print(f"💬 응답: {answer[:200]}...")
-        return answer
+        return final.get("final_answer", "응답 생성 실패")
     except Exception as e:
-        print(f"❌ 오류: {str(e)}")
-        return f"오류가 발생했습니다: {str(e)}"
+        return f"오류가 발생했습니다: {e}"

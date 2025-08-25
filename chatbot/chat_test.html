@@ -1,207 +1,57 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>특허 챗봇 테스트</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }
-        .chat-container {
-            background: white;
-            border-radius: 10px;
-            padding: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        .chat-messages {
-            height: 400px;
-            overflow-y: auto;
-            border: 1px solid #ddd;
-            padding: 15px;
-            margin-bottom: 20px;
-            background: #fafafa;
-        }
-        .message {
-            margin-bottom: 15px;
-            padding: 10px;
-            border-radius: 8px;
-        }
-        .user-message {
-            background: #007bff;
-            color: white;
-            margin-left: 20%;
-        }
-        .bot-message {
-            background: #e9ecef;
-            color: #333;
-            margin-right: 20%;
-            white-space: pre-wrap;
-        }
-        .input-group {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-        input, textarea {
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            font-size: 14px;
-        }
-        input[type="text"] {
-            flex: 1;
-        }
-        textarea {
-            width: 100%;
-            height: 80px;
-            resize: vertical;
-        }
-        button {
-            padding: 10px 20px;
-            background: #007bff;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-        button:hover {
-            background: #0056b3;
-        }
-        .preset-buttons {
-            margin-bottom: 15px;
-        }
-        .preset-btn {
-            margin: 5px;
-            padding: 8px 15px;
-            background: #28a745;
-            font-size: 12px;
-        }
-    </style>
+  <meta charset="utf-8"/>
+  <title>Inspector Chatbot</title>
+  <style>
+    body { font: 14px/1.4 system-ui, sans-serif; max-width: 800px; margin: 24px auto; }
+    textarea, input { width: 100%; box-sizing: border-box; }
+    .row { margin: 8px 0; }
+    .log { white-space: pre-wrap; background: #f7f7f7; padding: 12px; border-radius: 8px; }
+  </style>
 </head>
 <body>
-    <div class="chat-container">
-        <h1>🤖 특허 챗봇 테스트</h1>
-        
-        <div class="preset-buttons">
-            <button class="preset-btn" onclick="loadPreset('validate')">📝 문서 점검 테스트</button>
-            <button class="preset-btn" onclick="loadPreset('similar')">🔍 유사 특허 검색</button>
-            <button class="preset-btn" onclick="loadPreset('claim')">✍️ 청구항 초안 생성</button>
-            <button class="preset-btn" onclick="loadPreset('rejection')">❌ 거절사유 분석</button>
-        </div>
-
-        <div class="chat-messages" id="chatMessages">
-            <div class="message bot-message">
-                안녕하세요! 특허 문서 점검, 유사특허 검색, 청구항 초안, 거절 사유 초안 중 무엇을 도와드릴까요?
-            </div>
-        </div>
-
-        <div class="input-group">
-            <input type="text" id="userMessage" placeholder="메시지를 입력하세요..." onkeypress="handleKeyPress(event)">
-            <button onclick="sendMessage()">전송</button>
-        </div>
-
-        <div>
-            <label>명세서 내용 (application_text):</label>
-            <textarea id="applicationText" placeholder="명세서 내용을 입력하세요..."></textarea>
-        </div>
-
-        <div>
-            <label>청구항 내용 (claims_text):</label>
-            <textarea id="claimsText" placeholder="청구항 내용을 입력하세요..."></textarea>
-        </div>
-    </div>
-
-    <script>
-        const sessionId = "user_" + Date.now();
-        const chatMessages = document.getElementById('chatMessages');
-
-        function addMessage(content, isUser = false) {
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${isUser ? 'user-message' : 'bot-message'}`;
-            messageDiv.textContent = content;
-            chatMessages.appendChild(messageDiv);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-
-        async function sendMessage() {
-            const userMessage = document.getElementById('userMessage').value.trim();
-            const applicationText = document.getElementById('applicationText').value.trim();
-            const claimsText = document.getElementById('claimsText').value.trim();
-
-            if (!userMessage) return;
-
-            // 사용자 메시지 표시
-            addMessage(userMessage, true);
-            document.getElementById('userMessage').value = '';
-
-            try {
-                const response = await fetch('http://localhost:58080/chat', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        session_id: sessionId,
-                        user_msg: userMessage,
-                        application_text: applicationText,
-                        claims_text: claimsText
-                    })
-                });
-
-                if (response.ok) {
-                    const result = await response.text();
-                    addMessage(result, false);
-                } else {
-                    addMessage(`❌ 오류: ${response.status} ${response.statusText}`, false);
-                }
-            } catch (error) {
-                addMessage(`❌ 네트워크 오류: ${error.message}`, false);
-            }
-        }
-
-        function handleKeyPress(event) {
-            if (event.key === 'Enter') {
-                sendMessage();
-            }
-        }
-
-        function loadPreset(type) {
-            const presets = {
-                validate: {
-                    message: "내 서류에 문제 있는지 확인해줘",
-                    application: "본 발명은 인공지눙을 이용한 특허 검색 시스템에 관한 것이다. 이 시스템은 기존의 수동 검색 방식의 한계를 극복하고, 대용량 특허 데이터베이스에서 관련 특허를 효율적으로 찾아내는 것을 목적으로 한다. 배경기술 섹션이 누락되어 있고, 기술적 효과가 명확하지 않으며, 청구항의 구성요소가 불완전하다.",
-                    claims: "1. 인공지눙을 이용한 특허 검색 시스템으로서, 검색 엔진과 데이터베이스를 포함하는 시스템. 2. 전항의 시슈템에 있어서, 머신러닝 알고리즘을 사용하는 것을 특징으로 하는 시스템."
-                },
-                similar: {
-                    message: "인공지능 특허 검색과 관련된 유사 특허를 찾아줘",
-                    application: "본 발명은 인공지능을 이용한 특허 검색 시스템에 관한 것이다. 이 시스템은 딥러닝 알고리즘을 사용하여 특허 문서의 의미를 분석하고, 사용자의 검색 의도를 이해하여 관련성 높은 특허를 추천하는 기능을 제공한다.",
-                    claims: "1. 인공지능을 이용한 특허 검색 시스템으로서, 딥러닝 모델과 검색 엔진을 포함하는 시스템."
-                },
-                claim: {
-                    message: "인공지능 특허 검색 시스템에 대한 청구항을 작성해줘",
-                    application: "본 발명은 인공지능을 이용한 특허 검색 시스템에 관한 것이다. 이 시스템은 자연어 처리 기술을 활용하여 사용자의 검색 쿼리를 분석하고, 벡터 유사도 계산을 통해 관련 특허를 찾아내는 기능을 제공한다.",
-                    claims: ""
-                },
-                rejection: {
-                    message: "이 특허에 대한 거절사유를 분석해줘",
-                    application: "본 발명은 인공지능을 이용한 특허 검색 시스템에 관한 것이다.",
-                    claims: "1. 인공지능을 이용한 특허 검색 시스템."
-                }
-            };
-
-            const preset = presets[type];
-            if (preset) {
-                document.getElementById('userMessage').value = preset.message;
-                document.getElementById('applicationText').value = preset.application;
-                document.getElementById('claimsText').value = preset.claims;
-            }
-        }
-    </script>
+  <h2>Inspector LangGraph Chatbot</h2>
+  <div class="row">
+    <label>메시지</label>
+    <input id="msg" placeholder="예: 유사 특허 검색해줘"/>
+  </div>
+  <div class="row">
+    <label>명세서 (선택)</label>
+    <textarea id="app" rows="4"></textarea>
+  </div>
+  <div class="row">
+    <label>청구항 (선택)</label>
+    <textarea id="claims" rows="3"></textarea>
+  </div>
+  <div class="row">
+    <label>patentId / fileId (선택, 거절 초안 API용)</label>
+    <input id="pid" placeholder="예: 2"/>
+    <input id="fid" placeholder="예: 1" style="margin-top:6px;"/>
+  </div>
+  <button id="send">전송</button>
+  <div class="row">
+    <h3>응답</h3>
+    <div class="log" id="out"></div>
+  </div>
+<script>
+const BASE = location.origin.replace(/:\d+$/, ":58080");
+document.getElementById('send').onclick = async () => {
+  const body = {
+    session_id: "webdemo",
+    user_msg: document.getElementById('msg').value || "",
+    application_text: document.getElementById('app').value || "",
+    claims_text: document.getElementById('claims').value || "",
+    patent_id: parseInt(document.getElementById('pid').value || "0") || null,
+    file_id: parseInt(document.getElementById('fid').value || "0") || null
+  };
+  const res = await fetch(`${BASE}/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+  document.getElementById('out').textContent = await res.text();
+};
+</script>
 </body>
 </html>

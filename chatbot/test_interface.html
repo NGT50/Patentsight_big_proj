@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>특허 챗봇 테스트 인터페이스</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .test-section {
+            margin-bottom: 40px;
+        }
+
+        .section-title {
+            font-size: 1.8em;
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .test-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .test-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .test-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+        }
+
+        .test-button:active {
+            transform: translateY(-1px);
+        }
+
+        .test-info {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 5px solid #667eea;
+        }
+
+        .test-info h3 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .test-info p {
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .chat-area {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 15px;
+            border-radius: 10px;
+            max-width: 80%;
+        }
+
+        .message.user {
+            background: #667eea;
+            color: white;
+            margin-left: auto;
+        }
+
+        .message.bot {
+            background: white;
+            color: #333;
+            border: 1px solid #ddd;
+        }
+
+        .message-time {
+            font-size: 0.8em;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-weight: 600;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status.loading {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .api-status {
+            background: #e2e3e5;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .api-status h3 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-indicator.online {
+            background: #28a745;
+        }
+
+        .status-indicator.offline {
+            background: #dc3545;
+        }
+
+        .manual-input {
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .manual-input h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .input-group input, .input-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .input-group textarea {
+            height: 100px;
+            resize: vertical;
+        }
+
+        .send-button {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .send-button:hover {
+            background: #218838;
+        }
+
+        .clear-button {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .clear-button:hover {
+            background: #5a6268;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 특허 챗봇 테스트 인터페이스</h1>
+            <p>LangGraph 기반 특허 분석 챗봇 테스트 도구</p>
+        </div>
+
+        <div class="content">
+            <!-- API 상태 확인 -->
+            <div class="api-status">
+                <h3>🔗 API 서버 상태</h3>
+                <div>
+                    <span class="status-indicator" id="chatbotStatus">●</span>
+                    <span id="chatbotStatusText">챗봇 서버 확인 중...</span>
+                </div>
+                <div style="margin-top: 10px;">
+                    <span class="status-indicator" id="aiModelStatus">●</span>
+                    <span id="aiModelStatusText">AI 모델 서버 확인 중...</span>
+                </div>
+            </div>
+
+            <!-- 빠른 테스트 버튼들 -->
+            <div class="test-section">
+                <h2 class="section-title">🚀 빠른 테스트</h2>
+                <div class="test-info">
+                    <h3>사용 방법</h3>
+                    <p>아래 버튼을 클릭하면 미리 준비된 테스트 데이터로 챗봇을 테스트할 수 있습니다. 각 버튼은 다른 시나리오를 테스트합니다.</p>
+                </div>
+                <div class="test-buttons" id="quickTestButtons">
+                    <!-- 버튼들이 JavaScript로 동적 생성됩니다 -->
+                </div>
+            </div>
+
+            <!-- 수동 입력 테스트 -->
+            <div class="test-section">
+                <h2 class="section-title">✍️ 수동 입력 테스트</h2>
+                <div class="test-info">
+                    <h3>사용자 정의 테스트</h3>
+                    <p>직접 메시지와 특허 데이터를 입력해서 챗봇을 테스트할 수 있습니다.</p>
+                </div>
+                <div class="manual-input">
+                    <div class="input-group">
+                        <label for="userMessage">사용자 메시지:</label>
+                        <input type="text" id="userMessage" placeholder="예: 인공지능 특허 검색 시스템에 대한 유사 특허를 찾아줘">
+                    </div>
+                    <div class="input-group">
+                        <label for="applicationText">출원서 내용:</label>
+                        <textarea id="applicationText" placeholder="특허 출원서의 상세 내용을 입력하세요..."></textarea>
+                    </div>
+                    <div class="input-group">
+                        <label for="claimsText">청구항:</label>
+                        <textarea id="claimsText" placeholder="청구항 내용을 입력하세요..."></textarea>
+                    </div>
+                    <button class="send-button" onclick="sendManualTest()">테스트 실행</button>
+                    <button class="clear-button" onclick="clearManualInput()">입력 초기화</button>
+                </div>
+            </div>
+
+            <!-- 채팅 영역 -->
+            <div class="test-section">
+                <h2 class="section-title">💬 테스트 결과</h2>
+                <div class="chat-area" id="chatArea">
+                    <div class="message bot">
+                        <div>안녕하세요! 특허 챗봇 테스트 인터페이스입니다. 위의 버튼을 클릭하거나 수동으로 입력해서 테스트를 시작해보세요.</div>
+                        <div class="message-time">지금</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 테스트 데이터
+        const testData = {
+            "quick_test_buttons": [
+                {
+                    "id": "test_similar_1",
+                    "label": "🤖 AI 특허 검색 테스트",
+                    "message": "인공지능을 이용한 특허 검색 시스템에 대한 유사 특허를 찾아줘",
+                    "application_text": "본 발명은 인공지능을 이용한 특허 검색 시스템에 관한 것이다. 이 시스템은 기존의 수동 검색 방식의 한계를 극복하고, 대용량 특허 데이터베이스에서 관련 특허를 효율적으로 찾아내는 것을 목적으로 한다. 딥러닝 알고리즘을 사용하여 특허 문서의 의미를 분석하고, 사용자의 검색 의도를 이해하여 관련성이 높은 특허를 추천하는 기능을 제공한다.",
+                    "claims_text": "1. 인공지능을 이용한 특허 검색 시스템으로서, 검색 엔진과 데이터베이스를 포함하는 시스템. 2. 전항의 시스템에 있어서, 딥러닝 알고리즘을 사용하는 것을 특징으로 하는 시스템. 3. 전항의 시스템에 있어서, 자연어 처리 기능을 포함하는 것을 특징으로 하는 시스템."
+                },
+                {
+                    "id": "test_similar_2", 
+                    "label": "🔗 블록체인 특허 테스트",
+                    "message": "블록체인을 이용한 특허 관리 시스템과 유사한 특허가 있는지 검색해줘",
+                    "application_text": "본 발명은 블록체인 기술을 활용한 특허 관리 시스템에 관한 것이다. 특허의 출원부터 등록, 이전, 라이센싱까지의 모든 과정을 블록체인에 기록하여 투명성과 불변성을 보장한다. 스마트 컨트랙트를 통해 자동화된 특허 관리 프로세스를 구현하고, 분산 원장 기술을 통해 특허 정보의 무결성을 유지한다.",
+                    "claims_text": "1. 블록체인 기반 특허 관리 시스템으로서, 분산 원장과 스마트 컨트랙트를 포함하는 시스템. 2. 전항의 시스템에 있어서, 특허 정보의 무결성을 보장하는 것을 특징으로 하는 시스템. 3. 전항의 시스템에 있어서, 자동화된 라이센싱 프로세스를 포함하는 것을 특징으로 하는 시스템."
+                },
+                {
+                    "id": "test_similar_3",
+                    "label": "🏠 IoT 스마트홈 테스트", 
+                    "message": "IoT를 이용한 스마트 홈 시스템의 유사 특허를 검색해줘",
+                    "application_text": "본 발명은 IoT 기술을 활용한 스마트 홈 시스템에 관한 것이다. 다양한 센서와 액추에이터를 통해 가정 내 환경을 모니터링하고 제어한다. 머신러닝 알고리즘을 통해 사용자의 생활 패턴을 학습하고, 자동화된 홈 관리를 제공한다. 모바일 앱을 통해 원격으로 홈 시스템을 제어할 수 있다.",
+                    "claims_text": "1. IoT 기반 스마트 홈 시스템으로서, 센서 네트워크와 제어 시스템을 포함하는 시스템. 2. 전항의 시스템에 있어서, 머신러닝 기반 자동화 기능을 포함하는 것을 특징으로 하는 시스템. 3. 전항의 시스템에 있어서, 모바일 원격 제어 기능을 포함하는 것을 특징으로 하는 시스템."
+                },
+                {
+                    "id": "test_rejection_1",
+                    "label": "❌ 오류 문서 거절사유 테스트",
+                    "message": "이 특허에 대한 거절사유를 분석해줘",
+                    "application_text": "본 발명은 인공지눙을 이용한 특허 검색 시스템에 관한 것이다. 이 시슈템은 기존의 수동 검색 방식의 한계를 극복하고, 대용량 특허 데이터베이스에서 관련 특허를 효율적으로 찾아내는 것을 목적으로 한다. 배경기술 섹션이 누락되어 있고, 기술적 효과가 명확하지 않으며, 청구항의 구성요소가 불완전하다. 또한 발명의 명칭이 너무 일반적이고, 도면 설명이 부족하며, 실시예가 구체적이지 않다.",
+                    "claims_text": "1. 인공지눙을 이용한 특허 검색 시스템으로서, 검색 엔진과 데이터베이스를 포함하는 시스템. 2. 전항의 시슈템에 있어서, 머신러닝 알고리즘을 사용하는 것을 특징으로 하는 시스템. 3. 전항의 시스템에 있어서, 자연어 처리 기능을 포함하는 것을 특징으로 하는 시스템."
+                },
+                {
+                    "id": "test_rejection_2",
+                    "label": "📱 건강모니터링 거절사유 테스트",
+                    "message": "이 특허의 거절 가능성을 분석해줘",
+                    "application_text": "본 발명은 스마트폰을 이용한 건강 모니터링 시스템에 관한 것이다. 스마트폰의 내장 센서를 활용하여 사용자의 걸음 수, 심박수, 수면 패턴 등을 측정하고 분석한다. 측정된 데이터는 클라우드 서버에 저장되며, 의료진과 공유할 수 있다. 머신러닝 알고리즘을 통해 건강 상태를 예측하고 개선 방안을 제시한다.",
+                    "claims_text": "1. 스마트폰을 이용한 건강 모니터링 시스템으로서, 내장 센서와 분석 모듈을 포함하는 시스템. 2. 전항의 시스템에 있어서, 걸음 수, 심박수, 수면 패턴을 측정하는 것을 특징으로 하는 시스템. 3. 전항의 시스템에 있어서, 클라우드 기반 데이터 저장 및 공유 기능을 포함하는 것을 특징으로 하는 시스템."
+                },
+                {
+                    "id": "test_rejection_3",
+                    "label": "⚛️ 양자컴퓨팅 등록가능성 테스트",
+                    "message": "이 특허의 등록 가능성을 분석해줘",
+                    "application_text": "본 발명은 양자 컴퓨팅을 이용한 암호화 특허 검색 시스템에 관한 것이다. 양자 알고리즘을 활용하여 기존 컴퓨터로는 해결할 수 없는 복잡한 특허 검색 문제를 효율적으로 처리한다. 양자 얽힘 현상을 이용한 병렬 처리로 대용량 특허 데이터베이스에서 패턴을 빠르게 찾아낸다. 양자 내성 암호화를 통해 검색 결과의 보안성을 보장한다.",
+                    "claims_text": "1. 양자 컴퓨팅을 이용한 암호화 특허 검색 시스템으로서, 양자 알고리즘과 양자 프로세서를 포함하는 시스템. 2. 전항의 시스템에 있어서, 양자 얽힘 기반 병렬 처리를 사용하는 것을 특징으로 하는 시스템. 3. 전항의 시스템에 있어서, 양자 내성 암호화 기능을 포함하는 것을 특징으로 하는 시스템."
+                }
+            ]
+        };
+
+        let sessionId = 'test_session_' + Date.now();
+
+        // 페이지 로드 시 초기화
+        window.onload = function() {
+            createTestButtons();
+            checkApiStatus();
+        };
+
+        // 테스트 버튼 생성
+        function createTestButtons() {
+            const container = document.getElementById('quickTestButtons');
+            testData.quick_test_buttons.forEach(button => {
+                const buttonElement = document.createElement('button');
+                buttonElement.className = 'test-button';
+                buttonElement.textContent = button.label;
+                buttonElement.onclick = () => runQuickTest(button);
+                container.appendChild(buttonElement);
+            });
+        }
+
+        // API 상태 확인
+        async function checkApiStatus() {
+            // 챗봇 서버 상태 확인
+            try {
+                const response = await fetch('http://127.0.0.1:58080/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_id: 'status_check',
+                        user_msg: '안녕하세요'
+                    })
+                });
+                
+                if (response.ok) {
+                    updateStatus('chatbotStatus', 'online', '챗봇 서버 온라인');
+                } else {
+                    updateStatus('chatbotStatus', 'offline', '챗봇 서버 오프라인');
+                }
+            } catch (error) {
+                updateStatus('chatbotStatus', 'offline', '챗봇 서버 연결 실패');
+            }
+
+            // AI 모델 서버 상태 확인 (간단한 ping)
+            try {
+                const response = await fetch('http://3.26.101.212:8000/api/ai/validations', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ test: 'ping' })
+                });
+                
+                if (response.status !== 404) { // 404는 정상 (잘못된 요청이지만 서버는 응답)
+                    updateStatus('aiModelStatus', 'online', 'AI 모델 서버 온라인');
+                } else {
+                    updateStatus('aiModelStatus', 'online', 'AI 모델 서버 온라인 (404는 정상)');
+                }
+            } catch (error) {
+                updateStatus('aiModelStatus', 'offline', 'AI 모델 서버 연결 실패');
+            }
+        }
+
+        function updateStatus(elementId, status, text) {
+            const element = document.getElementById(elementId);
+            const textElement = document.getElementById(elementId + 'Text');
+            
+            element.className = 'status-indicator ' + status;
+            textElement.textContent = text;
+        }
+
+        // 빠른 테스트 실행
+        async function runQuickTest(testData) {
+            addMessage(testData.message, true);
+            addStatus('테스트 실행 중...', 'loading');
+
+            try {
+                const response = await fetch('http://127.0.0.1:58080/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_id: sessionId,
+                        user_msg: testData.message,
+                        application_text: testData.application_text,
+                        claims_text: testData.claims_text
+                    })
+                });
+
+                if (response.ok) {
+                    const result = await response.text();
+                    addMessage(result, false);
+                    addStatus('테스트 성공!', 'success');
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                addMessage('테스트 실행 중 오류가 발생했습니다: ' + error.message, false);
+                addStatus('테스트 실패', 'error');
+            }
+        }
+
+        // 수동 테스트 실행
+        async function sendManualTest() {
+            const message = document.getElementById('userMessage').value.trim();
+            const applicationText = document.getElementById('applicationText').value.trim();
+            const claimsText = document.getElementById('claimsText').value.trim();
+
+            if (!message) {
+                alert('사용자 메시지를 입력해주세요.');
+                return;
+            }
+
+            addMessage(message, true);
+            addStatus('수동 테스트 실행 중...', 'loading');
+
+            try {
+                const response = await fetch('http://127.0.0.1:58080/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_id: sessionId,
+                        user_msg: message,
+                        application_text: applicationText,
+                        claims_text: claimsText
+                    })
+                });
+
+                if (response.ok) {
+                    const result = await response.text();
+                    addMessage(result, false);
+                    addStatus('수동 테스트 성공!', 'success');
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                addMessage('수동 테스트 실행 중 오류가 발생했습니다: ' + error.message, false);
+                addStatus('수동 테스트 실패', 'error');
+            }
+        }
+
+        // 수동 입력 초기화
+        function clearManualInput() {
+            document.getElementById('userMessage').value = '';
+            document.getElementById('applicationText').value = '';
+            document.getElementById('claimsText').value = '';
+        }
+
+        // 메시지 추가
+        function addMessage(content, isUser) {
+            const chatArea = document.getElementById('chatArea');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user' : 'bot'}`;
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.innerHTML = content.replace(/\n/g, '<br>');
+            messageDiv.appendChild(contentDiv);
+            
+            const timeDiv = document.createElement('div');
+            timeDiv.className = 'message-time';
+            timeDiv.textContent = new Date().toLocaleTimeString();
+            messageDiv.appendChild(timeDiv);
+            
+            chatArea.appendChild(messageDiv);
+            chatArea.scrollTop = chatArea.scrollHeight;
+        }
+
+        // 상태 메시지 추가
+        function addStatus(message, type) {
+            const chatArea = document.getElementById('chatArea');
+            const statusDiv = document.createElement('div');
+            statusDiv.className = `status ${type}`;
+            statusDiv.textContent = message;
+            chatArea.appendChild(statusDiv);
+            chatArea.scrollTop = chatArea.scrollHeight;
+        }
+    </script>
+</body>
+</html>
