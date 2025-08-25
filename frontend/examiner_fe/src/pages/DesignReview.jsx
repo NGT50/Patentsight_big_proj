@@ -264,37 +264,47 @@ export default function DesignReview() {
 
   // 의견서(긴 본문) 저장: 분할 + 메타
 // 긴 본문을 opinion-notice에 저장(분할 저장). type 포함(필수).
-  async function saveLongOpinion(reviewId, kind, content) {
+// 의견서(긴 본문) 저장: 분할 + 메타 + type 필수
+  async function saveLongOpinion(reviewId, kind, content, { isAiDrafted = false } = {}) {
     const text = String(content || '').trim();
     if (!reviewId || !text) return [];
 
-    // 백엔드 enum 매핑
     const typeMap = {
       '최종 승인 의견서': 'APPROVAL',
-      '보류 의견서':     'EXAMINER_OPINION',
-      '거절 사유서':     'REJECTION',
+      '보류 의견서': 'EXAMINER_OPINION',
+      '거절 사유서': 'REJECTION',
     };
     const type = typeMap[kind] || 'EXAMINER_OPINION';
 
-    const CHUNK = 8000;   // 안전 분할 크기(백엔드/프록시 제한 피하기)
+    const CHUNK = 8000;           // 안전 분할
+    const ts = new Date().toISOString().slice(0,16).replace('T',' ');
+    const total = Math.ceil(text.length / CHUNK) || 1;
     const ids = [];
 
-    const postOne = async (chunk) => {
-      // ✅ content + type만 보냄 (필수 최소 필드)
-      const res = await createOpinionNotice(reviewId, { content: chunk, type });
+    const postPart = async (partIdx, chunk) => {
+      const structured = { kind, ts, totalParts: total, part: partIdx, source: 'design-review-ui' };
+      const res = await createOpinionNotice(reviewId, {
+        content: chunk,
+        type,
+        status: 'SUBMITTED',
+        structured_content: JSON.stringify(structured),
+        isAiDrafted,
+      });
       const id = res?.id ?? res?.noticeId ?? res?.opinionNoticeId;
       if (id != null) ids.push(id);
     };
 
     if (text.length <= CHUNK) {
-      await postOne(text);
+      await postPart(1, text);
     } else {
-      for (let i = 0; i < text.length; i += CHUNK) {
-        await postOne(text.slice(i, i + CHUNK));
+      let part = 1;
+      for (let i = 0; i < text.length; i += CHUNK, part++) {
+        await postPart(part, text.slice(i, i + CHUNK));
       }
     }
     return ids;
   }
+
 
 
   // 의견서 목록 불러오기
