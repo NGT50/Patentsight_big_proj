@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Info, FileText, Image, MessageSquare, Copy, FlaskConical,
+  Info, FileText, Image, MessageSquare, Copy,
   CheckCircle, Send, Bot, Lightbulb, GanttChart, Scale, X, ScrollText, Check, File as FileIcon
 } from 'lucide-react';
 
@@ -14,16 +14,15 @@ import {
   sendChatMessageToServer,
   validatePatentDocument,
   generateRejectionDraft,
-  searchDesignImage,
-  searchDesignImageByBlob, // 첫 번째 2D 도면으로 자동 유사이미지 검색
+  searchDesignImageByBlob,
 } from '../api/ai';
 
-// 파일 API (메타 조회 → 안전한 URL 만들기)
+// 파일 API
 import { getImageUrlsByIds, getNonImageFilesByIds, toAbsoluteFileUrl } from '../api/files';
 
 /* ------------------------- 보조 ------------------------- */
 
-// 공개 경로(/files) → 실패 시 /api 로 폴백(fetch+토큰)해서 blob URL로 표출
+// ✅ /api/files 경로를 그대로 사용 (이 경로가 백엔드에서 presign 302 리다이렉트)
 function SmartImage({ source, className, alt }) {
   const [resolvedSrc, setResolvedSrc] = React.useState('');
   const [triedAuthFetch, setTriedAuthFetch] = React.useState(false);
@@ -32,20 +31,13 @@ function SmartImage({ source, className, alt }) {
   const toPair = React.useMemo(() => {
     if (typeof source === 'string') {
       const abs = toAbsoluteFileUrl(source);
-      const isApi = /^\/api\/files\//.test(abs) || /^https?:\/\/.+\/api\/files\//.test(abs);
-      return {
-        publicUrl: abs.replace('/api/files/', '/files/'),
-        apiUrl: isApi ? abs : null,
-      };
+      return { apiUrl: abs }; // 항상 api/절대 URL 우선
     }
     if (source && source.patentId && source.fileName) {
       const enc = encodeURIComponent(source.fileName);
-      return {
-        publicUrl: `/files/${source.patentId}/${enc}`,
-        apiUrl: `/api/files/${source.patentId}/${enc}`,
-      };
+      return { apiUrl: `/api/files/${source.patentId}/${enc}` };
     }
-    return { publicUrl: '', apiUrl: null };
+    return { apiUrl: null };
   }, [source]);
 
   React.useEffect(() => {
@@ -53,7 +45,7 @@ function SmartImage({ source, className, alt }) {
       URL.revokeObjectURL(prevObjectUrlRef.current);
       prevObjectUrlRef.current = null;
     }
-    setResolvedSrc(toPair.publicUrl || '');
+    setResolvedSrc(toPair.apiUrl || '');
     setTriedAuthFetch(false);
     return () => {
       if (prevObjectUrlRef.current) {
@@ -61,7 +53,7 @@ function SmartImage({ source, className, alt }) {
         prevObjectUrlRef.current = null;
       }
     };
-  }, [toPair.publicUrl, toPair.apiUrl]);
+  }, [toPair.apiUrl]);
 
   const handleError = async () => {
     if (toPair.apiUrl && !triedAuthFetch) {
@@ -126,28 +118,18 @@ function ModelViewer3D({ src }) {
   );
 }
 
-// 도면 URL 파서 (JSON 배열/콤마/개행/단일 URL)
+// 도면 URL 파서
 function extractDrawingUrls(raw) {
   if (!raw) return [];
-
   const toStr = (v) => (v == null ? '' : String(v)).trim();
   const isUrl = (s) => /^(https?:\/\/|\/|data:image\/)/i.test(toStr(s));
-
   try {
     const j = JSON.parse(raw);
-    if (Array.isArray(j)) {
-      return j.map(toStr).filter(isUrl);
-    }
+    if (Array.isArray(j)) return j.map(toStr).filter(isUrl);
   } catch {}
-
-  const candidates = toStr(raw)
-    .split(/[\s,;\n\r]+/)
-    .map(toStr)
-    .filter(Boolean);
-
+  const candidates = toStr(raw).split(/[\s,;\n\r]+/).map(toStr).filter(Boolean);
   const urls = candidates.filter(isUrl);
   if (urls.length) return urls;
-
   if (isUrl(raw)) return [toStr(raw)];
   return [];
 }
@@ -156,20 +138,13 @@ function extractDrawingUrls(raw) {
 function buildPatentDrawingSources(p) {
   if (!p) return [];
   const list = [];
-
-  // 1) drawingDescription 내 URL
   list.push(...extractDrawingUrls(p.drawingDescription));
-
-  // 2) drawingFileNames -> {patentId, fileName}
   if (Array.isArray(p.drawingFileNames) && p.drawingFileNames.length > 0) {
     list.push(...p.drawingFileNames.map(fn => ({ patentId: p.patentId, fileName: fn })));
   }
-
-  // 3) (옵션) p.drawings / p.drawingImageUrl 도 있으면 병합
   if (Array.isArray(p.drawings) && p.drawings.length > 0) list.push(...p.drawings);
   if (p.drawingImageUrl) list.push(p.drawingImageUrl);
 
-  // 문자열 중복 제거
   const seen = new Set();
   const out = [];
   for (const it of list) {
@@ -222,17 +197,14 @@ export default function PatentReview() {
   const [isSearchingSimilarity, setIsSearchingSimilarity] = useState(false);
 
   // 첨부 분류
-  const [attachmentImageUrls, setAttachmentImageUrls] = useState([]); // string[]
-  const [attachmentOtherFiles, setAttachmentOtherFiles] = useState([]); // {id,name,url}[]
-
+  const [attachmentImageUrls, setAttachmentImageUrls] = useState([]);
+  const [attachmentOtherFiles, setAttachmentOtherFiles] = useState([]);
 
   const [validationErrors, setValidationErrors] = useState([]);
-  const [hasValidated, setHasValidated] = useState(false); // 한 번이라도 점검했는지
+  const [hasValidated, setHasValidated] = useState(false);
 
-  // 첨부에서 찾은 glb 뷰어 소스
   const [glbModelUrl, setGlbModelUrl] = useState('');
 
-  // ✅ 특허 상세(첨부 ID 포함) 보조 호출
   const fetchPatentDetail = async (patentId) => {
     try {
       const { data } = await axiosInstance.get(`/api/patents/${patentId}`);
@@ -243,7 +215,6 @@ export default function PatentReview() {
     }
   };
 
-  // 도면 소스(첨부 이미지 + 특허에서 추출/병합)
   const drawingSources = useMemo(() => {
     const fromPatent = buildPatentDrawingSources(patent);
     const merged = [...attachmentImageUrls, ...fromPatent];
@@ -271,7 +242,6 @@ export default function PatentReview() {
     { id: 'q4', text: '심사 기준', icon: GanttChart, query: '특허 심사 기준에 대해 알려줘' },
   ];
 
-  // 🔧 상세 & 첨부 로딩 + 상태매핑
   useEffect(() => {
     const fetchReviewData = async () => {
       if (!id) return;
@@ -280,7 +250,6 @@ export default function PatentReview() {
         const data = await getReviewDetail(id);
         setPatent(data);
 
-        // 첨부 이미지/비이미지 로드 (없으면 특허 상세로 보완)
         let attachmentIds = Array.isArray(data.attachmentIds) ? data.attachmentIds : [];
 
         if ((!attachmentIds || attachmentIds.length === 0) && data.patentId) {
@@ -304,7 +273,6 @@ export default function PatentReview() {
             setAttachmentImageUrls(imgs);
             setAttachmentOtherFiles(others);
 
-            // 🔎 첨부 비이미지에서 .glb 찾기 → 3D 도면 자동 표시용
             const glb = others.find(f => /\.glb($|\?|#)/i.test(f?.name || '') || /\.glb($|\?|#)/i.test(f?.url || ''));
             setGlbModelUrl(glb ? glb.url : '');
           } catch (e) {
@@ -319,7 +287,6 @@ export default function PatentReview() {
           setGlbModelUrl('');
         }
 
-        // 상태 매핑 (Review.Decision: SUBMITTED/REVIEWING/APPROVE/REJECT)
         let translatedStatus = '';
         switch (data.decision) {
           case 'APPROVE':
@@ -362,7 +329,7 @@ export default function PatentReview() {
       if (!url) return;
       try {
         setIsSearchingSimilarity(true);
-        const results = await searchDesignImageByBlob(url); // 변경: 파일 전송
+        const results = await searchDesignImageByBlob(url);
         if (results && results.results) {
           setSimilarityResults(results.results);
         } else {
@@ -456,7 +423,6 @@ export default function PatentReview() {
 
   const showMessageBox = (m) => { setModalMessage(m); setShowModal(true); };
 
-  // ⛳ 보류 의견서 → REVIEWING, 거절 사유서 → REJECT
   const handleReviewSubmit = async () => {
     let currentComment, decision, message, newStatus;
     if (selectedAction === 'document') {
@@ -530,52 +496,32 @@ ${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getD
 
   const handleDocumentCheck = async () => {
     if (!patent) return;
-
-    // 🔵 먼저 모달을 로딩 상태로 띄움
     showMessageBox('오류 점검 중…');
 
     try {
       const results = await validatePatentDocument(patent.patentId);
 
-      // ✅ 응답 정규화
       const flat = [];
       if (Array.isArray(results)) {
         flat.push(...results);
       } else if (results && typeof results === 'object') {
         const { formatErrors, contextualErrors, missingSections } = results;
         if (Array.isArray(formatErrors)) {
-          flat.push(...formatErrors.map(e => ({
-            type: 'FORMAT',
-            field: e.field,
-            message: e.message,
-            id: e.id,
-          })));
+          flat.push(...formatErrors.map(e => ({ type: 'FORMAT', field: e.field, message: e.message, id: e.id })));
         }
         if (Array.isArray(contextualErrors)) {
           flat.push(...contextualErrors.map(e => ({
-            type: 'CONTEXT',
-            field: e.field,
-            claim: e.claim,
-            claimIndex: e.claimIndex,
-            message: e.analysis || e.message,
-            id: e.id,
+            type: 'CONTEXT', field: e.field, claim: e.claim, claimIndex: e.claimIndex, message: e.analysis || e.message, id: e.id
           })));
         }
         if (Array.isArray(missingSections)) {
-          flat.push(...missingSections.map(e => ({
-            type: 'MISSING',
-            field: e.field,
-            message: e.message,
-            id: e.id,
-          })));
+          flat.push(...missingSections.map(e => ({ type: 'MISSING', field: e.field, message: e.message, id: e.id })));
         }
       }
 
-      // 페이지 본문 표시용 state 사용 중이라면 여기도 유지
       setValidationErrors?.(flat);
       setHasValidated?.(true);
 
-      // 🔵 모달의 내용만 결과로 교체
       if (flat.length > 0) {
         const pretty = flat.map((e, i) => {
           const where =
@@ -596,8 +542,6 @@ ${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getD
       showMessageBox('오류: 서류 점검 중 문제가 발생했습니다.');
     }
   };
-
-
 
   if (loading) {
     return (
@@ -883,14 +827,12 @@ ${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getD
                   AI 서류 점검 결과
                 </h4>
 
-                {/* 점검 후 오류 없음 배너 */}
                 {hasValidated && validationErrors.length === 0 && (
                   <div className="mt-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
                     점검 완료 ✨ 서류에서 특별한 오류가 발견되지 않았습니다.
                   </div>
                 )}
 
-                {/* 오류 리스트 */}
                 {validationErrors.length > 0 && (
                   <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-4">
                     <ul className="space-y-2">
@@ -917,7 +859,6 @@ ${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getD
                   </div>
                 )}
 
-                {/* 아직 점검 전 안내 */}
                 {!hasValidated && (
                   <p className="mt-2 text-xs text-gray-500">
                     ※ 상단의 <b>AI 서류 점검</b> 버튼을 눌러 결과를 확인하세요.
@@ -928,7 +869,7 @@ ${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getD
             </section>
           </div>
 
-          {/* 유사 특허 분석 (첫 2D 도면 자동 분석) */}
+          {/* 유사 특허 분석 */}
           <section className="mb-6 border border-gray-200 p-6 rounded-xl bg-white shadow-sm">
             <h3 className="font-semibold text-xl mb-4 text-gray-800 flex items-center gap-2">
               <Copy className="w-5 h-5 text-blue-500" /> AI 유사 특허 분석
@@ -999,12 +940,10 @@ ${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getD
         <div className="p-4 border-b border-gray-100 flex-shrink-0">
           <p className="text-sm font-medium text-gray-700 mb-3">빠른 질문</p>
           <div className="grid grid-cols-2 gap-2">
-            {[
-              { id: 'q1', text: '유사 특허', icon: Copy, query: '이 특허와 유사한 특허를 찾아줘' },
+            {[{ id: 'q1', text: '유사 특허', icon: Copy, query: '이 특허와 유사한 특허를 찾아줘' },
               { id: 'q2', text: '진보성 분석', icon: Lightbulb, query: '이 특허의 진보성에 대해 분석해줘' },
               { id: 'q3', text: '법적 근거', icon: Scale, query: '특허 등록 거절에 대한 법적 근거는 뭐야?' },
-              { id: 'q4', text: '심사 기준', icon: GanttChart, query: '특허 심사 기준에 대해 알려줘' },
-            ].map((q) => (
+              { id: 'q4', text: '심사 기준', icon: GanttChart, query: '특허 심사 기준에 대해 알려줘' }].map((q) => (
               <button
                 key={q.id}
                 onClick={() => handleQuickQuestion(q.query)}
