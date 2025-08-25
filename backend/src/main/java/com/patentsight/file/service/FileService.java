@@ -7,6 +7,7 @@ import com.patentsight.file.exception.S3UploadException;
 import com.patentsight.file.repository.FileRepository;
 import com.patentsight.patent.domain.Patent;
 import com.patentsight.patent.repository.PatentRepository;
+import com.patentsight.global.util.FileUtil;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
