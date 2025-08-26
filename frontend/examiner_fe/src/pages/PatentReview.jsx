@@ -430,55 +430,6 @@ export default function PatentReview() {
     fetchReviewData();
   }, [id]);
 
-  // ✅ 첨부 이미지 “첫 장”만으로 자동 유사분석
-  useEffect(() => {
-    (async () => {
-      if (!patent) return;
-
-      // 1) 첨부 이미지 배열에서 첫 장만 사용
-      const firstImg = (attachmentImageUrls && attachmentImageUrls[0]) ? attachmentImageUrls[0] : null;
-
-      // 2) 첨부 이미지가 없다면, 예외적으로 drawingSources 첫 항목을 fallback
-      const src = firstImg || (drawingSources && drawingSources[0]) || null;
-      if (!src) return;
-
-      // 3) /files/{id}/content 또는 /api/files/{id}/content 로만 정규화 (그 외는 그대로)
-      const target = normalizeToApiContent(src);
-      console.log('[auto-sim] srcLike=', src, '→ target=', target);
-
-      // try {
-      //   setIsSearchingSimilarity(true);
-      //   const results = await searchDesignImageByBlob(target);
-      //   if (results && results.results) {
-      //     setSimilarityResults(results.results);
-      //     if (results.mock) console.warn('유사도 결과: MOCK 응답');
-      //   } else {
-      //     setSimilarityResults([]);
-      //   }
-      // } catch (e) {
-      //   console.warn('자동 유사 분석 실패:', e);
-      //   setSimilarityResults([]);
-      // } finally {
-      //   setIsSearchingSimilarity(false);
-      // }
-
-      try {
-        setIsSearchingSimilarity(true);
-      
-        // 🔹 API 대신 mock 데이터 강제 주입
-        setSimilarityResults(MOCK_SIMILAR_RESULTS);
-      
-      } catch (e) {
-        console.warn('자동 유사 분석 실패:', e);
-        setSimilarityResults([]);
-      } finally {
-        setIsSearchingSimilarity(false);
-      }
-    })();
-    // 첨부 이미지가 준비되면 실행되도록 의존성에 포함
-  }, [patent, attachmentImageUrls, drawingSources]);
-
-
   const sendChatMessage = async (message = inputMessage) => {
     if (!message.trim()) {
       return;
