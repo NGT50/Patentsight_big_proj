@@ -38,8 +38,9 @@ external-api:
   search-base-url: "http://54.180.170.51:8000"
   validation-url: "http://3.26.101.212:8000/api/ai/validations"
   claim-url: "https://neil-gordon-georgia-thumbnail.trycloudflare.com/generate"
-  similar-search-base-url: "http://127.0.0.1:8000"
+  similar-search-base-url: "http://3.27.137.18:8080"
   three-d-model-endpoint: "https://eb1362095826.ngrok-free.app/generate"
+  chatbot-url: "http://35.175.253.22:58080/chat"
 
 aws:
   accessKeyId: ${AWS_ACCESS_KEY_ID:}
