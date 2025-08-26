@@ -105,7 +105,7 @@ const NewPatentChoicePage = () => {
               </div>
               <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept=".pdf" />
             </div>
-            <button onClick={() => setSelectedType(null)} className="mt-8 text-sm text-gray-500 hover:underline">← 뒤로가기</button>
+            <button onClick={() => setSelectedType(null)} className="mt-8 text-sm text-white hover:underline">← 뒤로가기</button>
           </>
         )}
       </div>
