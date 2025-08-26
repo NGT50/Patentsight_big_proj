@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { submitPatent, getPatentDetail, updateDocument, validatePatentDocument, generateFullDraft } from '../api/patents';
+import { submitPatent, getPatentDetail, updateDocument, validatePatentDocument, generateFullDraft, generate3DModel } from '../api/patents';
 import { uploadFile } from '../api/files';
 import { 
   FileText, Save, Download, Send, Bot, Box, CheckCircle, AlertCircle, X,
@@ -23,11 +23,15 @@ const DocumentEditor = () => {
   const queryClient = useQueryClient();
   const location = useLocation();
   const [drawingFiles, setDrawingFiles] = useState([]);
+  const [selectedDrawingId, setSelectedDrawingId] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState(null);
   const [attachedPdf, setAttachedPdf] = useState(null);
   const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
   const isDataLoadedFromServerRef = useRef(false);
+
+  const imageFiles = drawingFiles.filter(f => !f.fileUrl?.toLowerCase().endsWith('.glb'));
+  const selectedImageIndex = imageFiles.findIndex(f => f.fileId === selectedDrawingId);
 
   // --- 데이터 로딩 (React Query) ---
   const { data, isLoading, isError } = useQuery({
@@ -99,6 +103,9 @@ const DocumentEditor = () => {
         })
       );
       setDrawingFiles(prev => [...prev, ...uploaded]);
+      if (!selectedDrawingId && uploaded.length > 0) {
+        setSelectedDrawingId(uploaded[0].fileId);
+      }
     } catch (error) {
       console.error('도면 업로드 실패:', error);
       setUploadError('도면 업로드에 실패했습니다. 다시 시도해주세요.');
@@ -167,6 +174,22 @@ const DocumentEditor = () => {
     const newClaims = [...document.claims];
     newClaims[claimIndex] = suggestionText;
     setDocument(prev => ({ ...prev, claims: newClaims }));
+  };
+
+  const handleGenerate3D = async () => {
+    const target = drawingFiles.find(f => f.fileId === selectedDrawingId && !f.fileUrl?.toLowerCase().endsWith('.glb'));
+    if (!target) {
+      alert('3D로 변환할 도면을 선택해주세요.');
+      return;
+    }
+    try {
+      const { fileId, fileUrl } = await generate3DModel({ patentId, imageId: target.fileId });
+      setDrawingFiles(prev => [...prev, { fileId, fileUrl, fileName: 'model.glb' }]);
+      alert('3D 도면 생성이 완료되었습니다.');
+    } catch (err) {
+      console.error('3D 변환 실패:', err);
+      alert('3D 변환 중 오류가 발생했습니다.');
+    }
   };
 
   const scrollToField = (fieldName) => {
@@ -296,11 +319,41 @@ const DocumentEditor = () => {
               )}
               {activeTab === 'drawings' && (
                 <div ref={el => fieldRefs.current['drawings'] = el} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                  <label className="block text-lg font-semibold text-gray-800 mb-3">도면 업로드</label>
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="block text-lg font-semibold text-gray-800">도면 업로드</label>
+                    {imageFiles.length > 0 && (
+                      <span className="text-xs text-gray-500">
+                        선택된 도면: {selectedImageIndex >= 0 ? selectedImageIndex + 1 : '-'} / {imageFiles.length}
+                      </span>
+                    )}
+                  </div>
                   <input type="file" multiple accept="image/png, image/jpeg" onChange={handleDrawingUpload} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"/>
                   {isUploading && <p className="text-sm text-gray-500 mt-2">업로드 중...</p>}
                   {uploadError && <p className="text-sm text-red-500 mt-2">{uploadError}</p>}
-                  <div className="grid grid-cols-3 gap-4 mt-4">{drawingFiles.map((f, index) => (<div key={f.fileId || index} className="border rounded-lg overflow-hidden"><img src={f.fileUrl} alt={`도면 미리보기 ${index + 1}`} className="w-full h-auto object-cover" /></div>))}</div>
+                  <div className="grid grid-cols-3 gap-4 mt-4">
+                    {drawingFiles.map((f, index) => {
+                      const isGlb = f.fileUrl?.toLowerCase().endsWith('.glb');
+                      const isSelected = f.fileId === selectedDrawingId;
+                      return (
+                        <div
+                          key={f.fileId || index}
+                          onClick={() => !isGlb && setSelectedDrawingId(f.fileId)}
+                          className={`relative border rounded-lg overflow-hidden flex items-center justify-center p-2 ${!isGlb ? 'cursor-pointer' : ''} ${isSelected ? 'ring-2 ring-indigo-500' : ''}`}
+                        >
+                          {isGlb ? (
+                            <a href={f.fileUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">3D 모델 다운로드</a>
+                          ) : (
+                            <>
+                              <img src={f.fileUrl} alt={`도면 미리보기 ${index + 1}`} className="w-full h-auto object-cover" />
+                              {isSelected && (
+                                <span className="absolute top-1 right-1 text-[10px] px-1.5 py-0.5 bg-indigo-600 text-white rounded">선택됨</span>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
             </div>
@@ -314,7 +367,7 @@ const DocumentEditor = () => {
                 {aiResults && (<div className="space-y-4 text-sm"><div className="bg-red-50 border border-red-200 rounded-lg p-3"><h3 className="font-bold text-red-800 flex items-center gap-2 mb-2"><AlertCircle className="w-4 h-4" /> 형식 오류</h3>{aiResults.formatErrors?.length > 0 ? (<div className="space-y-2">{aiResults.formatErrors.map(e => (<button key={e.id} onClick={() => scrollToField(e.field)} className="block w-full text-left p-2 rounded hover:bg-red-100 transition-all"><p className="text-red-700">{e.message}</p></button>))}</div>) : (<p className="text-green-700 flex items-center gap-1"><CheckCircle className="w-4 h-4" /> 형식 오류가 발견되지 않았습니다.</p>)}</div><div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3"><h3 className="font-bold text-yellow-800 flex items-center gap-2 mb-2"><AlertTriangle className="w-4 h-4" /> 필수 항목 누락</h3>{aiResults.missingSections?.length > 0 ? (<div className="space-y-2">{aiResults.missingSections.map(s => (<button key={s.id} onClick={() => scrollToField(s.field)} className="block w-full text-left p-2 rounded hover:bg-yellow-100 transition-all"><p className="text-yellow-700">🟡 누락됨: {s.message}</p></button>))}</div>) : (<p className="text-green-700 flex items-center gap-1"><CheckCircle className="w-4 h-4" /> 모든 필수 항목이 포함되었습니다.</p>)}</div><div className="bg-blue-50 border border-blue-200 rounded-lg p-3"><h3 className="font-bold text-blue-800 flex items-center gap-2 mb-2"><Bot className="w-4 h-4" /> 문맥 오류 (GPT)</h3><div className="space-y-3">{aiResults.contextualErrors?.map(c => (<div key={c.id} className="p-3 bg-white rounded border border-blue-200"><p onClick={() => scrollToField(c.field)} className="font-semibold cursor-pointer hover:text-blue-600 transition-colors">{c.claim}</p><pre className="mt-2 whitespace-pre-wrap text-gray-700 text-xs">{c.analysis}</pre>{c.suggestion && (<div className="mt-3 pt-3 border-t border-blue-200"><p className="text-xs text-gray-500 mb-1">AI 수정 제안:</p><p className="text-xs text-blue-700 italic mb-2">"{c.suggestion}"</p><button onClick={() => applyAiSuggestion(c.claimIndex, c.suggestion)} className="w-full px-3 py-2 text-xs font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700 transition-all flex items-center justify-center gap-1"><CheckCircle className="w-3 h-3" /> 이대로 수정</button></div>)}</div>))}</div></div></div>)}
               </div>
               <div className="space-y-3">
-                <button onClick={() => alert('3D 변환 기능 구현 예정')} className="w-full flex items-center justify-center gap-2 px-4 py-3 font-semibold text-white bg-indigo-500 rounded-lg hover:bg-indigo-600 transition-all"><Box className="w-4 h-4" /> 도면 3D 변환</button>
+                <button onClick={handleGenerate3D} className="w-full flex items-center justify-center gap-2 px-4 py-3 font-semibold text-white bg-indigo-500 rounded-lg hover:bg-indigo-600 transition-all"><Box className="w-4 h-4" /> 도면 3D 변환</button>
                 <button onClick={handleAiCheck} disabled={aiCheckMutation.isPending} className="w-full flex items-center justify-center gap-2 px-4 py-3 font-semibold text-white bg-green-500 rounded-lg hover:bg-green-600 disabled:bg-gray-400 transition-all"><Bot className="w-4 h-4" /> {aiCheckMutation.isPending ? '분석 중...' : 'AI 서류 검토 시작'}</button>
               </div>
             </div>
