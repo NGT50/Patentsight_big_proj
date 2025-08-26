@@ -1,9 +1,11 @@
 // src/api/ai.js
 import axiosInstance from './axiosInstance';
+// 백엔드(8080) 절대 오리진 강제 — 유사 이미지 전용 fetch에서 사용
+const API_ORIGIN =
+  (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_ORIGIN) ||
+  'http://35.175.253.22:8080';
 
-// src/api/ai.js (맨 위 근처)
-const API_ORIGIN = import.meta.env?.VITE_API_ORIGIN || 'http://35.175.253.22:8080';
-const toApi = (p) => (p.startsWith('http') ? p : `${API_ORIGIN}${p}`);
+const toApiAbsolute = (p) => (p.startsWith('http') ? p : `${API_ORIGIN}${p}`);
 
 /** 공통 404-더미 헬퍼 */
 const swallow404 = async (fn, fallback) => {
@@ -90,35 +92,16 @@ export const searchDesignImageByFile = async (file) => {
     async () => {
       const form = new FormData();
       form.append('file', file);
-
-      const token =
-        localStorage.getItem('token') ||
-        localStorage.getItem('accessToken') ||
-        sessionStorage.getItem('token') ||
-        sessionStorage.getItem('accessToken') || '';
-
-      const resp = await fetch(toApi('/api/ai/search/design/image'), {
-        method: 'POST',
-        body: form,
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-        credentials: 'include',
-      });
-
-      const text = await resp.text();
-      if (!resp.ok) {
-        throw new Error(`search api failed: ${resp.status} ${text.slice(0,200)}`);
-      }
-      try {
-        return JSON.parse(text);
-      } catch {
-        throw new Error(`Non-JSON from API (status ${resp.status}): ${text.slice(0,200)}`);
-      }
+      const { data } = await axiosInstance.post(
+      '/api/ai/search/design/image',
+       form,
+       { headers: { 'Content-Type': 'multipart/form-data' } }
+      );
+      return data;
     },
     { results: [], input_image: null, mock: true }
   );
 };
-
-
 
 /** [디자인 이미지 검색] URL로 업로드 (내부에서 File로 변환) */
 export const searchDesignImageByUrl = async (imageUrl) => {
@@ -134,6 +117,7 @@ export const searchDesignImage = async (input) => {
 };
 
 // 이미지 파일(blob)로 직접 유사 디자인 검색
+// 이미지 파일(blob)로 직접 유사 디자인 검색
 export async function searchDesignImageByBlob(imgUrl) {
   const token =
     localStorage.getItem('token') ||
@@ -141,57 +125,67 @@ export async function searchDesignImageByBlob(imgUrl) {
     sessionStorage.getItem('token') ||
     sessionStorage.getItem('accessToken') || '';
 
-  // /api/files/** URL이면 /stream으로 전환 (그대로 유지)
+  // 서버가 이해하는 스트림 경로로 강제 정규화
+  // 목표: /api/files/content/{id}/stream  (이 포맷으로 맞춰 보냄)
   const toStreamUrl = (u) => {
     try {
       const url = new URL(u, window.location.origin);
-      if (url.pathname.startsWith('/api/files/')) {
-        if (!url.pathname.endsWith('/stream')) {
-          url.pathname = url.pathname.replace(/\/$/, '') + '/stream';
-        }
-        return url.pathname + url.search; // 상대경로로 반환
+      const p = url.pathname;
+
+      // 1) 레거시: /files/{id}/content → /api/files/content/{id}/stream
+      let m = p.match(/^\/files\/(\d+)\/content$/);
+      if (m) return `/api/files/content/${m[1]}/stream`;
+
+      // 2) 잘못된 변형: /api/files/{id}/content(/stream)? → /api/files/content/{id}/stream
+      m = p.match(/^\/api\/files\/(\d+)\/content(?:\/stream)?$/);
+      if (m) return `/api/files/content/${m[1]}/stream`;
+
+      // 3) 새 포맷: /api/files/{patentId}/{fileName} → 항상 /stream 덧붙임
+      if (p.startsWith('/api/files/')) {
+        return p.replace(/\/$/, '') + '/stream';
       }
-      const m = url.pathname.match(/^\/files\/(\d+)\/content$/);
-      if (m) {
-        const fileId = m[1];
-        return `/api/files/content/${fileId}/stream`;
-      }
+
+      // 4) 기타는 그대로
       return u;
     } catch {
       return u;
     }
   };
 
-  const fetchUrl = toStreamUrl(imgUrl);
-  const absFetchUrl = fetchUrl.startsWith('http') ? fetchUrl : toApi(fetchUrl);
+  // 상대 경로면 반드시 8080 절대 오리진으로 바꿔서 호출
+  const normalized = toStreamUrl(imgUrl);
+  const fetchUrl = normalized.startsWith('http') ? normalized : toApiAbsolute(normalized);
 
-  // 원본 이미지 가져오기(반드시 백엔드 오리진으로)
-  const res = await fetch(absFetchUrl, {
-    headers: fetchUrl.startsWith('/api/') && token ? { Authorization: `Bearer ${token}` } : {},
+  const res = await fetch(fetchUrl, {
+    headers: fetchUrl.includes('/api/') && token ? { Authorization: `Bearer ${token}` } : {},
     credentials: 'include',
   });
-  if (!res.ok) throw new Error(`image fetch failed: ${res.status}`);
+
+  if (!res.ok) {
+    // 디버깅에 도움: 서버가 HTML을 돌려주면 JSON 파싱 에러가 나니, 여기서 막아줌
+    const t = await res.text().catch(() => '');
+    console.warn('image stream failed:', res.status, t.slice(0, 200));
+    throw new Error(`image fetch failed: ${res.status}`);
+  }
 
   const blob = await res.blob();
   const form = new FormData();
   form.append('file', blob, 'drawing.png');
 
-  // 절대 오리진으로 업로드
-  const r = await fetch(toApi('/api/ai/search/design/image'), {
+  // 실제 유사 이미지 검색 호출 (백엔드 프록시)
+  const r = await fetch(toApiAbsolute('/api/ai/search/design/image'), {
     method: 'POST',
     body: form,
     headers: token ? { Authorization: `Bearer ${token}` } : {},
     credentials: 'include',
   });
 
-  const txt = await r.text();
-  if (!r.ok) throw new Error(`search api failed: ${r.status} ${txt.slice(0,200)}`);
-
-  try {
-    return JSON.parse(txt);
-  } catch {
-    throw new Error(`Non-JSON from API (status ${r.status}): ${txt.slice(0,200)}`);
+  if (!r.ok) {
+    const t = await r.text().catch(() => '');
+    console.warn('search api failed:', r.status, t.slice(0, 200));
+    throw new Error(`search api failed: ${r.status}`);
   }
+  return r.json();
 }
 
 
