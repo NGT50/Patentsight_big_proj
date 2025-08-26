@@ -111,20 +111,51 @@ export const searchDesignImage = async (input) => {
 };
 
 // 이미지 파일(blob)로 직접 유사 디자인 검색
+// 이미지 파일(blob)로 직접 유사 디자인 검색
 export async function searchDesignImageByBlob(imgUrl) {
-  const res = await fetch(imgUrl, { credentials: 'include' });
-  if (!res.ok) throw new Error('image fetch failed');
+  const token =
+    localStorage.getItem('token') ||
+    localStorage.getItem('accessToken') ||
+    sessionStorage.getItem('token') ||
+    sessionStorage.getItem('accessToken') || '';
+
+  // /api/files/** URL이면 CORS 회피용 /stream 으로 전환
+  const toStreamUrl = (u) => {
+    try {
+      const url = new URL(u, window.location.origin);
+      if (url.pathname.startsWith('/api/files/')) {
+        url.pathname = url.pathname
+          .replace(/\/content$/, '')
+          .replace(/\/$/, '') + '/stream';
+        return url.toString();
+      }
+    } catch {}
+    return u;
+  };
+
+  const fetchUrl = toStreamUrl(imgUrl);
+  const res = await fetch(fetchUrl, {
+    headers: fetchUrl.startsWith('/api/') && token ? { Authorization: `Bearer ${token}` } : {},
+    credentials: 'include',
+  });
+  if (!res.ok) throw new Error(`image fetch failed: ${res.status}`);
+
   const blob = await res.blob();
   const form = new FormData();
   form.append('file', blob, 'drawing.png');
 
-  const r = await fetch('/api/search/design/image', {
+  // 실제 백엔드 매핑
+  const r = await fetch('/api/ai/search/design/image', {
     method: 'POST',
     body: form,
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    credentials: 'include',
   });
-  if (!r.ok) throw new Error('search api failed');
+  if (!r.ok) throw new Error(`search api failed: ${r.status}`);
   return r.json();
 }
+
+
 
 
 /** [상표 이미지 검색] (스펙: POST /api/ai/search/trademark/image form-data[file]) */
