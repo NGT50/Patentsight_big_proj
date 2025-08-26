@@ -601,21 +601,21 @@ export default function PatentReview() {
          message.toLowerCase().includes(keyword.toLowerCase())
        );
 
-       if (hasSimilarKeyword) {
-         setTimeout(() => {
-           const loadingMessage = {
-             id: safeUUID(),
-             type: 'bot',
-             message: '유사 특허를 검색중입니다...',
-             timestamp: new Date(),
-           };
-           setChatMessages((prev) => [...prev, loadingMessage]);
+               if (hasSimilarKeyword) {
+          setTimeout(() => {
+            const loadingMessage = {
+              id: safeUUID(),
+              type: 'bot',
+              message: '유사 특허를 검색중입니다...',
+              timestamp: new Date(),
+            };
+            setChatMessages((prev) => [...prev, loadingMessage]);
 
-           setTimeout(() => {
-             const botMessage = {
-               id: safeUUID(),
-               type: 'bot',
-               message: `[유사특허 검색 결과]
+            setTimeout(() => {
+              const botMessage = {
+                id: safeUUID(),
+                type: 'bot',
+                message: `[유사특허 검색 결과]
 
 총 5건의 유사 특허를 찾았습니다:
 
@@ -637,17 +637,15 @@ export default function PatentReview() {
 
 5. 수술 로봇 시스템 (출원번호: 1020240170032)
    - 유사도: 89%
-   - 최신 수술 로봇 시스템 구조
-
-이 중에서 1번과 2번 특허가 가장 높은 유사도를 보이며, 특히 수술 로봇의 제어 방식과 관련된 기술적 특징이 유사합니다.`,
-               timestamp: new Date(),
-             };
-             setChatMessages((prev) => [...prev, botMessage]);
-             setIsTyping(false);
-           }, 3000);
-         }, 1500);
-         return;
-       }
+   - 최신 수술 로봇 시스템 구조`,
+                timestamp: new Date(),
+              };
+              setChatMessages((prev) => [...prev, botMessage]);
+              setIsTyping(false);
+            }, 3000);
+          }, 1500);
+          return;
+        }
 
       // 챗봇 서버 상태 확인
       const isHealthy = await checkChatbotHealth();
@@ -785,22 +783,22 @@ export default function PatentReview() {
         return;
       }
 
-             // 유사 특허(데모)
-       if (forcedIntent === 'similar_patent') {
-         setTimeout(() => {
-           const loadingMessage = {
-             id: safeUUID(),
-             type: 'bot',
-             message: '유사 특허를 검색중입니다...',
-             timestamp: new Date(),
-           };
-           setChatMessages((prev) => [...prev, loadingMessage]);
+                           // 유사 특허(데모)
+        if (forcedIntent === 'similar_patent') {
+          setTimeout(() => {
+            const loadingMessage = {
+              id: safeUUID(),
+              type: 'bot',
+              message: '유사 특허를 검색중입니다...',
+              timestamp: new Date(),
+            };
+            setChatMessages((prev) => [...prev, loadingMessage]);
 
-           setTimeout(() => {
-             const botMessage = {
-               id: safeUUID(),
-               type: 'bot',
-               message: `[유사특허 검색 결과]
+            setTimeout(() => {
+              const botMessage = {
+                id: safeUUID(),
+                type: 'bot',
+                message: `[유사특허 검색 결과]
 
 총 5건의 유사 특허를 찾았습니다:
 
@@ -822,17 +820,15 @@ export default function PatentReview() {
 
 5. 수술 로봇 시스템 (출원번호: 1020240170032)
    - 유사도: 89%
-   - 최신 수술 로봇 시스템 구조
-
-이 중에서 1번과 2번 특허가 가장 높은 유사도를 보이며, 특히 수술 로봇의 제어 방식과 관련된 기술적 특징이 유사합니다.`,
-               timestamp: new Date(),
-             };
-             setChatMessages((prev) => [...prev, botMessage]);
-             setIsTyping(false);
-           }, 3000);
-         }, 1500);
-         return;
-       }
+   - 최신 수술 로봇 시스템 구조`,
+                timestamp: new Date(),
+              };
+              setChatMessages((prev) => [...prev, botMessage]);
+              setIsTyping(false);
+            }, 3000);
+          }, 1500);
+          return;
+        }
 
       // 실제 챗봇 호출
       const isHealthy = await checkChatbotHealth();
