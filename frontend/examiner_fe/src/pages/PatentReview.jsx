@@ -17,6 +17,7 @@ import {
   searchDesignImageByBlob, 
   searchDesignImageByUrl,// 첫 번째 2D 도면으로 자동 유사이미지 검색
 } from '../api/ai';
+import { sendChatMessage as sendChatbotMessage, checkChatbotHealth } from '../api/chatbot';
 
 // 파일 API (메타 조회 → 안전한 URL 만들기)
 import { getImageUrlsByIds, getNonImageFilesByIds, toAbsoluteFileUrl } from '../api/files';
@@ -102,8 +103,6 @@ function SmartImage({ source, className, alt }) {
 
   return <img alt={alt} src={resolvedSrc} className={className} onError={handleError} />;
 }
-
-
 // 도면 URL 파서 (JSON 배열/콤마/개행/단일 URL)
 function extractDrawingUrls(raw) {
   if (!raw) return [];
@@ -161,16 +160,35 @@ function buildPatentDrawingSources(p) {
   return out;
 }
 
-// 실제 호출용 URL로 변환 (객체는 /api/files 경로, 파일명 인코딩)
-function resolveToUrl(srcLike) {
-  if (typeof srcLike === 'string') return toAbsoluteFileUrl(srcLike);
-  if (srcLike && srcLike.patentId && srcLike.fileName) {
+// 외부(S3 등) URL이 들어와도 항상 동일 오리진(/api/files/**)으로 강제
+function resolveToLocalFileUrl(srcLike, currentPatentId) {
+  // 케이스 A: {patentId, fileName}
+  if (srcLike && typeof srcLike === 'object' && srcLike.patentId && srcLike.fileName) {
     const enc = encodeURIComponent(srcLike.fileName);
     return `/api/files/${srcLike.patentId}/${enc}`;
   }
+  // 케이스 B: 문자열 URL
+  if (typeof srcLike === 'string') {
+    try {
+      const abs = toAbsoluteFileUrl(srcLike);
+      const u = new URL(abs, window.location.origin);
+      // 이미 same-origin이고 /files|/api/files 면 /api/files 로 통일
+      if (u.origin === window.location.origin &&
+          (u.pathname.startsWith('/files/') || u.pathname.startsWith('/api/files/'))) {
+        return u.pathname.replace('/files/', '/api/files/');
+      }
+      // 외부(S3 등) → 파일명만 추출해서 /api/files/{patentId}/{fileName}
+      const last = decodeURIComponent((u.pathname.split('/').pop() || '').split('?')[0]);
+      const clean = last || 'file.bin';
+      const enc = encodeURIComponent(clean);
+      if (!currentPatentId) return null;
+      return `/api/files/${currentPatentId}/${enc}`;
+    } catch {
+      return null;
+    }
+  }
   return null;
 }
-
 // 파일명에서 UUID 프리픽스 제거
 function cleanFileName(name = '') {
   const decoded = decodeURIComponent(name);
@@ -243,8 +261,11 @@ export default function PatentReview() {
   }, [patent, attachmentImageUrls]);
 
   const contextImageUrls = useMemo(
-    () => drawingSources.map(resolveToUrl).filter(Boolean),
-    [drawingSources]
+    () =>
+      drawingSources
+        .map((src) => resolveToLocalFileUrl(src, patent?.patentId))
+        .filter(Boolean),
+    [drawingSources, patent?.patentId]
   );
 
   const [selectedDrawingIdx, setSelectedDrawingIdx] = useState(0);
@@ -341,11 +362,11 @@ export default function PatentReview() {
       if (!patent) return;
       if (!drawingSources || drawingSources.length === 0) return;
       const first = drawingSources[0];
-      const url = resolveToUrl(first);
+      const url = resolveToLocalFileUrl(first, patent?.patentId);
       if (!url) return;
       try {
         setIsSearchingSimilarity(true);
-        const results = await searchDesignImageByUrl(url); // 변경: 파일 전송
+        const results = await searchDesignImageByBlob(url); // 변경: 파일 전송
         if (results && results.results) {
           setSimilarityResults(results.results);
           if (results.mock) {
@@ -364,14 +385,7 @@ export default function PatentReview() {
   }, [patent, drawingSources]);
 
   const sendChatMessage = async (message = inputMessage) => {
-    if (!message.trim() || !patent?.patentId) {
-      const errorMessage = {
-        id: crypto.randomUUID(),
-        type: 'bot',
-        message: '오류: 특허 정보가 올바르지 않아 AI와 대화를 시작할 수 없습니다.',
-        timestamp: new Date()
-      };
-      setChatMessages(prev => [...prev, errorMessage]);
+    if (!message.trim()) {
       return;
     }
 
@@ -380,54 +394,96 @@ export default function PatentReview() {
     setInputMessage('');
     setIsTyping(true);
 
-    const payload = {
-      message,
-      requested_features: ['similarity', 'check'],
-      context: { image_urls: contextImageUrls },
-    };
-
     try {
-      let currentSessionId = chatSessionId;
-      if (!currentSessionId) {
-        const session = await startChatSession(patent.patentId);
-        const sid = session?.session_id || session?.id;
-        if (!sid) throw new Error('Failed to get a valid session_id from the server.');
-        currentSessionId = sid;
-        setChatSessionId(currentSessionId);
+      // 챗봇 서버 상태 확인
+      const isHealthy = await checkChatbotHealth();
+      if (!isHealthy) {
+        throw new Error('챗봇 서버가 응답하지 않습니다. 서버가 실행 중인지 확인해주세요.');
       }
-      const botResponse = await sendChatMessageToServer(currentSessionId, payload);
-      const botMessage = {
-        id: botResponse?.message_id || crypto.randomUUID(),
-        type: 'bot',
-        message: botResponse?.content ?? '응답이 비어 있습니다.',
-        timestamp: botResponse?.created_at ? new Date(botResponse.created_at) : new Date(),
-      };
-      setChatMessages(prev => [...prev, botMessage]);
 
-      if (botResponse?.executed_features?.length > 0) {
-        const featuresMessage = {
+      // 특허 정보 추출
+      const applicationText = patent?.description || patent?.summary || patent?.backgroundTechnology || '';
+      const claimsText = patent?.claims?.join('\n') || '';
+      
+      // 세션 ID 생성 (특허 ID 기반)
+      const sessionId = `patent_${patent?.patentId || 'default'}_${Date.now()}`;
+
+      // 챗봇 API 호출
+      const response = await sendChatbotMessage(sessionId, message, applicationText, claimsText);
+      
+      if (response.success) {
+        const botMessage = {
           id: crypto.randomUUID(),
-          type: 'bot-features',
-          features: botResponse.executed_features,
-          results: botResponse.features_result,
-          timestamp: new Date(),
+          type: 'bot',
+          message: response.data,
+          timestamp: new Date()
         };
-        setChatMessages(prev => [...prev, featuresMessage]);
+        setChatMessages(prev => [...prev, botMessage]);
+      } else {
+        throw new Error(response.error);
       }
-    } catch (e) {
-      console.error('챗봇 메시지 전송 실패:', e);
-      setChatMessages(prev => [...prev, {
+    } catch (error) {
+      console.error('챗봇 메시지 전송 실패:', error);
+      const errorMessage = {
         id: crypto.randomUUID(),
         type: 'bot',
-        message: '죄송합니다. AI 도우미와 연결하는 데 문제가 발생했습니다.',
+        message: `죄송합니다. AI 도우미와 연결하는 데 문제가 발생했습니다: ${error.message}`,
         timestamp: new Date()
-      }]);
+      };
+      setChatMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsTyping(false);
     }
   };
 
-  const handleQuickQuestion = (q) => sendChatMessage(q);
+  const handleQuickQuestion = async (query, forcedIntent = null) => {
+    if (!query.trim()) return;
+
+    const newUserMessage = { id: crypto.randomUUID(), type: 'user', message: query, timestamp: new Date() };
+    setChatMessages(prev => [...prev, newUserMessage]);
+    setIsTyping(true);
+
+    try {
+      // 챗봇 서버 상태 확인
+      const isHealthy = await checkChatbotHealth();
+      if (!isHealthy) {
+        throw new Error('챗봇 서버가 응답하지 않습니다. 서버가 실행 중인지 확인해주세요.');
+      }
+
+      // 특허 정보 추출
+      const applicationText = patent?.description || patent?.summary || patent?.backgroundTechnology || '';
+      const claimsText = patent?.claims?.join('\n') || '';
+      
+      // 세션 ID 생성 (특허 ID 기반)
+      const sessionId = `patent_${patent?.patentId || 'default'}_${Date.now()}`;
+
+      // 챗봇 API 호출 (forced_intent 포함)
+      const response = await sendChatbotMessage(sessionId, query, applicationText, claimsText, forcedIntent);
+      
+      if (response.success) {
+        const botMessage = {
+          id: crypto.randomUUID(),
+          type: 'bot',
+          message: response.data,
+          timestamp: new Date()
+        };
+        setChatMessages(prev => [...prev, botMessage]);
+      } else {
+        throw new Error(response.error);
+      }
+    } catch (error) {
+      console.error('챗봇 메시지 전송 실패:', error);
+      const errorMessage = {
+        id: crypto.randomUUID(),
+        type: 'bot',
+        message: `죄송합니다. AI 도우미와 연결하는 데 문제가 발생했습니다: ${error.message}`,
+        timestamp: new Date()
+      };
+      setChatMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsTyping(false);
+    }
+  };
 
   const getStatusColorClass = (s) => {
     switch (s) {
@@ -1058,14 +1114,14 @@ ${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getD
           <p className="text-sm font-medium text-gray-700 mb-3">빠른 질문</p>
           <div className="grid grid-cols-2 gap-2">
             {[
-              { id: 'q1', text: '유사 특허', icon: Copy, query: '이 특허와 유사한 특허를 찾아줘' },
-              { id: 'q2', text: '진보성 분석', icon: Lightbulb, query: '이 특허의 진보성에 대해 분석해줘' },
-              { id: 'q3', text: '법적 근거', icon: Scale, query: '특허 등록 거절에 대한 법적 근거는 뭐야?' },
-              { id: 'q4', text: '심사 기준', icon: GanttChart, query: '특허 심사 기준에 대해 알려줘' },
+              { id: 'q1', text: '문서 점검', icon: FileText, query: '이 특허 문서에 문제가 있는지 확인해줘', intent: 'validate_doc' },
+              { id: 'q2', text: '유사 특허', icon: Copy, query: '이 특허와 유사한 특허를 찾아줘', intent: 'similar_patent' },
+              { id: 'q3', text: '거절사유', icon: Scale, query: '이 특허의 거절사유를 분석해줘', intent: 'rejection_draft' },
+              { id: 'q4', text: '청구항 초안', icon: ScrollText, query: '이 특허의 청구항 초안을 생성해줘', intent: 'claim_draft' },
             ].map((q) => (
               <button
                 key={q.id}
-                onClick={() => handleQuickQuestion(q.query)}
+                onClick={() => handleQuickQuestion(q.query, q.intent)}
                 className="p-2 text-xs bg-gray-50 hover:bg-blue-50 border border-gray-200 hover:border-blue-300 rounded-lg transition-all flex flex-col items-center gap-1"
               >
                 <q.icon className="w-4 h-4 text-blue-600" />

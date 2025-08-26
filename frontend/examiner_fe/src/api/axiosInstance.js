@@ -24,7 +24,7 @@ const axiosInstance = axios.create({
     Accept: 'application/json',
     'X-Requested-With': 'XMLHttpRequest',
   },
-  timeout: 15000,
+  timeout: 150000,
   // 쿠키 세션 안 쓰면 false 유지
   withCredentials: false,
 });

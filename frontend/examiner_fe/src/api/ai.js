@@ -1,6 +1,10 @@
 // src/api/ai.js
 import axiosInstance from './axiosInstance';
 
+// src/api/ai.js (맨 위 근처)
+const API_ORIGIN = import.meta.env?.VITE_API_ORIGIN || 'http://35.175.253.22:8080';
+const toApi = (p) => (p.startsWith('http') ? p : `${API_ORIGIN}${p}`);
+
 /** 공통 404-더미 헬퍼 */
 const swallow404 = async (fn, fallback) => {
   try {
@@ -81,22 +85,39 @@ export const validatePatentDocument = async (patentId) => {
 /* ------------------------ 유사 이미지 검색 ------------------------ */
 
 /** [디자인 이미지 검색] 파일 업로드 (스펙: POST /api/ai/search/design/image form-data[file]) */
-/** [디자인 이미지 검색] 파일 업로드 (스펙: POST /api/ai/search/design/image form-data[file]) */
 export const searchDesignImageByFile = async (file) => {
   return swallow404(
     async () => {
       const form = new FormData();
       form.append('file', file);
-      const { data } = await axiosInstance.post(
-        '/api/ai/search/design/image',
-        form,
-        { headers: { 'Content-Type': 'multipart/form-data' } }
-      );
-      return data;
+
+      const token =
+        localStorage.getItem('token') ||
+        localStorage.getItem('accessToken') ||
+        sessionStorage.getItem('token') ||
+        sessionStorage.getItem('accessToken') || '';
+
+      const resp = await fetch(toApi('/api/ai/search/design/image'), {
+        method: 'POST',
+        body: form,
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        credentials: 'include',
+      });
+
+      const text = await resp.text();
+      if (!resp.ok) {
+        throw new Error(`search api failed: ${resp.status} ${text.slice(0,200)}`);
+      }
+      try {
+        return JSON.parse(text);
+      } catch {
+        throw new Error(`Non-JSON from API (status ${resp.status}): ${text.slice(0,200)}`);
+      }
     },
-    { results: [], input_image: null, mock: true } // 404일 경우 더미 응답
+    { results: [], input_image: null, mock: true }
   );
 };
+
 
 
 /** [디자인 이미지 검색] URL로 업로드 (내부에서 File로 변환) */
@@ -113,7 +134,6 @@ export const searchDesignImage = async (input) => {
 };
 
 // 이미지 파일(blob)로 직접 유사 디자인 검색
-// 이미지 파일(blob)로 직접 유사 디자인 검색
 export async function searchDesignImageByBlob(imgUrl) {
   const token =
     localStorage.getItem('token') ||
@@ -121,22 +141,32 @@ export async function searchDesignImageByBlob(imgUrl) {
     sessionStorage.getItem('token') ||
     sessionStorage.getItem('accessToken') || '';
 
-  // /api/files/** URL이면 CORS 회피용 /stream 으로 전환
+  // /api/files/** URL이면 /stream으로 전환 (그대로 유지)
   const toStreamUrl = (u) => {
     try {
       const url = new URL(u, window.location.origin);
       if (url.pathname.startsWith('/api/files/')) {
-        url.pathname = url.pathname
-          .replace(/\/content$/, '')
-          .replace(/\/$/, '') + '/stream';
-        return url.toString();
+        if (!url.pathname.endsWith('/stream')) {
+          url.pathname = url.pathname.replace(/\/$/, '') + '/stream';
+        }
+        return url.pathname + url.search; // 상대경로로 반환
       }
-    } catch {}
-    return u;
+      const m = url.pathname.match(/^\/files\/(\d+)\/content$/);
+      if (m) {
+        const fileId = m[1];
+        return `/api/files/content/${fileId}/stream`;
+      }
+      return u;
+    } catch {
+      return u;
+    }
   };
 
   const fetchUrl = toStreamUrl(imgUrl);
-  const res = await fetch(fetchUrl, {
+  const absFetchUrl = fetchUrl.startsWith('http') ? fetchUrl : toApi(fetchUrl);
+
+  // 원본 이미지 가져오기(반드시 백엔드 오리진으로)
+  const res = await fetch(absFetchUrl, {
     headers: fetchUrl.startsWith('/api/') && token ? { Authorization: `Bearer ${token}` } : {},
     credentials: 'include',
   });
@@ -146,16 +176,24 @@ export async function searchDesignImageByBlob(imgUrl) {
   const form = new FormData();
   form.append('file', blob, 'drawing.png');
 
-  // 실제 백엔드 매핑
-  const r = await fetch('/api/ai/search/design/image', {
+  // 절대 오리진으로 업로드
+  const r = await fetch(toApi('/api/ai/search/design/image'), {
     method: 'POST',
     body: form,
     headers: token ? { Authorization: `Bearer ${token}` } : {},
     credentials: 'include',
   });
-  if (!r.ok) throw new Error(`search api failed: ${r.status}`);
-  return r.json();
+
+  const txt = await r.text();
+  if (!r.ok) throw new Error(`search api failed: ${r.status} ${txt.slice(0,200)}`);
+
+  try {
+    return JSON.parse(txt);
+  } catch {
+    throw new Error(`Non-JSON from API (status ${r.status}): ${txt.slice(0,200)}`);
+  }
 }
+
 
 
 
