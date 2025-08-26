@@ -72,29 +72,39 @@ function normalizeToApiContent(u) {
   }
 }
 // 시연용 유사특허 결과
-const MOCK_SIMILAR_RESULTS = [
+export const MOCK_SIMILAR_RESULTS = [
   {
-    applicationNumber: "1020120043476",   // ✅ 기존 application_number → applicationNumber
-    inventionTitle: "수술용 로봇",       // ✅ title → inventionTitle
-    applicantName: "주식회사 고영테크놀러지", // ✅ 출원인 (예시)
+    title: "수술용 로봇",
+    application_number: "1020120043476",
+    similarity: 0.87,
+    image_url: "http://plus.kipris.or.kr/kiprisplusws/fileToss.jsp?arg=ed43a0609e94d6e22d01c5c32ba711cf9118776b53ad305f8d058a9ca0fd3cb61e7490f1d957bcdf265297316ab471bad4e20946e715ea9a0777d3a4fce530419f0c8ed50381c45c"
+  },
+  {
+    title: "수술 로봇의 절삭 경로 플래닝 장치 및 그 방법",
+    application_number: "1020220121028",
     similarity: 0.92,
-    drawing: "https://placehold.co/400x300?text=로봇1" // ✅ image_url → drawing
+    image_url: "http://plus.kipris.or.kr/kiprisplusws/fileToss.jsp?arg=ed43a0609e94d6e22d01c5c32ba711cfafcbc342afaea4d5870ccdf59b826823313ce68f4420ea243bfe1a59aa3a63cf317575ca5d3b0c44d3c81eaae44e69e1a0b0f47d5efaef8f"
   },
   {
-    applicationNumber: "1020220121028",
-    inventionTitle: "절삭 경로 플래닝 장치",
-    applicantName: "큐렉소 주식회사",
-    similarity: 0.85,
-    drawing: "https://placehold.co/400x300?text=로봇2"
+    title: "전계 인가 장치",
+    application_number: "1020200171573",
+    similarity: 0.74,
+    image_url: "http://plus.kipris.or.kr/kiprisplusws/fileToss.jsp?arg=ed43a0609e94d6e22d01c5c32ba711cfc55451d21dba040280978512582e54ce45afaa9940ea5aff4885a5d51a97b17e8f63d5fb0b66d97e88dcb00b47dc2fcbf2f9b79e2eed4430"
   },
   {
-    applicationNumber: "1020220082162",
-    inventionTitle: "전계 인가 장치",
-    applicantName: "삼성디스플레이",
-    similarity: 0.77,
-    drawing: "https://placehold.co/400x300?text=로봇3"
+    title: "수술 로봇 시스템 및 그 제어방법",
+    application_number: "1020160089635",
+    similarity: 0.81,
+    image_url: "http://plus.kipris.or.kr/kiprisplusws/fileToss.jsp?arg=ed43a0609e94d6e22d01c5c32ba711cf180e368476a00bc24a2bef232365eb08c1fb7f0b94653d18e8563235341c8ba820ae9f93e8040e277a67dbcd2d51ff3963c94911bdd52f42"
+  },
+  {
+    title: "수술 로봇 시스템",
+    application_number: "1020240170032",
+    similarity: 0.89,
+    image_url: "http://plus.kipris.or.kr/kiprisplusws/fileToss.jsp?arg=ed43a0609e94d6e22d01c5c32ba711cf10add4f4d6d868b31d7afc1cbe6808c324cb9aa7e94b6662c6031a9109bba104d874bbb6b3bada112560a96d6112f8bc8095cb1e0fd01c16"
   }
 ];
+
 
 
 
