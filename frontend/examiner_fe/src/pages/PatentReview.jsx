@@ -35,6 +35,26 @@ const safeUUID = () => {
     return `id-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
   }
 };
+// /files/{id}/content ↔ /api/files/{id}/content 정규화
+function normalizeToApiContent(u) {
+  try {
+    const abs = new URL(u, window.location.origin);
+    const p = abs.pathname.replace(/\/+$/, '');
+    let m = p.match(/^\/api\/files\/(\d+)\/content$/);
+    if (m) return `/api/files/${m[1]}/content`;
+    m = p.match(/^\/files\/(\d+)\/content$/);
+    if (m) return `/api/files/${m[1]}/content`;
+    return u; // 다른 형태면 손대지 않음
+  } catch {
+    // 절대/상대 경로 문자열일 수 있으니 마지막 시도
+    let m = String(u).match(/^\/api\/files\/(\d+)\/content$/);
+    if (m) return `/api/files/${m[1]}/content`;
+    m = String(u).match(/^\/files\/(\d+)\/content$/);
+    if (m) return `/api/files/${m[1]}/content`;
+    return u;
+  }
+}
+
 
 // 공개 경로(/files) → 실패 시 /api 로 폴백(fetch+토큰)해서 blob URL로 표출
 function SmartImage({ source, className, alt }) {
@@ -367,24 +387,28 @@ export default function PatentReview() {
     fetchReviewData();
   }, [id]);
 
-  // ✅ 첫 번째 2D 도면으로 자동 유사 이미지 분석
+  // ✅ 첨부 이미지 “첫 장”만으로 자동 유사분석
   useEffect(() => {
     (async () => {
       if (!patent) return;
-      if (!drawingSources || drawingSources.length === 0) return;
-      const first = drawingSources[0];
-      const url = resolveToLocalFileUrl(first, patent?.patentId);
-      console.log('[auto-sim] srcLike=', first, 'resolved=', url);
-      const results = await searchDesignImageByBlob(url);
-      if (!url) return;
+
+      // 1) 첨부 이미지 배열에서 첫 장만 사용
+      const firstImg = (attachmentImageUrls && attachmentImageUrls[0]) ? attachmentImageUrls[0] : null;
+
+      // 2) 첨부 이미지가 없다면, 예외적으로 drawingSources 첫 항목을 fallback
+      const src = firstImg || (drawingSources && drawingSources[0]) || null;
+      if (!src) return;
+
+      // 3) /files/{id}/content 또는 /api/files/{id}/content 로만 정규화 (그 외는 그대로)
+      const target = normalizeToApiContent(src);
+      console.log('[auto-sim] srcLike=', src, '→ target=', target);
+
       try {
         setIsSearchingSimilarity(true);
-        const results = await searchDesignImageByBlob(url); // 변경: 파일 전송
+        const results = await searchDesignImageByBlob(target);
         if (results && results.results) {
           setSimilarityResults(results.results);
-          if (results.mock) {
-          console.warn('유사도 결과: MOCK 응답');
-          }
+          if (results.mock) console.warn('유사도 결과: MOCK 응답');
         } else {
           setSimilarityResults([]);
         }
@@ -395,7 +419,9 @@ export default function PatentReview() {
         setIsSearchingSimilarity(false);
       }
     })();
-  }, [patent, drawingSources]);
+    // 첨부 이미지가 준비되면 실행되도록 의존성에 포함
+  }, [patent, attachmentImageUrls, drawingSources]);
+
 
   const sendChatMessage = async (message = inputMessage) => {
     if (!message.trim()) {
