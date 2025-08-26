@@ -595,39 +595,57 @@ export default function PatentReview() {
         return;
       }
 
-      // 유사특허 키워드
-      const similarKeywords = ['유사특허', '유사 특허', 'similar', '유사특허 검색해줘'];
-      const hasSimilarKeyword = similarKeywords.some((keyword) =>
-        message.toLowerCase().includes(keyword.toLowerCase())
-      );
+             // 유사특허 키워드
+       const similarKeywords = ['유사특허', '유사 특허', 'similar', '유사특허 검색해줘'];
+       const hasSimilarKeyword = similarKeywords.some((keyword) =>
+         message.toLowerCase().includes(keyword.toLowerCase())
+       );
 
-      if (hasSimilarKeyword) {
-        setIsSearchingSimilarity(true);
-        setTimeout(() => {
-          const loadingMessage = {
-            id: safeUUID(),
-            type: 'bot',
-            message: '유사 특허를 검색중입니다...',
-            timestamp: new Date(),
-          };
-          setChatMessages((prev) => [...prev, loadingMessage]);
-
+               if (hasSimilarKeyword) {
           setTimeout(() => {
-            const normalized = normalizeSimilarList(MOCK_SIMILAR_RESULTS);
-            setSimilarityResults(normalized);
-            setIsSearchingSimilarity(false);
-            const botMessage = {
+            const loadingMessage = {
               id: safeUUID(),
               type: 'bot',
-              message: `총 ${normalized.length}건의 유사 특허를 찾았습니다.`,
+              message: '유사 특허를 검색중입니다...',
               timestamp: new Date(),
             };
-            setChatMessages((prev) => [...prev, botMessage]);
-            setIsTyping(false);
-          }, 2000);
-        }, 1000);
-        return;
-      }
+            setChatMessages((prev) => [...prev, loadingMessage]);
+
+            setTimeout(() => {
+              const botMessage = {
+                id: safeUUID(),
+                type: 'bot',
+                message: `[유사특허 검색 결과]
+
+총 5건의 유사 특허를 찾았습니다:
+
+1. 수술용 로봇 (출원번호: 1020120043476)
+   - 유사도: 87%
+   - 관련 기술 분야의 기본적인 수술용 로봇 구조
+
+2. 수술 로봇의 절삭 경로 플래닝 장치 및 그 방법 (출원번호: 1020220121028)
+   - 유사도: 92%
+   - 수술 로봇의 경로 계획 및 제어 방법
+
+3. 전계 인가 장치 (출원번호: 1020200171573)
+   - 유사도: 74%
+   - 전기적 제어 장치 관련 기술
+
+4. 수술 로봇 시스템 및 그 제어방법 (출원번호: 1020160089635)
+   - 유사도: 81%
+   - 수술 로봇 시스템의 전체적인 제어 방법
+
+5. 수술 로봇 시스템 (출원번호: 1020240170032)
+   - 유사도: 89%
+   - 최신 수술 로봇 시스템 구조`,
+                timestamp: new Date(),
+              };
+              setChatMessages((prev) => [...prev, botMessage]);
+              setIsTyping(false);
+            }, 3000);
+          }, 1500);
+          return;
+        }
 
       // 챗봇 서버 상태 확인
       const isHealthy = await checkChatbotHealth();
@@ -765,24 +783,52 @@ export default function PatentReview() {
         return;
       }
 
-      // 유사 특허(데모)
-      if (forcedIntent === 'similar_patent') {
-        setIsSearchingSimilarity(true);
-        setTimeout(() => {
-          const normalized = normalizeSimilarList(MOCK_SIMILAR_RESULTS);
-          setSimilarityResults(normalized);
-          setIsSearchingSimilarity(false);
-          const botMessage = {
-            id: safeUUID(),
-            type: 'bot',
-            message: `총 ${normalized.length}건의 유사 특허를 찾았습니다.`,
-            timestamp: new Date(),
-          };
-          setChatMessages((prev) => [...prev, botMessage]);
-          setIsTyping(false);
-        }, 1500);
-        return;
-      }
+                           // 유사 특허(데모)
+        if (forcedIntent === 'similar_patent') {
+          setTimeout(() => {
+            const loadingMessage = {
+              id: safeUUID(),
+              type: 'bot',
+              message: '유사 특허를 검색중입니다...',
+              timestamp: new Date(),
+            };
+            setChatMessages((prev) => [...prev, loadingMessage]);
+
+            setTimeout(() => {
+              const botMessage = {
+                id: safeUUID(),
+                type: 'bot',
+                message: `[유사특허 검색 결과]
+
+총 5건의 유사 특허를 찾았습니다:
+
+1. 수술용 로봇 (출원번호: 1020120043476)
+   - 유사도: 87%
+   - 관련 기술 분야의 기본적인 수술용 로봇 구조
+
+2. 수술 로봇의 절삭 경로 플래닝 장치 및 그 방법 (출원번호: 1020220121028)
+   - 유사도: 92%
+   - 수술 로봇의 경로 계획 및 제어 방법
+
+3. 전계 인가 장치 (출원번호: 1020200171573)
+   - 유사도: 74%
+   - 전기적 제어 장치 관련 기술
+
+4. 수술 로봇 시스템 및 그 제어방법 (출원번호: 1020160089635)
+   - 유사도: 81%
+   - 수술 로봇 시스템의 전체적인 제어 방법
+
+5. 수술 로봇 시스템 (출원번호: 1020240170032)
+   - 유사도: 89%
+   - 최신 수술 로봇 시스템 구조`,
+                timestamp: new Date(),
+              };
+              setChatMessages((prev) => [...prev, botMessage]);
+              setIsTyping(false);
+            }, 3000);
+          }, 1500);
+          return;
+        }
 
       // 실제 챗봇 호출
       const isHealthy = await checkChatbotHealth();
@@ -1461,63 +1507,60 @@ ${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getD
           {/* 유사 특허 분석 */}
           <section className="mb-6 border border-gray-200 p-6 rounded-xl bg-white shadow-sm">
             <h3 className="font-semibold text-xl mb-4 text-gray-800 flex items-center gap-2">
-              <Copy className="w-5 h-5 text-blue-500" /> AI 유사 특허 분석
+              <Copy className="w-5 h-5 text-blue-500" /> 유사 특허 분석
             </h3>
-
+          
             {isSearchingSimilarity ? (
+              // 🔄 로딩 표시
               <div className="w-full flex justify-center items-center py-8">
                 <div className="w-8 h-8 border-4 border-gray-200 border-t-indigo-500 rounded-full animate-spin"></div>
                 <p className="ml-4 text-gray-600">유사 특허를 검색하고 있습니다...</p>
               </div>
-            ) : similarityResults?.length ? (
+            ) : similarityResults.length > 0 ? (
+              // ✅ 검색 결과 카드 뿌리기
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {similarityResults.map((r, i) => (
                   <div
-                    key={r.applicationNumber || `idx-${i}`}
+                    key={r.application_number || `idx-${i}`}
                     className="border border-gray-200 rounded-lg bg-white shadow-sm overflow-hidden hover:shadow-md transition-all"
                   >
                     {/* 대표 이미지 */}
                     <div className="relative h-40 bg-gray-100 flex items-center justify-center">
                       <img
-                        src={r.imageUrl || 'https://placehold.co/400x300/e2e8f0/94a3b8?text=No+Image'}
+                        src={r.image_url || "https://placehold.co/400x300?text=No+Image"}
                         alt={r.title}
                         className="w-full h-full object-contain"
                         onError={(e) => {
                           e.currentTarget.onerror = null;
-                          e.currentTarget.src = 'https://placehold.co/400x300/e2e8f0/94a3b8?text=No+Image';
+                          e.currentTarget.src =
+                            "https://placehold.co/400x300?text=No+Image";
                         }}
                       />
-                      {typeof r.similarity === 'number' && (
+                      {typeof r.similarity === "number" && (
                         <span className="absolute top-2 left-2 bg-indigo-600 text-white text-xs font-semibold px-2 py-0.5 rounded">
                           유사도 {(r.similarity * 100).toFixed(1)}%
                         </span>
                       )}
                     </div>
-
+          
                     {/* 텍스트 정보 */}
                     <div className="p-3">
-                      <h4 className="font-semibold text-gray-800 text-sm truncate">{r.title}</h4>
-                      <p className="text-xs text-gray-600 mt-1">출원번호: {r.applicationNumber || '-'}</p>
-                      <p className="text-xs text-gray-600 mt-1 line-clamp-2">{r.abstract || '요약 정보 없음'}</p>
-
-                      {r.applicationNumber && (
-                        <a
-                          href={`https://plus.kipris.or.kr/kipo-mobile/search/detail.do?applno=${r.applicationNumber}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-block mt-2 text-xs text-indigo-600 hover:underline"
-                        >
-                          특허 상세 보기
-                        </a>
-                      )}
+                      <p className="font-medium text-gray-800 text-sm line-clamp-2">
+                        {r.title}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        출원번호: {r.application_number}
+                      </p>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-gray-600 w-full text-center py-4">AI 분석 결과가 없거나 분석 중입니다.</p>
+              // ❌ 결과 없을 때
+              <p className="text-gray-500 text-sm">검색된 유사 특허가 없습니다.</p>
             )}
           </section>
+
 
           <div className="text-center mt-6">
             <button
