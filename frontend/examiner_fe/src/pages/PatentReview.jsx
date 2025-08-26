@@ -462,6 +462,12 @@ export default function PatentReview() {
         message.toLowerCase().includes(keyword.toLowerCase())
       );
       
+      // 문서 점검 관련 키워드가 포함된 경우 시연용 데이터 반환
+      const documentCheckKeywords = ['문서 점검', '검토', '서류 점검', 'validate', 'check'];
+      const hasDocumentCheckKeyword = documentCheckKeywords.some(keyword => 
+        message.toLowerCase().includes(keyword.toLowerCase())
+      );
+      
       // 보류의견서 반영 여부에 대한 긍정적 답변 감지
       const positiveKeywords = ['네', '응', 'yes', 'ok', '좋아', '그래'];
       const hasPositiveKeyword = positiveKeywords.some(keyword => 
@@ -473,44 +479,96 @@ export default function PatentReview() {
         return;
       }
       
-             if (hasRejectionKeyword) {
-         // 1-2초 후에 로딩 메시지 표시
-         setTimeout(() => {
-           const loadingMessage = {
-             id: safeUUID(),
-             type: 'bot',
-             message: '거절사유 유무를 판단중입니다...',
-             timestamp: new Date()
-           };
-           setChatMessages(prev => [...prev, loadingMessage]);
-           
-           // 10초 후에 결과 표시
-           setTimeout(() => {
-             const botMessage = {
-               id: safeUUID(),
-               type: 'bot',
-               message: DEMO_REJECTION_RESULT,
-               timestamp: new Date()
-             };
-             setChatMessages(prev => [...prev, botMessage]);
-             
-             // 보류의견서 반영 여부 묻기
-             setTimeout(() => {
-               const applyMessage = {
-                 id: safeUUID(),
-                 type: 'bot',
-                 message: '보류의견서에 반영하시겠습니까? (네/아니오)',
-                 timestamp: new Date()
-               };
-               setChatMessages(prev => [...prev, applyMessage]);
-               setShowApplyToOpinion(true);
-             }, 500);
-             
-             setIsTyping(false);
-           }, 10000); // 10초 후 응답
-         }, 1500); // 1.5초 후 로딩 메시지
-         return;
-       }
+      if (hasRejectionKeyword) {
+        // 1-2초 후에 로딩 메시지 표시
+        setTimeout(() => {
+          const loadingMessage = {
+            id: safeUUID(),
+            type: 'bot',
+            message: '거절사유 유무를 판단중입니다',
+            timestamp: new Date(),
+            isTyping: true
+          };
+          setChatMessages(prev => [...prev, loadingMessage]);
+          
+          // 점진적으로 점 추가
+          setTimeout(() => {
+            setChatMessages(prev => prev.map(msg => 
+              msg.id === loadingMessage.id 
+                ? { ...msg, message: '거절사유 유무를 판단중입니다.' }
+                : msg
+            ));
+          }, 500);
+          
+          setTimeout(() => {
+            setChatMessages(prev => prev.map(msg => 
+              msg.id === loadingMessage.id 
+                ? { ...msg, message: '거절사유 유무를 판단중입니다..' }
+                : msg
+            ));
+          }, 1000);
+          
+          setTimeout(() => {
+            setChatMessages(prev => prev.map(msg => 
+              msg.id === loadingMessage.id 
+                ? { ...msg, message: '거절사유 유무를 판단중입니다...' }
+                : msg
+            ));
+          }, 1500);
+          
+          // 10초 후에 결과 표시
+          setTimeout(() => {
+            const botMessage = {
+              id: safeUUID(),
+              type: 'bot',
+              message: DEMO_REJECTION_RESULT,
+              timestamp: new Date()
+            };
+            setChatMessages(prev => [...prev, botMessage]);
+            
+            // 보류의견서 반영 여부 묻기
+            setTimeout(() => {
+              const applyMessage = {
+                id: safeUUID(),
+                type: 'bot',
+                message: '보류의견서에 반영하시겠습니까? (네/아니오)',
+                timestamp: new Date()
+              };
+              setChatMessages(prev => [...prev, applyMessage]);
+              setShowApplyToOpinion(true);
+            }, 500);
+            
+            setIsTyping(false);
+          }, 10000); // 10초 후 응답
+        }, 1500); // 1.5초 후 로딩 메시지
+        return;
+      }
+      
+      if (hasDocumentCheckKeyword) {
+        // 1-2초 후에 로딩 메시지 표시
+        setTimeout(() => {
+          const loadingMessage = {
+            id: safeUUID(),
+            type: 'bot',
+            message: '문서 점검을 진행중입니다...',
+            timestamp: new Date()
+          };
+          setChatMessages(prev => [...prev, loadingMessage]);
+          
+          // 3초 후에 결과 표시
+          setTimeout(() => {
+            const botMessage = {
+              id: safeUUID(),
+              type: 'bot',
+              message: '형식/문맥 오류는 검출되지 않았습니다.',
+              timestamp: new Date()
+            };
+            setChatMessages(prev => [...prev, botMessage]);
+            setIsTyping(false);
+          }, 3000); // 3초 후 응답
+        }, 1500); // 1.5초 후 로딩 메시지
+        return;
+      }
 
       // 챗봇 서버 상태 확인
       const isHealthy = await checkChatbotHealth();
@@ -560,46 +618,99 @@ export default function PatentReview() {
     setChatMessages(prev => [...prev, newUserMessage]);
     setIsTyping(true);
 
-    try {
-             // 거절사유판단인 경우 시연용 데이터 반환
-       if (forcedIntent === 'rejection_draft') {
-         // 1-2초 후에 로딩 메시지 표시
-         setTimeout(() => {
-           const loadingMessage = {
-             id: safeUUID(),
-             type: 'bot',
-             message: '거절사유 유무를 판단중입니다...',
-             timestamp: new Date()
-           };
-           setChatMessages(prev => [...prev, loadingMessage]);
-           
-           // 10초 후에 결과 표시
-           setTimeout(() => {
-             const botMessage = {
-               id: safeUUID(),
-               type: 'bot',
-               message: DEMO_REJECTION_RESULT,
-               timestamp: new Date()
-             };
-             setChatMessages(prev => [...prev, botMessage]);
-             
-             // 보류의견서 반영 여부 묻기
-             setTimeout(() => {
-               const applyMessage = {
-                 id: safeUUID(),
-                 type: 'bot',
-                 message: '보류의견서에 반영하시겠습니까? (네/아니오)',
-                 timestamp: new Date()
-               };
-               setChatMessages(prev => [...prev, applyMessage]);
-               setShowApplyToOpinion(true);
-             }, 500);
-             
-             setIsTyping(false);
-           }, 10000); // 10초 후 응답
-         }, 1500); // 1.5초 후 로딩 메시지
-         return;
-       }
+         try {
+              // 거절사유판단인 경우 시연용 데이터 반환
+        if (forcedIntent === 'rejection_draft') {
+          // 1-2초 후에 로딩 메시지 표시
+          setTimeout(() => {
+            const loadingMessage = {
+              id: safeUUID(),
+              type: 'bot',
+              message: '거절사유 유무를 판단중입니다',
+              timestamp: new Date(),
+              isTyping: true
+            };
+            setChatMessages(prev => [...prev, loadingMessage]);
+            
+            // 점진적으로 점 추가
+            setTimeout(() => {
+              setChatMessages(prev => prev.map(msg => 
+                msg.id === loadingMessage.id 
+                  ? { ...msg, message: '거절사유 유무를 판단중입니다.' }
+                  : msg
+              ));
+            }, 500);
+            
+            setTimeout(() => {
+              setChatMessages(prev => prev.map(msg => 
+                msg.id === loadingMessage.id 
+                  ? { ...msg, message: '거절사유 유무를 판단중입니다..' }
+                  : msg
+              ));
+            }, 1000);
+            
+            setTimeout(() => {
+              setChatMessages(prev => prev.map(msg => 
+                msg.id === loadingMessage.id 
+                  ? { ...msg, message: '거절사유 유무를 판단중입니다...' }
+                  : msg
+              ));
+            }, 1500);
+            
+            // 10초 후에 결과 표시
+            setTimeout(() => {
+              const botMessage = {
+                id: safeUUID(),
+                type: 'bot',
+                message: DEMO_REJECTION_RESULT,
+                timestamp: new Date()
+              };
+              setChatMessages(prev => [...prev, botMessage]);
+              
+              // 보류의견서 반영 여부 묻기
+              setTimeout(() => {
+                const applyMessage = {
+                  id: safeUUID(),
+                  type: 'bot',
+                  message: '보류의견서에 반영하시겠습니까? (네/아니오)',
+                  timestamp: new Date()
+                };
+                setChatMessages(prev => [...prev, applyMessage]);
+                setShowApplyToOpinion(true);
+              }, 500);
+              
+              setIsTyping(false);
+            }, 10000); // 10초 후 응답
+          }, 1500); // 1.5초 후 로딩 메시지
+          return;
+        }
+        
+        // 문서 점검인 경우 시연용 데이터 반환
+        if (forcedIntent === 'validate_doc') {
+          // 1-2초 후에 로딩 메시지 표시
+          setTimeout(() => {
+            const loadingMessage = {
+              id: safeUUID(),
+              type: 'bot',
+              message: '문서 점검을 진행중입니다...',
+              timestamp: new Date()
+            };
+            setChatMessages(prev => [...prev, loadingMessage]);
+            
+            // 3초 후에 결과 표시
+            setTimeout(() => {
+              const botMessage = {
+                id: safeUUID(),
+                type: 'bot',
+                message: '형식/문맥 오류는 검출되지 않았습니다.',
+                timestamp: new Date()
+              };
+              setChatMessages(prev => [...prev, botMessage]);
+              setIsTyping(false);
+            }, 3000); // 3초 후 응답
+          }, 1500); // 1.5초 후 로딩 메시지
+          return;
+        }
 
       // 챗봇 서버 상태 확인
       const isHealthy = await checkChatbotHealth();
