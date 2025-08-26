@@ -38,12 +38,23 @@ public class FileService {
             attachment.setUploaderId(uploaderId);
             attachment.setFileName(file.getOriginalFilename());
             attachment.setFileUrl(path);
-            attachment.setFileType(determineFileType(file.getOriginalFilename()));
+            FileType type = determineFileType(file.getOriginalFilename());
+            attachment.setFileType(type);
             attachment.setUpdatedAt(LocalDateTime.now());
 
             Patent patent = patentRepository.findById(patentId)
                     .orElseThrow(() -> new IllegalArgumentException("Patent not found"));
             attachment.setPatent(patent);
+
+            if (type == FileType.GLB) {
+                fileRepository.findTopByPatent_PatentIdAndFileType(patentId, FileType.GLB)
+                        .ifPresent(existing -> {
+                            try {
+                                FileUtil.deleteFile(existing.getFileUrl());
+                            } catch (IOException ignored) {}
+                            fileRepository.delete(existing);
+                        });
+            }
 
             fileRepository.save(attachment);
             return toResponse(attachment);
@@ -85,6 +96,42 @@ public class FileService {
         }
         fileRepository.delete(attachment);
         return true;
+    }
+
+    /**
+     * Loads the binary content for the given attachment id. Returns {@code null}
+     * when the attachment does not exist.
+     */
+    public FileData loadContent(Long id) {
+        FileAttachment attachment = fileRepository.findById(id).orElse(null);
+        if (attachment == null) {
+            return null;
+        }
+        try {
+            byte[] data = FileUtil.downloadFile(attachment.getFileUrl());
+            return new FileData(attachment, data);
+        } catch (IOException e) {
+            throw new S3UploadException("Could not load file: " + e.getMessage(), e);
+        }
+    }
+
+    /** Container for an attachment and its binary bytes. */
+    public static class FileData {
+        private final FileAttachment attachment;
+        private final byte[] bytes;
+
+        public FileData(FileAttachment attachment, byte[] bytes) {
+            this.attachment = attachment;
+            this.bytes = bytes;
+        }
+
+        public FileAttachment getAttachment() {
+            return attachment;
+        }
+
+        public byte[] getBytes() {
+            return bytes;
+        }
     }
 
     private FileResponse toResponse(FileAttachment attachment) {

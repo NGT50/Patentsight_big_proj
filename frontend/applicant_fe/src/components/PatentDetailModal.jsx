@@ -2,31 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { getImageUrlsByIds, getNonImageFilesByIds } from '../api/files';
-
-function ModelViewer3D({ src }) {
-  useEffect(() => {
-    if (!window.customElements || !window.customElements.get('model-viewer')) {
-      const script = document.createElement('script');
-      script.type = 'module';
-      script.src = 'https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js';
-      document.head.appendChild(script);
-    }
-  }, []);
-  return (
-    <div style={{ width: '100%', height: '200px', backgroundColor: '#f3f4f6', borderRadius: '8px', overflow: 'hidden' }}>
-      {/* @ts-ignore */}
-      <model-viewer
-        style={{ width: '100%', height: '100%' }}
-        src={src}
-        camera-controls
-        auto-rotate
-        exposure="1.0"
-        shadow-intensity="1"
-        ar
-      />
-    </div>
-  );
-}
+import ThreeDModelViewer from './ThreeDModelViewer';
 
 const PatentDetailModal = ({ patent, onClose }) => {
   const [images, setImages] = useState([]);
@@ -98,31 +74,27 @@ const PatentDetailModal = ({ patent, onClose }) => {
           <strong>요약:</strong> {patent.summary}
         </p>
         <h3 style={{ marginTop: '16px' }}>도면에 대한 설명</h3>
-        {(images.length > 0 || glbUrl) && (
+        {images.length > 0 && (
+          <div style={{ marginBottom: '16px', marginTop: '8px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+            {images.map((src, idx) => (
+              <img
+                key={idx}
+                src={src}
+                alt={`도면 ${idx + 1}`}
+                style={{
+                  width: '100px',
+                  height: '100px',
+                  objectFit: 'contain',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '4px',
+                }}
+              />
+            ))}
+          </div>
+        )}
+        {glbUrl && (
           <div style={{ marginBottom: '16px' }}>
-            {images.length > 0 && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '8px' }}>
-                {images.map((src, idx) => (
-                  <img
-                    key={idx}
-                    src={src}
-                    alt={`도면 ${idx + 1}`}
-                    style={{
-                      width: '100px',
-                      height: '100px',
-                      objectFit: 'contain',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '4px',
-                    }}
-                  />
-                ))}
-              </div>
-            )}
-            {glbUrl && (
-              <div style={{ marginTop: '16px' }}>
-                <ModelViewer3D src={glbUrl} />
-              </div>
-            )}
+            <ThreeDModelViewer src={glbUrl} />
           </div>
         )}
         <p>{patent.drawingDescription || 'N/A'}</p>

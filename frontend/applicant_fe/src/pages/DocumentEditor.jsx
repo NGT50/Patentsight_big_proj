@@ -1,14 +1,34 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { submitPatent, getPatentDetail, updateDocument, validatePatentDocument, generateFullDraft, generate3DModel } from '../api/patents';
+import {
+  submitPatent,
+  getPatentDetail,
+  updateDocument,
+  validatePatentDocument,
+  generateFullDraft,
+  generate3DModel,
+} from '../api/patents';
 import { uploadFile } from '../api/files';
-import { 
-  FileText, Save, Download, Send, Bot, Box, CheckCircle, AlertCircle, X,
-  Plus, Trash2, Eye, Edit3, AlertTriangle
+import {
+  FileText,
+  Save,
+  Download,
+  Send,
+  Bot,
+  Box,
+  CheckCircle,
+  AlertCircle,
+  X,
+  Plus,
+  Trash2,
+  Eye,
+  Edit3,
+  AlertTriangle,
 } from 'lucide-react';
 import GenerateDraftModal from '../pages/GenerateDraftModal';
 import Button from '../components/Button';
+import ThreeDModelViewer from '../components/ThreeDModelViewer';
 import { initialDocumentState } from '../utils/documentState';
 
 
@@ -23,6 +43,7 @@ const DocumentEditor = () => {
   const queryClient = useQueryClient();
   const location = useLocation();
   const [drawingFiles, setDrawingFiles] = useState([]);
+  const [modelFile, setModelFile] = useState(null);
   const [selectedDrawingId, setSelectedDrawingId] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState(null);
@@ -30,8 +51,9 @@ const DocumentEditor = () => {
   const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
   const isDataLoadedFromServerRef = useRef(false);
 
-  const imageFiles = drawingFiles.filter(f => !f.fileUrl?.toLowerCase().endsWith('.glb'));
-  const selectedImageIndex = imageFiles.findIndex(f => f.fileId === selectedDrawingId);
+  const selectedImageIndex = drawingFiles.findIndex(
+    (f) => f.fileId === selectedDrawingId,
+  );
 
   // --- 데이터 로딩 (React Query) ---
   const { data, isLoading, isError } = useQuery({
@@ -177,14 +199,21 @@ const DocumentEditor = () => {
   };
 
   const handleGenerate3D = async () => {
-    const target = drawingFiles.find(f => f.fileId === selectedDrawingId && !f.fileUrl?.toLowerCase().endsWith('.glb'));
+    if (modelFile) {
+      alert('이미 3D 모델이 존재합니다.');
+      return;
+    }
+    const target = drawingFiles.find((f) => f.fileId === selectedDrawingId);
     if (!target) {
       alert('3D로 변환할 도면을 선택해주세요.');
       return;
     }
     try {
-      const { fileId, fileUrl } = await generate3DModel({ patentId, imageId: target.fileId });
-      setDrawingFiles(prev => [...prev, { fileId, fileUrl, fileName: 'model.glb' }]);
+      const { fileId, fileUrl } = await generate3DModel({
+        patentId,
+        imageId: target.fileId,
+      });
+      setModelFile({ fileId, fileUrl, fileName: 'model.glb' });
       alert('3D 도면 생성이 완료되었습니다.');
     } catch (err) {
       console.error('3D 변환 실패:', err);
@@ -321,9 +350,9 @@ const DocumentEditor = () => {
                 <div ref={el => fieldRefs.current['drawings'] = el} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                   <div className="flex items-center justify-between mb-3">
                     <label className="block text-lg font-semibold text-gray-800">도면 업로드</label>
-                    {imageFiles.length > 0 && (
+                    {drawingFiles.length > 0 && (
                       <span className="text-xs text-gray-500">
-                        선택된 도면: {selectedImageIndex >= 0 ? selectedImageIndex + 1 : '-'} / {imageFiles.length}
+                        선택된 도면: {selectedImageIndex >= 0 ? selectedImageIndex + 1 : '-'} / {drawingFiles.length}
                       </span>
                     )}
                   </div>
@@ -332,27 +361,32 @@ const DocumentEditor = () => {
                   {uploadError && <p className="text-sm text-red-500 mt-2">{uploadError}</p>}
                   <div className="grid grid-cols-3 gap-4 mt-4">
                     {drawingFiles.map((f, index) => {
-                      const isGlb = f.fileUrl?.toLowerCase().endsWith('.glb');
                       const isSelected = f.fileId === selectedDrawingId;
                       return (
                         <div
                           key={f.fileId || index}
-                          onClick={() => !isGlb && setSelectedDrawingId(f.fileId)}
-                          className={`relative border rounded-lg overflow-hidden flex items-center justify-center p-2 ${!isGlb ? 'cursor-pointer' : ''} ${isSelected ? 'ring-2 ring-indigo-500' : ''}`}
+                          onClick={() => setSelectedDrawingId(f.fileId)}
+                          className={`relative border rounded-lg overflow-hidden flex items-center justify-center p-2 cursor-pointer ${isSelected ? 'ring-2 ring-indigo-500' : ''}`}
                         >
-                          {isGlb ? (
-                            <a href={f.fileUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">3D 모델 다운로드</a>
-                          ) : (
-                            <>
-                              <img src={f.fileUrl} alt={`도면 미리보기 ${index + 1}`} className="w-full h-auto object-cover" />
-                              {isSelected && (
-                                <span className="absolute top-1 right-1 text-[10px] px-1.5 py-0.5 bg-indigo-600 text-white rounded">선택됨</span>
-                              )}
-                            </>
+                          <img
+                            src={f.fileUrl}
+                            alt={`도면 미리보기 ${index + 1}`}
+                            className="w-full h-auto object-cover"
+                          />
+                          {isSelected && (
+                            <span className="absolute top-1 right-1 text-[10px] px-1.5 py-0.5 bg-indigo-600 text-white rounded">선택됨</span>
                           )}
                         </div>
                       );
                     })}
+                  </div>
+                  <div className="mt-6">
+                    <label className="block text-lg font-semibold text-gray-800 mb-2">3D 모델</label>
+                    {modelFile ? (
+                      <ThreeDModelViewer src={modelFile.fileUrl} />
+                    ) : (
+                      <p className="text-sm text-gray-500">생성된 3D 모델이 없습니다.</p>
+                    )}
                   </div>
                 </div>
               )}
