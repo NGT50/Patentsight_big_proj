@@ -10,7 +10,7 @@ import operator
 from langchain_core.tools import tool
 
 
-client = openai.OpenAI(api_key = "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")
+client = openai.OpenAI(api_key = "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")
 # TypedDict를 사용하여 에이전트의 '상태' 또는 '기억'의 구조를 정의합니다.
 class AgentState(TypedDict):
     # 'messages' 키에는 대화 기록이 리스트 형태로 저장됩니다.
@@ -268,6 +268,26 @@ def generate_full_draft_from_title(title: str) -> Dict:
 
 # @tool 데코레이터를 붙여 이 함수가 AI 에이전트가 사용할 수 있는 '도구'임을 명시합니다.
 @tool
+def specific_section_validation_tool(patent_document: dict, claim_index: int) -> str:
+    """
+    특허 문서의 특정 청구항 하나의 문제점(문맥 오류, 용어 불일치, 논리적 비약 등)을 심층적으로 분석하고 설명합니다.
+    사용자가 '청구항 1번 검토해줘', '3번 청구항에 무슨 문제 있어?' 와 같이 특정 청구항을 지목하여 분석이나 오류 확인을 요청할 때 사용하세요.
+    'claim_index'는 분석할 청구항의 번호입니다. (예: 1, 2, 3)
+    """
+    print(f"--- 도구 실행: specific_section_validation_tool (청구항 인덱스: {claim_index}) ---")
+    try:
+        # claim_index는 1부터 시작하므로, 리스트 인덱스를 위해 1을 빼줍니다.
+        claim_text = patent_document['claims'][claim_index - 1]
+    except (IndexError, KeyError, TypeError):
+        return f"오류: {claim_index}번 청구항을 문서에서 찾을 수 없습니다. 문서에 청구항이 올바르게 포함되어 있는지 확인해주세요."
+    
+    if not claim_text or not claim_text.strip():
+        return f"{claim_index}번 청구항의 내용이 비어있습니다."
+
+    # 기존에 구현된 GPT 기반 문맥 오류 분석 함수를 재사용합니다.
+    return detect_contextual_errors_with_gpt(claim_text)
+
+@tool
 def document_validation_tool(patent_document: dict) -> dict:
     """
     현재 대화 상태에 있는 특허 문서 전체의 문제점을 종합적으로 검증합니다. 
@@ -311,4 +331,4 @@ def text_refinement_tool(patent_document: dict, claim_index: int, instruction: s
     )
     return response.choices[0].message.content.strip()
 
-tools = [document_validation_tool, text_refinement_tool]
+tools = [document_validation_tool, text_refinement_tool, specific_section_validation_tool]

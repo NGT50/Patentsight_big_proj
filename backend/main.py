@@ -37,7 +37,8 @@ class ChatSessionCreate(BaseModel):
     patentId: str
 
 class ChatMessageCreate(BaseModel):
-    content: str
+    message: str
+    document: Optional[PatentCreateSchema] = None
 
 # --- FastAPI 앱 생성 및 설정 ---
 app = FastAPI()
@@ -53,9 +54,9 @@ chat_sessions = {}
 
 # --- LangGraph AI 에이전트 설정 ---
 # [중요] OpenAI API 키 설정
-os.environ["OPENAI_API_KEY"] = "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" # 실제 키로 교체해주세요
+os.environ["OPENAI_API_KEY"] = "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" # 실제 키로 교체해주세요
 
-llm = ChatOpenAI(model="gpt-4.1")
+llm = ChatOpenAI(model="gpt-4o")
 
 # [수정 2] create_tool_executor 함수 대신 ToolExecutor 클래스를 사용합니다.
 tool_executor = ToolExecutor(tools)
@@ -78,21 +79,15 @@ chain = prompt | llm.bind_tools(tools)
 
 def agent_node(state: AgentState):
     print("\n--- [Agent Node START] ---")
-    print("Agent가 받은 메시지 기록:")
-    # 현재까지의 대화 기록을 모두 출력
-    for msg in state["messages"]:
-        print(f"- Type: {type(msg).__name__}, Content: {msg.content}")
-        if hasattr(msg, 'tool_calls') and msg.tool_calls:
-            print(f"  Tool Calls: {msg.tool_calls}")
-
-    # LLM을 호출하여 다음 행동을 결정
+    print(f"Agent가 받은 메시지 기록 (개수: {len(state['messages'])})")
+    
     response = chain.invoke({"messages": state["messages"]})
     
     print("\nAgent의 결정 (LLM 출력 객체):")
-    # LLM이 어떤 결정을 내렸는지 객체 전체를 자세히 출력
     print(response)
     print("--- [Agent Node END] ---\n")
     return {"messages": [response]}
+
 
 # [수정 3] tool_node 로직을 ToolExecutor에 맞게 훨씬 간결하게 수정합니다.
 def tool_node(state: AgentState):
@@ -151,13 +146,31 @@ def should_continue(state: AgentState):
     else:
         return "continue"
 
+from langgraph.graph import ToolNode
+tool_node = ToolNode(tools)
+
+# 2. Workflow를 정의합니다.
 workflow = StateGraph(AgentState)
+
+# 3. 노드를 추가합니다. 직접 만든 'action' 노드 대신 표준 'tool_node'를 'tools'라는 이름으로 추가합니다.
 workflow.add_node("agent", agent_node)
-workflow.add_node("action", tool_node)
+workflow.add_node("tools", tool_node)
+
+# 4. 진입점과 흐름을 설정합니다.
 workflow.set_entry_point("agent")
-workflow.add_conditional_edges("agent", should_continue, {"continue": "action", "end": END})
-workflow.add_edge("action", "agent")
+workflow.add_conditional_edges(
+    "agent",
+    should_continue,
+    {
+        "continue": "tools",  # agent가 도구 사용을 결정하면 'tools' 노드로 갑니다.
+        "end": END
+    }
+)
+workflow.add_edge("tools", "agent") # 도구 사용이 끝나면 다시 'agent'로 돌아가서 결과를 요약합니다.
+
+# 5. 그래프를 컴파일합니다.
 app_graph = workflow.compile()
+
 
 # --- 기존 API 엔드포인트들 (이하 코드는 변경 없음) ---
 
@@ -262,6 +275,9 @@ async def post_chat_message(session_id: str, message: ChatMessageCreate):
         raise HTTPException(status_code=404, detail="채팅 세션을 찾을 수 없습니다.")
     
     current_state = chat_sessions[session_id]
+    if message.document:
+        print(f"--- 세션 '{session_id}'의 문서를 최신 버전으로 업데이트합니다. ---")
+        current_state['patent_document'] = message.document.dict()
     current_state['messages'].append(HumanMessage(content=message.content))
     
     print(f"\n{'='*20} 새로운 요청 시작 {'='*20}")
