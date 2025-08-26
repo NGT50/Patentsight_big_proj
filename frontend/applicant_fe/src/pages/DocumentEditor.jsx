@@ -9,7 +9,7 @@ import {
   generateFullDraft,
   generate3DModel,
 } from '../api/patents';
-import { uploadFile } from '../api/files';
+import { uploadFile, getFileDetail } from '../api/files';
 import {
   FileText,
   Save,
@@ -93,6 +93,36 @@ const DocumentEditor = () => {
     isDataLoadedFromServerRef.current = true;
   }
   }, [data, location.state, patentId]);
+
+  useEffect(() => {
+    if (data?.attachmentIds?.length) {
+      (async () => {
+        try {
+          const metas = await Promise.all(
+            data.attachmentIds.map((id) => getFileDetail(id))
+          );
+          const images = metas
+            .filter((m) => m.fileType === 'IMAGE')
+            .map(({ fileId, fileUrl, fileName }) => ({ fileId, fileUrl, fileName }));
+          setDrawingFiles(images);
+          if (images.length > 0) {
+            setSelectedDrawingId(images[0].fileId);
+          }
+          const glbMeta = metas.find((m) => m.fileType === 'GLB');
+          setModelFile(
+            glbMeta
+              ? { fileId: glbMeta.fileId, fileUrl: glbMeta.fileUrl, fileName: glbMeta.fileName }
+              : null
+          );
+        } catch (err) {
+          console.error('첨부 파일 로딩 실패:', err);
+        }
+      })();
+    } else {
+      setDrawingFiles([]);
+      setModelFile(null);
+    }
+  }, [data]);
 
   useEffect(() => {
     isDataLoadedFromServerRef.current = false;
@@ -199,10 +229,6 @@ const DocumentEditor = () => {
   };
 
   const handleGenerate3D = async () => {
-    if (modelFile) {
-      alert('이미 3D 모델이 존재합니다.');
-      return;
-    }
     const target = drawingFiles.find((f) => f.fileId === selectedDrawingId);
     if (!target) {
       alert('3D로 변환할 도면을 선택해주세요.');
@@ -383,7 +409,7 @@ const DocumentEditor = () => {
                   <div className="mt-6">
                     <label className="block text-lg font-semibold text-gray-800 mb-2">3D 모델</label>
                     {modelFile ? (
-                      <ThreeDModelViewer src={modelFile.fileUrl} />
+                      <ThreeDModelViewer src={`/api/files/${modelFile.fileId}/content`} />
                     ) : (
                       <p className="text-sm text-gray-500">생성된 3D 모델이 없습니다.</p>
                     )}

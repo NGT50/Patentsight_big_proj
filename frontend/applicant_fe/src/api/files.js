@@ -76,16 +76,15 @@ export const getNonImageFilesByIds = async (fileIds = []) => {
   const metas = await fetchMetas(fileIds);
   return metas
     .filter((m) => !isImageName(m.fileName || ''))
-    .map((m) => {
-      const fallback =
-        m.patentId && m.fileName
-          ? `/api/files/${m.patentId}/${encodeURIComponent(m.fileName)}`
-          : '';
-      const url = toAbsoluteFileUrl(m.fileUrl || m.url || fallback);
-      return url
-        ? { id: m.fileId || m.id, name: m.fileName || m.name || '', url }
-        : null;
-    })
+    .map((m) =>
+      m.fileId
+        ? {
+            id: m.fileId,
+            name: m.fileName || m.name || '',
+            url: `/api/files/${m.fileId}/content`,
+          }
+        : null
+    )
     .filter(Boolean);
 };
 

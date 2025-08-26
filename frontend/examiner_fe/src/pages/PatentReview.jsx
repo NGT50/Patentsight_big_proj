@@ -330,8 +330,12 @@ export default function PatentReview() {
             setAttachmentOtherFiles(others);
 
             // 🔎 첨부 비이미지에서 .glb 찾기 → 3D 도면 자동 표시용
-            const glb = others.find(f => /\.glb($|\?|#)/i.test(f?.name || '') || /\.glb($|\?|#)/i.test(f?.url || ''));
-            setGlbModelUrl(glb ? glb.url : '');
+            const glb = others.find(
+              f =>
+                /\.glb($|\?|#)/i.test(f?.name || '') ||
+                /\.glb($|\?|#)/i.test(f?.url || '')
+            );
+            setGlbModelUrl(glb ? `/api/files/${glb.id}/content` : '');
           } catch (e) {
             console.warn('첨부 로드 실패:', e);
             setAttachmentImageUrls([]);

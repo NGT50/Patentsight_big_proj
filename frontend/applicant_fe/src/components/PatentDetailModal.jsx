@@ -23,7 +23,7 @@ const PatentDetailModal = ({ patent, onClose }) => {
               /\.glb($|\?|#)/i.test(f.name || '') ||
               /\.glb($|\?|#)/i.test(f.url || '')
           );
-          setGlbUrl(glb ? glb.url : '');
+          setGlbUrl(glb ? `/api/files/${glb.id}/content` : '');
         } catch (err) {
           console.error('첨부 파일 로드 실패:', err);
         }
