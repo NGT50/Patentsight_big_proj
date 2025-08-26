@@ -595,39 +595,59 @@ export default function PatentReview() {
         return;
       }
 
-      // 유사특허 키워드
-      const similarKeywords = ['유사특허', '유사 특허', 'similar', '유사특허 검색해줘'];
-      const hasSimilarKeyword = similarKeywords.some((keyword) =>
-        message.toLowerCase().includes(keyword.toLowerCase())
-      );
+             // 유사특허 키워드
+       const similarKeywords = ['유사특허', '유사 특허', 'similar', '유사특허 검색해줘'];
+       const hasSimilarKeyword = similarKeywords.some((keyword) =>
+         message.toLowerCase().includes(keyword.toLowerCase())
+       );
 
-      if (hasSimilarKeyword) {
-        setIsSearchingSimilarity(true);
-        setTimeout(() => {
-          const loadingMessage = {
-            id: safeUUID(),
-            type: 'bot',
-            message: '유사 특허를 검색중입니다...',
-            timestamp: new Date(),
-          };
-          setChatMessages((prev) => [...prev, loadingMessage]);
+       if (hasSimilarKeyword) {
+         setTimeout(() => {
+           const loadingMessage = {
+             id: safeUUID(),
+             type: 'bot',
+             message: '유사 특허를 검색중입니다...',
+             timestamp: new Date(),
+           };
+           setChatMessages((prev) => [...prev, loadingMessage]);
 
-          setTimeout(() => {
-            const normalized = normalizeSimilarList(MOCK_SIMILAR_RESULTS);
-            setSimilarityResults(normalized);
-            setIsSearchingSimilarity(false);
-            const botMessage = {
-              id: safeUUID(),
-              type: 'bot',
-              message: `총 ${normalized.length}건의 유사 특허를 찾았습니다.`,
-              timestamp: new Date(),
-            };
-            setChatMessages((prev) => [...prev, botMessage]);
-            setIsTyping(false);
-          }, 2000);
-        }, 1000);
-        return;
-      }
+           setTimeout(() => {
+             const botMessage = {
+               id: safeUUID(),
+               type: 'bot',
+               message: `[유사특허 검색 결과]
+
+총 5건의 유사 특허를 찾았습니다:
+
+1. 수술용 로봇 (출원번호: 1020120043476)
+   - 유사도: 87%
+   - 관련 기술 분야의 기본적인 수술용 로봇 구조
+
+2. 수술 로봇의 절삭 경로 플래닝 장치 및 그 방법 (출원번호: 1020220121028)
+   - 유사도: 92%
+   - 수술 로봇의 경로 계획 및 제어 방법
+
+3. 전계 인가 장치 (출원번호: 1020200171573)
+   - 유사도: 74%
+   - 전기적 제어 장치 관련 기술
+
+4. 수술 로봇 시스템 및 그 제어방법 (출원번호: 1020160089635)
+   - 유사도: 81%
+   - 수술 로봇 시스템의 전체적인 제어 방법
+
+5. 수술 로봇 시스템 (출원번호: 1020240170032)
+   - 유사도: 89%
+   - 최신 수술 로봇 시스템 구조
+
+이 중에서 1번과 2번 특허가 가장 높은 유사도를 보이며, 특히 수술 로봇의 제어 방식과 관련된 기술적 특징이 유사합니다.`,
+               timestamp: new Date(),
+             };
+             setChatMessages((prev) => [...prev, botMessage]);
+             setIsTyping(false);
+           }, 3000);
+         }, 1500);
+         return;
+       }
 
       // 챗봇 서버 상태 확인
       const isHealthy = await checkChatbotHealth();
@@ -765,24 +785,54 @@ export default function PatentReview() {
         return;
       }
 
-      // 유사 특허(데모)
-      if (forcedIntent === 'similar_patent') {
-        setIsSearchingSimilarity(true);
-        setTimeout(() => {
-          const normalized = normalizeSimilarList(MOCK_SIMILAR_RESULTS);
-          setSimilarityResults(normalized);
-          setIsSearchingSimilarity(false);
-          const botMessage = {
-            id: safeUUID(),
-            type: 'bot',
-            message: `총 ${normalized.length}건의 유사 특허를 찾았습니다.`,
-            timestamp: new Date(),
-          };
-          setChatMessages((prev) => [...prev, botMessage]);
-          setIsTyping(false);
-        }, 1500);
-        return;
-      }
+             // 유사 특허(데모)
+       if (forcedIntent === 'similar_patent') {
+         setTimeout(() => {
+           const loadingMessage = {
+             id: safeUUID(),
+             type: 'bot',
+             message: '유사 특허를 검색중입니다...',
+             timestamp: new Date(),
+           };
+           setChatMessages((prev) => [...prev, loadingMessage]);
+
+           setTimeout(() => {
+             const botMessage = {
+               id: safeUUID(),
+               type: 'bot',
+               message: `[유사특허 검색 결과]
+
+총 5건의 유사 특허를 찾았습니다:
+
+1. 수술용 로봇 (출원번호: 1020120043476)
+   - 유사도: 87%
+   - 관련 기술 분야의 기본적인 수술용 로봇 구조
+
+2. 수술 로봇의 절삭 경로 플래닝 장치 및 그 방법 (출원번호: 1020220121028)
+   - 유사도: 92%
+   - 수술 로봇의 경로 계획 및 제어 방법
+
+3. 전계 인가 장치 (출원번호: 1020200171573)
+   - 유사도: 74%
+   - 전기적 제어 장치 관련 기술
+
+4. 수술 로봇 시스템 및 그 제어방법 (출원번호: 1020160089635)
+   - 유사도: 81%
+   - 수술 로봇 시스템의 전체적인 제어 방법
+
+5. 수술 로봇 시스템 (출원번호: 1020240170032)
+   - 유사도: 89%
+   - 최신 수술 로봇 시스템 구조
+
+이 중에서 1번과 2번 특허가 가장 높은 유사도를 보이며, 특히 수술 로봇의 제어 방식과 관련된 기술적 특징이 유사합니다.`,
+               timestamp: new Date(),
+             };
+             setChatMessages((prev) => [...prev, botMessage]);
+             setIsTyping(false);
+           }, 3000);
+         }, 1500);
+         return;
+       }
 
       // 실제 챗봇 호출
       const isHealthy = await checkChatbotHealth();
