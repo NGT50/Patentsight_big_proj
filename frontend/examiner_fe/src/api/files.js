@@ -53,15 +53,16 @@ export async function getImageUrlsByIds(fileIds = []) {
   const metas = await fetchMetas(fileIds);
   return metas
     .filter((m) => isImageName(m.fileName || ''))
-    .map((m) => {
-      const primary = m.fileUrl || m.url || '';
-      if (primary) return toAbsoluteFileUrl(primary);
-      if (m.patentId && m.fileName) {
-        const enc = encodeURIComponent(m.fileName);
-        return toAbsoluteFileUrl(`/api/files/${m.patentId}/${enc}`);
-      }
-      return '';
-    })
+    // .map((m) => {
+    //   const primary = m.fileUrl || m.url || '';
+    //   if (primary) return toAbsoluteFileUrl(primary);
+    //   if (m.patentId && m.fileName) {
+    //     const enc = encodeURIComponent(m.fileName);
+    //     return toAbsoluteFileUrl(`/api/files/${m.patentId}/${enc}`);
+    //   }
+    //   return '';
+    // })
+    .map((m) => `/api/files/${m.fileId}/content`)
     .filter(Boolean);
 }
 

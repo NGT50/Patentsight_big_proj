@@ -87,23 +87,47 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http,
-                                           JwtAuthenticationConverter jwtAuthenticationConverter) throws Exception {
+    public SecurityFilterChain filterChain(
+            HttpSecurity http,
+            JwtAuthenticationConverter jwtAuthenticationConverter) throws Exception {
+
         http
-            .cors(Customizer.withDefaults()) // ✅ CORS 활성화
+            .cors(Customizer.withDefaults())
             .csrf(csrf -> csrf.disable())
             .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
+                // ✅ 프리플라이트 전부 허용
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+                // ✅ 공개 파일 보기/프록시(이미지 <img> + fetch(blob) 용)
+                .requestMatchers(HttpMethod.GET,
+                    "/api/files/*/content",
+                    "/api/files/*/stream",
+                    "/api/files/*/*",          // /api/files/{patentId}/{fileName}
+                    "/api/files/*/*/stream",   // /api/files/{patentId}/{fileName}/stream
+                    "/files/**",               // 정적 프록시 쓸 경우
+                    "/uploads/**",             // (배포중 로컬 리소스 남아있을 때)
+                    "/favicon.ico",
+                    "/static/**",
+                    "/assets/**"
+                ).permitAll()
+
+                // ✅ 로그인/회원가입 등 공개 API
                 .requestMatchers(
                     "/api/users/login",
                     "/api/users/signup",
                     "/api/users/applicant",
                     "/api/users/examiner",
                     "/api/users/verify-code",
-                    "/h2-console/**"
+                    "/h2-console/**",
+                    "/actuator/health", "/actuator/info"
                 ).permitAll()
+
+                // ✅ 권한 필요 API
                 .requestMatchers(HttpMethod.PATCH, "/api/opinions/**").hasRole("EXAMINER")
+
+                // ⛔ 그 외는 인증 필요 (예: /api/ai/search/** 등)
                 .anyRequest().authenticated()
             )
             .oauth2ResourceServer(oauth -> oauth
@@ -112,5 +136,6 @@ public class SecurityConfig {
 
         return http.build();
     }
+
 }
 
