@@ -120,6 +120,12 @@ function resolveToUrl(srcLike) {
   return null;
 }
 
+// 파일명에서 UUID 프리픽스 제거
+function cleanFileName(name = '') {
+  const decoded = decodeURIComponent(name);
+  return decoded.replace(/^[0-9a-fA-F-]{36}_/, '');
+}
+
 // 3D 뷰어
 function ModelViewer3D({ src }) {
   useEffect(() => {
@@ -987,8 +993,8 @@ ${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getD
                         const active = selectedDrawingIdx === i;
                         const displayName =
                           typeof srcLike === 'string'
-                            ? decodeURIComponent(srcLike.split('/').pop().split('?')[0])
-                            : srcLike.fileName;
+                            ? cleanFileName(srcLike.split('/').pop().split('?')[0])
+                            : cleanFileName(srcLike.fileName);
                         return (
                           <button
                             type="button"
