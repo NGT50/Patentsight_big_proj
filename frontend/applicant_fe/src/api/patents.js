@@ -200,3 +200,17 @@ export const generateFullDraft = async ({ title }) => {
     throw new Error(error.response?.data?.detail || 'AI 초안 생성에 실패했습니다.');
   }
 };
+
+// 3D 모델 생성 API
+export const generate3DModel = async ({ patentId, imageId }) => {
+  try {
+    const res = await axios.post('/api/ai/3d-models', {
+      patentId,
+      imageId: String(imageId),
+    });
+    return res.data;
+  } catch (error) {
+    console.error('3D 모델 생성 실패:', error);
+    throw error;
+  }
+};
