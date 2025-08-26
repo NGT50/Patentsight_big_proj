@@ -34,15 +34,18 @@ const PatentDetailModal = ({ patent, onClose }) => {
 
   useEffect(() => {
     async function loadAttachments() {
-      if (patent.attachments && patent.attachments.length > 0) {
+      const ids = patent.attachmentIds || patent.attachments || [];
+      if (ids.length > 0) {
         try {
           const [imgs, others] = await Promise.all([
-            getImageUrlsByIds(patent.attachments),
-            getNonImageFilesByIds(patent.attachments),
+            getImageUrlsByIds(ids),
+            getNonImageFilesByIds(ids),
           ]);
           setImages(imgs);
           const glb = others.find(
-            (f) => /\.glb($|\?|#)/i.test(f.name || '') || /\.glb($|\?|#)/i.test(f.url || '')
+            (f) =>
+              /\.glb($|\?|#)/i.test(f.name || '') ||
+              /\.glb($|\?|#)/i.test(f.url || '')
           );
           setGlbUrl(glb ? glb.url : '');
         } catch (err) {
