@@ -111,7 +111,12 @@ const DocumentEditor = () => {
           const glbMeta = metas.find((m) => m.fileType === 'GLB');
           setModelFile(
             glbMeta
-              ? { fileId: glbMeta.fileId, fileUrl: glbMeta.fileUrl, fileName: glbMeta.fileName }
+              ? {
+                  fileId: glbMeta.fileId,
+                  // Always stream GLB through backend proxy instead of direct S3 URL
+                  fileUrl: `/api/files/${glbMeta.fileId}/content`,
+                  fileName: glbMeta.fileName,
+                }
               : null
           );
         } catch (err) {
@@ -235,11 +240,12 @@ const DocumentEditor = () => {
       return;
     }
     try {
-      const { fileId, fileUrl } = await generate3DModel({
+      const { fileId } = await generate3DModel({
         patentId,
         imageId: target.fileId,
       });
-      setModelFile({ fileId, fileUrl, fileName: 'model.glb' });
+      // Use backend streaming endpoint for the generated GLB
+      setModelFile({ fileId, fileUrl: `/api/files/${fileId}/content`, fileName: 'model.glb' });
       alert('3D 도면 생성이 완료되었습니다.');
     } catch (err) {
       console.error('3D 변환 실패:', err);
