@@ -20,6 +20,7 @@ import {
 
 // 파일 API (메타 조회 → 안전한 URL 만들기)
 import { getImageUrlsByIds, getNonImageFilesByIds, toAbsoluteFileUrl } from '../api/files';
+import ThreeDModelViewer from '../components/ThreeDModelViewer';
 
 /* ------------------------- 보조 ------------------------- */
 
@@ -102,31 +103,6 @@ function SmartImage({ source, className, alt }) {
   return <img alt={alt} src={resolvedSrc} className={className} onError={handleError} />;
 }
 
-// 간단한 3D 뷰어: model-viewer 사용
-function ModelViewer3D({ src }) {
-  React.useEffect(() => {
-    if (!window.customElements || !window.customElements.get('model-viewer')) {
-      const script = document.createElement('script');
-      script.type = 'module';
-      script.src = 'https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js';
-      document.head.appendChild(script);
-    }
-  }, []);
-  return (
-    <div className="w-full h-72 bg-gray-100 rounded-lg overflow-hidden border border-gray-200 flex items-center justify-center">
-      {/* @ts-ignore */}
-      <model-viewer
-        style={{ width: '100%', height: '100%' }}
-        src={src}
-        camera-controls
-        auto-rotate
-        exposure="1.0"
-        shadow-intensity="1"
-        ar
-      />
-    </div>
-  );
-}
 
 // 도면 URL 파서 (JSON 배열/콤마/개행/단일 URL)
 function extractDrawingUrls(raw) {
@@ -313,7 +289,7 @@ export default function PatentReview() {
                 /\.glb($|\?|#)/i.test(f?.name || '') ||
                 /\.glb($|\?|#)/i.test(f?.url || '')
             );
-            setGlbModelUrl(glb ? `/api/files/${glb.id}/content` : '');
+            setGlbModelUrl(glb ? glb.url : '');
           } catch (e) {
             console.warn('첨부 로드 실패:', e);
             setAttachmentImageUrls([]);
@@ -950,7 +926,7 @@ ${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getD
                   </h4>
                 </div>
                 {glbModelUrl ? (
-                  <ModelViewer3D src={glbModelUrl} />
+                  <ThreeDModelViewer src={glbModelUrl} />
                 ) : (
                   <div className="w-full h-24 bg-gray-50 border border-dashed border-gray-300 rounded-lg flex items-center justify-center text-sm text-gray-500">
                     첨부 파일에서 .glb 파일을 찾지 못했습니다. .glb 파일을 업로드하면 자동으로 표시됩니다.

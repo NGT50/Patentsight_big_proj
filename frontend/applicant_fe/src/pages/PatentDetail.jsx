@@ -41,7 +41,7 @@ const PatentDetail = () => {
                 /\.glb($|\?|#)/i.test(f.url || '')
             );
             // Use backend file-serving route instead of direct S3 URL
-            setGlbUrl(glb ? `/api/files/${glb.id}/content` : '');
+            setGlbUrl(glb ? glb.url : '');
           } catch (err) {
             console.error('첨부 파일 로드 실패:', err);
           }

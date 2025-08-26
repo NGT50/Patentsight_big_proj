@@ -81,7 +81,7 @@ export const getNonImageFilesByIds = async (fileIds = []) => {
         ? {
             id: m.fileId,
             name: m.fileName || m.name || '',
-            url: `/api/files/${m.fileId}/content`,
+            url: toAbsoluteFileUrl(`/api/files/${m.fileId}/content`),
           }
         : null
     )
