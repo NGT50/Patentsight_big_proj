@@ -103,7 +103,7 @@ function App() {
               <Route path="/check/designs" element={<DesignCheckListPage />} />
               <Route path="/patent/:id" element={<PatentDetail />} />
               <Route path="/patent/:id/edit" element={<DocumentEditor />} />
-              <Route path="/submit/:id" element={<FinalSubmitPage />} />
+              <Route path="/patent/:id/submit" element={<FinalSubmitPage />} />
             </Routes>
           </MainContent>
           <Footer />

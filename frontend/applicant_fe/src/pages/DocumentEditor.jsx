@@ -2,16 +2,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  submitPatent,
   getPatentDetail,
   updateDocument,
   validatePatentDocument,
-//   generate3DModel,
 } from '../api/patents';
-import { uploadFile, getFileDetail, toAbsoluteFileUrl } from '../api/files';
+import { getFileDetail, toAbsoluteFileUrl } from '../api/files';
 import {
-  FileText, Save, Send, Bot, Box, CheckCircle, AlertCircle,
-  Plus, Trash2, Eye, Edit3, AlertTriangle, Image
+  FileText, Save, Send, Bot, Box,
+  Plus, Trash2, Eye, Edit3, Image
 } from 'lucide-react';
 
 import GenerateDraftModal from '../pages/GenerateDraftModal';
@@ -26,7 +24,7 @@ const MOCK_3D_MODEL_URL = '/demo_model.glb';
 const mockPatentData = {
   title: "수술용 로봇 암의 회동 구조",
   technicalField: "본 발명은 일반적으로 의료 수술용 로봇 시스템에 관한 기술 분야에 속한다. 보다 구체적으로는, 인체 내 조직을 파지하거나 절단하는 과정에서 수술자가 정밀하고 안정적으로 시술을 수행할 수 있도록 돕는 회동 구조를 갖춘 수술용 로봇 암에 관한 것이다. 본 발명의 기술은 특히 복잡한 기계적 구성에 따른 고장 가능성과 조작 직관성의 저하라는 종래 수술용 로봇 암의 한계를 극복하고, 단순하면서도 정밀한 회동 메커니즘을 제공함으로써 수술 환경의 안전성과 효율성을 향상시키는 것을 그 기술적 특징으로 한다.",
-  backgroundTechnology: "최근 최소 침습 수술(minimally invasive surgery) 및 원격 수술(remote surgery)의 확산에 따라, 정밀한 기구 조작이 가능한 수술용 로봇 암이 다양한 의료 환경에서 활용되고 있다. 그러나 종래의 수술용 로봇 암은 다음과 같은 한계를 지닌다.\n첫째, 구조적 복잡성이다. 종래의 수술용 로봇 암은 복수의 모터, 기어, 링크 장치 등이 중첩된 구조를 채택하고 있어, 조작 및 구동 과정에서의 부품 마모, 오작동 가능성이 높다. 이는 수술의 안정성에 심각한 영향을 미친다.\n둘째, 조작 직관성 부족이다. 종래 구조에서는 다수의 모터가 각각 독립적으로 구동되어야 하므로, 수술자가 원하는 기울기나 회동 동작을 직관적으로 구현하기 어렵다. 이로 인해 숙련된 사용자라도 조작 과정에서 시간 지연이 발생할 수 있다.\n셋째, 유지보수와 경제성 저하이다. 다수의 기계적 연결 요소는 시스템의 무게를 증가시키고, 유지보수 비용을 상승시키는 요인으로 작용한다. 또한, 복잡한 구조는 수술 현장에서의 신뢰성을 떨어뜨리고, 의료 서비스 품질 전반에도 부정적인 영향을 준다.\n따라서 기존 기술은 의료 수술에서 요구되는 높은 신뢰성, 직관성, 그리고 비용 효율성을 충분히 충족하지 못하는 문제를 안고 있다.",
+  backgroundTechnology: "최근 최소 침습 수술(minimally invasive surgery) 및 원격 수술(remote surgery)의 확산에 따라, 정밀한 기구 조작이 가능한 수술용 로봇 암이 다양한 의료 환경에서 활용되고 있다. 그러나 종래의 수술용 로봇 암은 다음과 같은 한계를 지닌다.\n첫째, 구조적 복잡성이다. 종래의 수술용 로봇 암은 복수의 모터, 기어, 링크 장치 등이 중첩된 구조를 채택하고 있어, 조작 및 구동 과정에서의 부품 마모, 오작동 가능성이 높다. 이는 수술의 안정성에 심각한 영향을 미친다.\n둘째, 조작 직관성 부족이다. 종래 구조에서는 다수의 모터가 각각 독립적으로 구동되어야 하므로, 수술자가 원하는 기울기나 회동 동작을 직관적으로 구현하기 어렵다. 이로 인해 숙련된 사용자라도 조작 과정에서 시간 지연이 발생할 수 있다.\n셋째, 유지보수와 경제성 저하이다. 다수의 기계적 연결 요소는 전체 시스템의 무게를 증가시키고, 유지보수 비용을 상승시키는 요인으로 작용한다. 또한, 복잡한 구조는 수술 현장에서의 신뢰성을 떨어뜨리고, 의료 서비스 품질 전반에도 부정적인 영향을 준다.\n따라서 기존 기술은 의료 수술에서 요구되는 높은 신뢰성, 직관성, 그리고 비용 효율성을 충분히 충족하지 못하는 문제를 안고 있다.",
   inventionDetails: {
     problemToSolve: "본 발명은 종래 기술의 문제점을 극복하기 위하여 고안된 것으로, 구체적으로 다음과 같은 과제를 해결하는 것을 목적으로 한다.\n\n종래 기술의 복잡한 기계적 요소에 기인한 고장 가능성을 줄이고,\n수술자가 보다 직관적으로 조작할 수 있는 단순화된 회동 구조를 제공하며,\n수술 과정에서 요구되는 정밀한 제어 성능을 확보함으로써, 수술의 안전성과 효율성을 동시에 향상시키고자 한다.\n또한, 본 발명은 기계적 구조의 단순화와 와이어 기반의 회동 제어 메커니즘을 채택하여, 장치의 내구성을 강화하고 유지보수 비용을 절감할 수 있는 효과를 달성하고자 한다.",
     solution: "상기 과제를 해결하기 위하여 본 발명은 다음과 같은 구성을 채택한다.\n\n시술용 그립퍼와 지지 디스크\n본 발명에 따른 수술용 로봇 암은 시술용 그립퍼를 포함하며, 상기 그립퍼는 하단에서 그립퍼 지지 디스크와 연결된다.\n지지 디스크는 중심바를 매개로 하부 구조와 결합되며, 중심바와 지지 디스크 사이에는 **볼 조인트(ball joint)**가 형성되어 있어, 디스크가 X축 및 Y축 방향으로 자유롭게 회동할 수 있다.\n\n와이어 구동 메커니즘\n지지 디스크의 중심점을 기준으로 대칭적인 위치에 3개의 연결 지점이 형성된다.\n각 지점에는 디스크 와이어가 연결되며, 이 와이어는 하단으로 연장되어 모터 구동부와 연결된다.\n모터 구동부는 와이어를 상하 방향으로 구동함으로써 지지 디스크의 기울기 및 회동 각도를 정밀하게 제어할 수 있다.\n\n구조 단순화\n본 발명의 수술용 로봇 암은 하나의 중심점을 기준으로 한 2축 회동 구조를 채택하여, 불필요한 기계적 연결 요소를 최소화한다.\n이로써 고장률이 낮아지고 유지보수가 용이해지며, 의료 현장에서의 활용성이 높아진다.",
@@ -64,14 +62,15 @@ const DocumentEditor = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState(null);
   const [attachedPdf, setAttachedPdf] = useState(null);
+  const [isGenerating3D, setIsGenerating3D] = useState(false);
 
   const [sessionId, setSessionId] = useState(null);
   const [messages, setMessages] = useState([]);
   const [isAiTyping, setIsAiTyping] = useState(false);
   const [aiResults, setAiResults] = useState(null);
-  const [isGenerating3D, setIsGenerating3D] = useState(false);
-
+  
   const hasPreloadedData = !!location.state?.parsedData;
+
   const mockChatResponses = {
     background: {
       content: `네 현재 내용을 바탕으로 아래와 같이 수정하였습니다.\n\n최근 의료 분야에서는 최소 침습 수술(minimally invasive surgery) 및 원격 수술(remote surgery)이 빠르게 확산되고 있으며, 이와 같은 수술은 기존의 개복 수술 대비 환자의 회복 기간을 단축시키고, 수술 후 합병증의 발생 가능성을 줄이며, 환자의 전반적인 삶의 질을 향상시키는 장점이 있다. 이러한 수술 방법에서는 수술자가 직접 기구를 조작하기보다는, 정밀한 동작을 수행할 수 있는 수술용 로봇 암이 필수적으로 사용되고 있다.\n그러나 종래의 수술용 로봇 암은 다음과 같은 기술적 한계를 지니고 있어, 실제 임상 현장에서 여러 문제를 발생시키고 있다.\n첫째, 구조적 복잡성에 따른 문제이다. 기존 수술용 로봇 암은 회동 및 기울기 동작을 구현하기 위하여 다수의 모터, 기어, 링크 장치 등을 다단계로 연결하는 복잡한 구조를 채택하고 있다. 이와 같은 구조는 구동 과정에서 각 부품 간 마찰 및 응력 집중이 빈번히 발생하여 부품의 마모와 손상을 가속화시킨다. 이로 인해 시스템은 잦은 고장을 유발하고, 수술 도중 예기치 못한 기계적 오류가 발생할 위험이 높다. 이는 곧 수술의 안전성 저하로 이어지며, 환자의 생명과 직결되는 중대한 문제를 야기할 수 있다.\n둘째, 조작의 직관성 부족이다. 종래의 구조에서는 개별 모터가 각각 독립적으로 구동되어야 하므로, 사용자가 원하는 방향으로 로봇 암을 기울이거나 회전시키기 위해서는 다수의 모터를 동시에 조작하거나 복잡한 제어 알고리즘에 의존해야 한다. 이는 수술자가 즉각적으로 원하는 동작을 구현하는 데 어려움을 초래하며, 실시간 대응력이 저하된다. 특히, 종양 절제나 혈관 봉합과 같은 고난도의 수술에서는 미세한 조직 제어가 요구되는데, 기존 시스템의 조작 직관성 부족은 숙련된 의료인조차 동작 지연과 부정확한 기구 제어를 경험하게 한다.\n셋째, 유지보수 및 경제성 저하이다. 다수의 기계적 연결 요소는 전체 시스템의 무게를 증가시켜 설치 공간의 제약을 가중시키며, 기계적 마모에 따른 부품 교체 주기를 단축시킨다. 또한, 복잡한 기계 구조로 인해 시스템 유지보수 과정에서 시간과 비용이 과도하게 소요된다. 이는 병원 차원에서의 운영 비용 증가를 초래하며, 의료 서비스 전반의 효율성에도 부정적인 영향을 미친다. 나아가 이러한 구조적 복잡성은 장치의 신뢰성을 저하시켜, 환자와 의료진 모두에게 불필요한 부담을 가중시키는 요인이 된다.\n결과적으로, 종래의 수술용 로봇 암은 의료 수술에서 요구되는 높은 신뢰성, 직관적 조작성, 비용 효율성을 충족하지 못하는 문제점을 안고 있다. 따라서 보다 단순한 구조를 가지면서도 정밀한 제어가 가능한 새로운 형태의 수술용 로봇 암 구조가 요구되고 있다.`,
@@ -114,19 +113,6 @@ const DocumentEditor = () => {
     onError: (error) => alert('저장 중 오류가 발생했습니다: ' + error.message),
   });
 
-  const submitMutation = useMutation({
-    mutationFn: async ({ patentId, documentData }) => {
-      await updateDocument({ patentId, documentData });
-      return await submitPatent(patentId);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['myPatents'] });
-      alert('출원서가 최종 제출되었습니다. 마이페이지로 이동합니다.');
-      navigate('/mypage');
-    },
-    onError: (error) => alert('최종 제출 중 오류가 발생했습니다: ' + error.message),
-  });
-
   const generateDraftMutation = useMutation({
     mutationFn: () => {
       return new Promise(resolve => {
@@ -166,7 +152,7 @@ const DocumentEditor = () => {
           delay = 7000;
           response = { sender: 'ai', ...mockChatResponses.claimsReview };
         } else {
-          response = { sender: 'ai', content: '죄송합니다. 요청하신 내용을 이해하지 못했습니다. "배경기술" 또는 "청구항 전체"에 대해 질문해주세요.' };
+          response = { sender: 'ai', content: '죄송합니다. 요청하신 내용을 이해하지 못했습니다. 다시 요청해 주세요.' };
         }
         
         setTimeout(() => resolve(response), delay);
@@ -274,33 +260,34 @@ const DocumentEditor = () => {
   };
 
   const handleDrawingUpload = async (event) => {
-    // 실제 파일을 사용하지 않음
     if (event.target.files.length === 0) return;
 
     setIsUploading(true);
     setUploadError(null);
 
-    // 1초간 업로드하는 척 시뮬레이션
     setTimeout(() => {
-      const mockFile = {
-        fileId: 'mock-drawing-id-01',
-        fileUrl: MOCK_DRAWING_IMAGE_URL,
-        fileName: 'demo_drawing.jpg'
-      };
+      const mockFile = {
+        fileId: 'mock-drawing-id-01',
+        fileUrl: MOCK_DRAWING_IMAGE_URL,
+        fileName: 'demo_drawing.jpg'
+      };
       setDrawingFiles([mockFile]);
       setSelectedDrawingId(mockFile.fileId);
       setIsUploading(false);
-    }, 3000);
+    }, 1000);
     
-    event.target.value = ''; // input 초기화
+    event.target.value = '';
   };
   
   const handleSaveDraft = () => saveMutation.mutate({ patentId, documentData: document });
-  const handleSubmit = () => {
-    if (window.confirm('정말로 최종 제출하시겠습니까? 제출 후에는 수정이 어렵습니다.')) {
-      submitMutation.mutate({ patentId, documentData: document });
-    }
-  };
+
+const handleSubmit = () => {
+  if (window.confirm('최종 제출 전, 마지막 확인 페이지로 이동합니다. 이동하시겠습니까?')) {
+    navigate(`/patent/${patentId}/submit`, { 
+      state: { documentToSubmit: document }
+    });
+  }
+};
 
   const handleGenerateDraft = () => {
     generateDraftMutation.mutate();
@@ -311,17 +298,16 @@ const DocumentEditor = () => {
     if (!target) {
       return alert('3D로 변환할 도면을 선택해주세요.');
     }
-    
+    
     setIsGenerating3D(true);
-    setModelFile(null); // 이전 모델이 있다면 잠시 숨김
+    setModelFile(null);
 
-    // 3초간 생성하는 척 시뮬레이션
     setTimeout(() => {
-      const mockModel = {
-        fileId: 'mock-model-id-01',
-        fileUrl: MOCK_3D_MODEL_URL,
-        fileName: 'demo_model.glb'
-      };
+      const mockModel = {
+        fileId: 'mock-model-id-01',
+        fileUrl: MOCK_3D_MODEL_URL,
+        fileName: 'demo_model.glb'
+      };
       setModelFile(mockModel);
       setIsGenerating3D(false);
       alert('3D 도면 생성이 완료되었습니다.');
@@ -360,7 +346,6 @@ const DocumentEditor = () => {
       default:
         console.warn('Unknown action type:', action.type);
     }
-    
   };
 
   const scrollToField = (fieldName) => {
@@ -428,11 +413,10 @@ const DocumentEditor = () => {
               </button>
               <button
                 onClick={handleSubmit}
-                disabled={submitMutation.isPending}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg shadow-sm hover:bg-blue-700 transition-all disabled:bg-gray-400"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg shadow-sm hover:bg-blue-700 transition-all"
               >
                 <Send className="w-4 h-4" />
-                {submitMutation.isPending ? '제출 중...' : '최종 제출'}
+                최종 제출
               </button>
             </div>
           </div>
@@ -507,7 +491,7 @@ const DocumentEditor = () => {
             </div>
           </div>
 
-          <div className="lg:col-span-1">
+          <div className="lg-col-span-1">
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sticky top-8 flex flex-col h-[calc(100vh-4rem)]">
               <div className="flex-grow overflow-hidden">
                 <ChatPanel
@@ -519,11 +503,11 @@ const DocumentEditor = () => {
                 />
               </div>
               <div className="mt-4 pt-4 border-t border-gray-200 space-y-3">
-                {/* --- 💡 5. 3D 변환 버튼에 로딩 상태 반영 --- */}
                 <button
                   onClick={handleGenerate3D}
                   disabled={isGenerating3D || drawingFiles.length === 0}
                   className="w-full flex items-center justify-center gap-2 px-4 py-3 font-semibold text-white bg-indigo-500 rounded-lg hover:bg-indigo-600 transition-all disabled:bg-gray-400"
+              
                 >
                   <Box className="w-4 h-4" />
                   {isGenerating3D ? '3D 모델 생성 중...' : '도면 3D 변환'}
