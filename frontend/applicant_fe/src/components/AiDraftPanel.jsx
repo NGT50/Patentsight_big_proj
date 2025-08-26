@@ -1,77 +1,47 @@
 // src/components/AiDraftPanel.jsx
 
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import React, { useState } from 'react';
 
-const AiDraftPanel = ({ patentId }) => {
-  const [drafts, setDrafts] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+// onGenerateDraft: 부모(DocumentEditor)로부터 받을 초안 생성 함수
+// isLoading: 부모로부터 받을 로딩 상태
+const AiDraftPanel = ({ onGenerateDraft, isLoading }) => {
+  const [idea, setIdea] = useState('');
 
-  // Draft 목록 불러오기
-  const fetchDrafts = async () => {
-    setLoading(true);
-    try {
-      const res = await axios.get(`/api/ai/drafts`, {
-        params: { patent_id: patentId },
-      });
-      setDrafts(res.data);
-    } catch (err) {
-      console.error('초안 불러오기 실패:', err);
-      setError('AI 초안 목록을 불러오는 데 실패했습니다.');
-    } finally {
-      setLoading(false);
+  const handleGenerateClick = () => {
+    if (!idea.trim()) {
+      alert('핵심 아이디어를 입력해주세요.');
+      return;
     }
+    // 부모로부터 받은 함수를 여기서 호출합니다.
+    // idea 값을 넘겨줄 수 있지만, 현재 시연 로직에서는 사용되지 않습니다.
+    onGenerateDraft(idea); 
   };
-
-  // 삭제 요청
-  const handleDelete = async () => {
-    if (!window.confirm('모든 AI 초안을 삭제하시겠습니까?')) return;
-    try {
-      await axios.delete(`/api/ai/drafts`, {
-        params: { patent_id: patentId },
-      });
-      await fetchDrafts(); // 삭제 후 새로고침
-    } catch (err) {
-      console.error('초안 삭제 실패:', err);
-      alert('AI 초안 삭제에 실패했습니다.');
-    }
-  };
-
-  useEffect(() => {
-    if (patentId) fetchDrafts();
-  }, [patentId]);
 
   return (
     <div style={{ border: '1px solid #ccc', borderRadius: '8px', padding: '16px', marginTop: '24px' }}>
-      <h3>🧠 AI 초안 목록</h3>
+      <h3>🧠 AI 초안 생성기</h3>
+      <p style={{ fontSize: '14px', color: '#666', marginTop: '4px' }}>
+        핵심 아이디어를 입력하고 생성 버튼을 누르면 전체 문서가 채워집니다.
+      </p>
+      
+      <div style={{ margin: '16px 0' }}>
+        <input
+          type="text"
+          value={idea}
+          onChange={(e) => setIdea(e.target.value)}
+          placeholder="예: 수술용 로봇 arm"
+          style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
+          disabled={isLoading}
+        />
+      </div>
 
-      {loading && <p>불러오는 중...</p>}
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-
-      {!loading && drafts.length === 0 && <p>생성된 AI 초안이 없습니다.</p>}
-
-      {!loading && drafts.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {drafts.map((draft) => (
-            <div
-              key={draft.draft_id}
-              style={{
-                border: '1px solid #ddd',
-                borderRadius: '6px',
-                padding: '12px',
-                backgroundColor: '#f9f9f9',
-              }}
-            >
-              <strong>🗂 타입:</strong> {draft.type} <br />
-              <strong>📄 내용 요약:</strong> {draft.content.slice(0, 100)}...
-            </div>
-          ))}
-          <button onClick={handleDelete} style={{ marginTop: '12px', alignSelf: 'flex-end' }}>
-            전체 초안 삭제
-          </button>
-        </div>
-      )}
+      <button 
+        onClick={handleGenerateClick} 
+        disabled={isLoading}
+        style={{ width: '100%', padding: '10px', fontWeight: 'bold' }}
+      >
+        {isLoading ? '생성 중...' : '전체 문서 초안 생성'}
+      </button>
     </div>
   );
 };

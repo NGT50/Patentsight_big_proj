@@ -12,14 +12,24 @@ const NewPatentChoicePage = () => {
   const [selectedType, setSelectedType] = useState(null);
 
   const createPatentMutation = useMutation({
-    mutationFn: createPatent,
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['myPatents'] });
-      // [FIXED] 경로 맨 앞에 '/'를 추가하여 올바른 절대 경로로 수정합니다.
-      navigate(`/patent/${data.patentId}/edit`);
-    },
-    onError: (err) => alert(`출원서 생성에 실패했습니다: ${err.message}`),
-  });
+    mutationFn: createPatent,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['myPatents'] });
+
+      // --- 💡 여기를 수정합니다! ---
+      // DocumentEditor로 이동할 때, 우리가 이미 알고 있는 초기 데이터를
+      // navigate의 state 속성을 통해 직접 전달합니다.
+      const newPatentData = {
+        ...initialDocumentState,
+        title: '제목 없는 출원서',
+      };
+
+      navigate(`/patent/${data.patentId}/edit`, { 
+        state: { parsedData: newPatentData } // 'parsedData'라는 key로 전달
+      });
+    },
+    onError: (err) => alert(`출원서 생성에 실패했습니다: ${err.message}`),
+  });
 
   // 'PDF 초안으로 시작'을 위한 수정된 흐름
   const parsePdfMutation = useMutation({
