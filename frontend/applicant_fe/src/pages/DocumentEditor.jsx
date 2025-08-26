@@ -6,7 +6,7 @@ import {
   getPatentDetail,
   updateDocument,
   validatePatentDocument,
-  generate3DModel,
+//   generate3DModel,
 } from '../api/patents';
 import { uploadFile, getFileDetail, toAbsoluteFileUrl } from '../api/files';
 import {
@@ -19,6 +19,9 @@ import Button from '../components/Button';
 import ThreeDModelViewer from '../components/ThreeDModelViewer';
 import ChatPanel from '../components/ChatPanel';
 import { initialDocumentState } from '../utils/documentState';
+
+const MOCK_DRAWING_IMAGE_URL = '/demo_drawing.jpg';
+const MOCK_3D_MODEL_URL = '/demo_model.glb';
 
 const mockPatentData = {
   title: "수술용 로봇 암의 회동 구조",
@@ -66,7 +69,8 @@ const DocumentEditor = () => {
   const [messages, setMessages] = useState([]);
   const [isAiTyping, setIsAiTyping] = useState(false);
   const [aiResults, setAiResults] = useState(null);
-  
+  const [isGenerating3D, setIsGenerating3D] = useState(false);
+
   const hasPreloadedData = !!location.state?.parsedData;
   const mockChatResponses = {
     background: {
@@ -270,25 +274,25 @@ const DocumentEditor = () => {
   };
 
   const handleDrawingUpload = async (event) => {
-    const files = Array.from(event.target.files);
-    if (files.length === 0) return;
+    // 실제 파일을 사용하지 않음
+    if (event.target.files.length === 0) return;
+
     setIsUploading(true);
     setUploadError(null);
-    try {
-      const uploaded = await Promise.all(
-        files.map(file => uploadFile({ file, patentId }))
-      );
-      setDrawingFiles(prev => [...prev, ...uploaded]);
-      if (!selectedDrawingId && uploaded.length > 0) {
-        setSelectedDrawingId(uploaded[0].fileId);
-      }
-    } catch (error) {
-      console.error('도면 업로드 실패:', error);
-      setUploadError('도면 업로드에 실패했습니다.');
-    } finally {
+
+    // 1초간 업로드하는 척 시뮬레이션
+    setTimeout(() => {
+      const mockFile = {
+        fileId: 'mock-drawing-id-01',
+        fileUrl: MOCK_DRAWING_IMAGE_URL,
+        fileName: 'demo_drawing.jpg'
+      };
+      setDrawingFiles([mockFile]);
+      setSelectedDrawingId(mockFile.fileId);
       setIsUploading(false);
-      event.target.value = '';
-    }
+    }, 3000);
+    
+    event.target.value = ''; // input 초기화
   };
   
   const handleSaveDraft = () => saveMutation.mutate({ patentId, documentData: document });
@@ -307,14 +311,21 @@ const DocumentEditor = () => {
     if (!target) {
       return alert('3D로 변환할 도면을 선택해주세요.');
     }
-    try {
-      const { fileId } = await generate3DModel({ patentId, imageId: target.fileId });
-      setModelFile({ fileId, fileUrl: toAbsoluteFileUrl(`/api/files/${fileId}/content`), fileName: 'model.glb' });
+    
+    setIsGenerating3D(true);
+    setModelFile(null); // 이전 모델이 있다면 잠시 숨김
+
+    // 3초간 생성하는 척 시뮬레이션
+    setTimeout(() => {
+      const mockModel = {
+        fileId: 'mock-model-id-01',
+        fileUrl: MOCK_3D_MODEL_URL,
+        fileName: 'demo_model.glb'
+      };
+      setModelFile(mockModel);
+      setIsGenerating3D(false);
       alert('3D 도면 생성이 완료되었습니다.');
-    } catch (err) {
-      console.error('3D 변환 실패:', err);
-      alert('3D 변환 중 오류가 발생했습니다.');
-    }
+    }, 3000);
   };
 
   const handleAiCheck = () => {
@@ -483,9 +494,11 @@ const DocumentEditor = () => {
                   </div>
                   <div className="mt-6">
                     <label className="block text-lg font-semibold text-gray-800 mb-2">3D 모델</label>
-                    {modelFile ? (
+                    {isGenerating3D && <p>3D 모델 생성 중...</p>}
+                    {modelFile && !isGenerating3D && (
                       <ThreeDModelViewer src={modelFile.fileUrl} />
-                    ) : (
+                    )}
+                    {!modelFile && !isGenerating3D && (
                       <p className="text-sm text-gray-500">생성된 3D 모델이 없습니다.</p>
                     )}
                   </div>
@@ -506,11 +519,14 @@ const DocumentEditor = () => {
                 />
               </div>
               <div className="mt-4 pt-4 border-t border-gray-200 space-y-3">
+                {/* --- 💡 5. 3D 변환 버튼에 로딩 상태 반영 --- */}
                 <button
                   onClick={handleGenerate3D}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-3 font-semibold text-white bg-indigo-500 rounded-lg hover:bg-indigo-600 transition-all"
+                  disabled={isGenerating3D || drawingFiles.length === 0}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 font-semibold text-white bg-indigo-500 rounded-lg hover:bg-indigo-600 transition-all disabled:bg-gray-400"
                 >
-                  <Box className="w-4 h-4" /> 도면 3D 변환
+                  <Box className="w-4 h-4" />
+                  {isGenerating3D ? '3D 모델 생성 중...' : '도면 3D 변환'}
                 </button>
                 <button
                   onClick={handleAiCheck}
