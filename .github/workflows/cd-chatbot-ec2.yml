@@ -54,15 +54,30 @@ jobs:
           strip_components: 1
           overwrite: true
 
-      - name: Install dependencies on EC2
+      - name: Install Python and dependencies on EC2
         uses: appleboy/ssh-action@v1.1.0
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.KEY }}
           script: |
+            # Python 설치
+            sudo apt-get update
+            sudo apt-get install -y python3 python3-pip python3-venv
+            
+            # Python 심볼릭 링크 생성
+            sudo ln -sf /usr/bin/python3 /usr/bin/python
+            sudo ln -sf /usr/bin/pip3 /usr/bin/pip
+            
+            # 챗봇 디렉토리로 이동
             cd /home/${{ secrets.USERNAME }}/chatbot
-            python -m pip install --upgrade pip
+            
+            # 가상환경 생성 및 활성화
+            python3 -m venv venv
+            source venv/bin/activate
+            
+            # 의존성 설치
+            pip install --upgrade pip
             pip install -r requirements.txt
 
       - name: Restart chatbot service on EC2
@@ -91,6 +106,9 @@ jobs:
               sleep 2
             fi
 
+            # 가상환경 활성화
+            source venv/bin/activate
+            
             # 챗봇 서버 백그라운드에서 실행
             echo "> 챗봇 서버를 시작합니다."
             nohup python run_chatbot.py > chatbot.log 2>&1 &
@@ -107,3 +125,5 @@ jobs:
               echo "❌ 챗봇 서버 시작에 실패했습니다."
               exit 1
             fi
+
+
