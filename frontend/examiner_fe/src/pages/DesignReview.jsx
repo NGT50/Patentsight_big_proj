@@ -18,6 +18,7 @@ import {
 
 // 파일 API
 import { getImageUrlsByIds, getNonImageFilesByIds, toAbsoluteFileUrl } from '../api/files';
+import ThreeDModelViewer from '../components/ThreeDModelViewer';
 
 /* ------------------------- 유틸 & 보조 컴포넌트 ------------------------- */
 
@@ -126,31 +127,6 @@ function cleanFileName(name = '') {
   return decoded.replace(/^[0-9a-fA-F-]{36}_/, '');
 }
 
-// 3D 뷰어
-function ModelViewer3D({ src }) {
-  useEffect(() => {
-    if (!window.customElements || !window.customElements.get('model-viewer')) {
-      const script = document.createElement('script');
-      script.type = 'module';
-      script.src = 'https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js';
-      document.head.appendChild(script);
-    }
-  }, []);
-  return (
-    <div className="w-full h-72 bg-gray-100 rounded-lg overflow-hidden border border-gray-200 flex items-center justify-center">
-      {/* @ts-ignore */}
-      <model-viewer
-        style={{ width: '100%', height: '100%' }}
-        src={src}
-        camera-controls
-        auto-rotate
-        exposure="1.0"
-        shadow-intensity="1"
-        ar
-      />
-    </div>
-  );
-}
 
 // 로그인 유저 ID
 const getCurrentUserId = () => {
@@ -384,7 +360,7 @@ export default function DesignReview() {
                 /\.glb($|\?|#)/i.test(f?.url || '')
             );
             // Use backend endpoint to stream GLB content instead of direct S3 URLs
-            setGlbModelUrl(glb ? `/api/files/${glb.id}/content` : '');
+            setGlbModelUrl(glb ? glb.url : '');
           } catch {
             setAttachmentImageUrls([]); setAttachmentOtherFiles([]); setGlbModelUrl('');
           }
@@ -1062,7 +1038,7 @@ ${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getD
                   </h4>
                 </div>
                 {glbModelUrl ? (
-                  <ModelViewer3D src={glbModelUrl} />
+                  <ThreeDModelViewer src={glbModelUrl} />
                 ) : (
                   <div className="w-full h-24 bg-gray-50 border border-dashed border-gray-300 rounded-lg flex items-center justify-center text-sm text-gray-500">
                     첨부 파일에서 .glb 파일을 찾지 못했습니다. .glb 파일을 업로드하면 자동으로 표시됩니다.
