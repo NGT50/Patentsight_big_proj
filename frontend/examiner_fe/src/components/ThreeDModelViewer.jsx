@@ -27,7 +27,9 @@ export default function ThreeDModelViewer({ src }) {
           localStorage.getItem('accessToken') ||
           sessionStorage.getItem('token') ||
           sessionStorage.getItem('accessToken') || '';
-        const res = await fetch(src, {
+        const apiBase = import.meta.env.VITE_SPRING_API_URL || 'http://35.175.253.22:8080';
+        const target = src.startsWith('http') ? src : `${apiBase}${src}`;
+        const res = await fetch(target, {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
           credentials: 'include',
         });

@@ -310,7 +310,7 @@ export default function PatentReview() {
                 /\.glb($|\?|#)/i.test(f?.name || '') ||
                 /\.glb($|\?|#)/i.test(f?.url || '')
             );
-            setGlbModelUrl(glb ? `/api/files/${glb.id}/content` : '');
+            setGlbModelUrl(glb ? glb.url : '');
           } catch (e) {
             console.warn('첨부 로드 실패:', e);
             setAttachmentImageUrls([]);
