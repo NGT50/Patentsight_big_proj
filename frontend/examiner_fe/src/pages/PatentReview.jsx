@@ -474,38 +474,41 @@ export default function PatentReview() {
       }
       
              if (hasRejectionKeyword) {
-         // 거절사유 판단 중 메시지 표시
-         const loadingMessage = {
-           id: safeUUID(),
-           type: 'bot',
-           message: '거절사유 유무를 판단중입니다...',
-           timestamp: new Date()
-         };
-         setChatMessages(prev => [...prev, loadingMessage]);
-         
+         // 1-2초 후에 로딩 메시지 표시
          setTimeout(() => {
-           const botMessage = {
+           const loadingMessage = {
              id: safeUUID(),
              type: 'bot',
-             message: DEMO_REJECTION_RESULT,
+             message: '거절사유 유무를 판단중입니다...',
              timestamp: new Date()
            };
-           setChatMessages(prev => [...prev, botMessage]);
+           setChatMessages(prev => [...prev, loadingMessage]);
            
-           // 보류의견서 반영 여부 묻기
+           // 10초 후에 결과 표시
            setTimeout(() => {
-             const applyMessage = {
+             const botMessage = {
                id: safeUUID(),
                type: 'bot',
-               message: '보류의견서에 반영하시겠습니까? (네/아니오)',
+               message: DEMO_REJECTION_RESULT,
                timestamp: new Date()
              };
-             setChatMessages(prev => [...prev, applyMessage]);
-             setShowApplyToOpinion(true);
-           }, 500);
-           
-           setIsTyping(false);
-         }, 6000); // 6초 후 응답 (로딩 효과)
+             setChatMessages(prev => [...prev, botMessage]);
+             
+             // 보류의견서 반영 여부 묻기
+             setTimeout(() => {
+               const applyMessage = {
+                 id: safeUUID(),
+                 type: 'bot',
+                 message: '보류의견서에 반영하시겠습니까? (네/아니오)',
+                 timestamp: new Date()
+               };
+               setChatMessages(prev => [...prev, applyMessage]);
+               setShowApplyToOpinion(true);
+             }, 500);
+             
+             setIsTyping(false);
+           }, 10000); // 10초 후 응답
+         }, 1500); // 1.5초 후 로딩 메시지
          return;
        }
 
@@ -560,38 +563,41 @@ export default function PatentReview() {
     try {
              // 거절사유판단인 경우 시연용 데이터 반환
        if (forcedIntent === 'rejection_draft') {
-         // 거절사유 판단 중 메시지 표시
-         const loadingMessage = {
-           id: safeUUID(),
-           type: 'bot',
-           message: '거절사유 유무를 판단중입니다...',
-           timestamp: new Date()
-         };
-         setChatMessages(prev => [...prev, loadingMessage]);
-         
+         // 1-2초 후에 로딩 메시지 표시
          setTimeout(() => {
-           const botMessage = {
+           const loadingMessage = {
              id: safeUUID(),
              type: 'bot',
-             message: DEMO_REJECTION_RESULT,
+             message: '거절사유 유무를 판단중입니다...',
              timestamp: new Date()
            };
-           setChatMessages(prev => [...prev, botMessage]);
+           setChatMessages(prev => [...prev, loadingMessage]);
            
-           // 보류의견서 반영 여부 묻기
+           // 10초 후에 결과 표시
            setTimeout(() => {
-             const applyMessage = {
+             const botMessage = {
                id: safeUUID(),
                type: 'bot',
-               message: '보류의견서에 반영하시겠습니까? (네/아니오)',
+               message: DEMO_REJECTION_RESULT,
                timestamp: new Date()
              };
-             setChatMessages(prev => [...prev, applyMessage]);
-             setShowApplyToOpinion(true);
-           }, 500);
-           
-           setIsTyping(false);
-         }, 6000); // 6초 후 응답 (로딩 효과)
+             setChatMessages(prev => [...prev, botMessage]);
+             
+             // 보류의견서 반영 여부 묻기
+             setTimeout(() => {
+               const applyMessage = {
+                 id: safeUUID(),
+                 type: 'bot',
+                 message: '보류의견서에 반영하시겠습니까? (네/아니오)',
+                 timestamp: new Date()
+               };
+               setChatMessages(prev => [...prev, applyMessage]);
+               setShowApplyToOpinion(true);
+             }, 500);
+             
+             setIsTyping(false);
+           }, 10000); // 10초 후 응답
+         }, 1500); // 1.5초 후 로딩 메시지
          return;
        }
 
