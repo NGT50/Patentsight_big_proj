@@ -25,6 +25,17 @@ import ThreeDModelViewer from '../components/ThreeDModelViewer';
 
 /* ------------------------- 보조 ------------------------- */
 
+// 안전 UUID
+const safeUUID = () => {
+  try {
+    if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+    const rnd = Math.random().toString(36).slice(2);
+    return `id-${Date.now().toString(36)}-${rnd}`;
+  } catch {
+    return `id-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+  }
+};
+
 // 공개 경로(/files) → 실패 시 /api 로 폴백(fetch+토큰)해서 blob URL로 표출
 function SmartImage({ source, className, alt }) {
   const [resolvedSrc, setResolvedSrc] = React.useState('');
@@ -389,7 +400,7 @@ export default function PatentReview() {
       return;
     }
 
-    const newUserMessage = { id: crypto.randomUUID(), type: 'user', message, timestamp: new Date() };
+    const newUserMessage = { id: safeUUID(), type: 'user', message, timestamp: new Date() };
     setChatMessages(prev => [...prev, newUserMessage]);
     setInputMessage('');
     setIsTyping(true);
@@ -413,7 +424,7 @@ export default function PatentReview() {
       
       if (response.success) {
         const botMessage = {
-          id: crypto.randomUUID(),
+          id: safeUUID(),
           type: 'bot',
           message: response.data,
           timestamp: new Date()
@@ -425,7 +436,7 @@ export default function PatentReview() {
     } catch (error) {
       console.error('챗봇 메시지 전송 실패:', error);
       const errorMessage = {
-        id: crypto.randomUUID(),
+        id: safeUUID(),
         type: 'bot',
         message: `죄송합니다. AI 도우미와 연결하는 데 문제가 발생했습니다: ${error.message}`,
         timestamp: new Date()
@@ -439,7 +450,7 @@ export default function PatentReview() {
   const handleQuickQuestion = async (query, forcedIntent = null) => {
     if (!query.trim()) return;
 
-    const newUserMessage = { id: crypto.randomUUID(), type: 'user', message: query, timestamp: new Date() };
+    const newUserMessage = { id: safeUUID(), type: 'user', message: query, timestamp: new Date() };
     setChatMessages(prev => [...prev, newUserMessage]);
     setIsTyping(true);
 
@@ -462,7 +473,7 @@ export default function PatentReview() {
       
       if (response.success) {
         const botMessage = {
-          id: crypto.randomUUID(),
+          id: safeUUID(),
           type: 'bot',
           message: response.data,
           timestamp: new Date()
@@ -474,7 +485,7 @@ export default function PatentReview() {
     } catch (error) {
       console.error('챗봇 메시지 전송 실패:', error);
       const errorMessage = {
-        id: crypto.randomUUID(),
+        id: safeUUID(),
         type: 'bot',
         message: `죄송합니다. AI 도우미와 연결하는 데 문제가 발생했습니다: ${error.message}`,
         timestamp: new Date()

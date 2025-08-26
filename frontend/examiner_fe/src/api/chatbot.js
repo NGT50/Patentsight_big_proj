@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const CHATBOT_API_URL = 'http://localhost:58080';
+const CHATBOT_API_URL = 'http://35.175.253.22:58080';
 
 const chatbotApi = axios.create({
   baseURL: CHATBOT_API_URL,
