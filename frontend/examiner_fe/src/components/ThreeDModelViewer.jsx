@@ -53,14 +53,14 @@ export default function ThreeDModelViewer({ src }) {
   }, [src]);
 
   return (
-    <div className="w-full h-72 bg-gray-100 rounded-lg overflow-hidden border border-gray-200 flex items-center justify-center">
+    <div className="w-full h-72 bg-black rounded-lg overflow-hidden border border-gray-200 flex items-center justify-center">
       {/* @ts-ignore */}
       <model-viewer
-        style={{ width: '100%', height: '100%' }}
+        style={{ width: '100%', height: '100%', backgroundColor: '#000' }}
         src={modelUrl}
         camera-controls
         auto-rotate
-        exposure="1.0"
+        exposure="-2.5"
         shadow-intensity="1"
         ar
       />

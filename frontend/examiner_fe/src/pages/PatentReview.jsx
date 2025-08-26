@@ -102,7 +102,6 @@ function SmartImage({ source, className, alt }) {
 
   return <img alt={alt} src={resolvedSrc} className={className} onError={handleError} />;
 }
-
 // 도면 URL 파서 (JSON 배열/콤마/개행/단일 URL)
 function extractDrawingUrls(raw) {
   if (!raw) return [];
