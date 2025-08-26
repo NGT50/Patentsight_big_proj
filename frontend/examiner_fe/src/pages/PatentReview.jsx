@@ -74,24 +74,28 @@ function normalizeToApiContent(u) {
 // 시연용 유사특허 결과
 const MOCK_SIMILAR_RESULTS = [
   {
-    title: "수술용 로봇",
-    application_number: "1020120043476",
+    applicationNumber: "1020120043476",   // ✅ 기존 application_number → applicationNumber
+    inventionTitle: "수술용 로봇",       // ✅ title → inventionTitle
+    applicantName: "주식회사 고영테크놀러지", // ✅ 출원인 (예시)
     similarity: 0.92,
-    image_url: "https://placehold.co/400x300?text=로봇1"
+    drawing: "https://placehold.co/400x300?text=로봇1" // ✅ image_url → drawing
   },
   {
-    title: "절삭 경로 플래닝 장치",
-    application_number: "1020220121028",
+    applicationNumber: "1020220121028",
+    inventionTitle: "절삭 경로 플래닝 장치",
+    applicantName: "큐렉소 주식회사",
     similarity: 0.85,
-    image_url: "https://placehold.co/400x300?text=로봇2"
+    drawing: "https://placehold.co/400x300?text=로봇2"
   },
   {
-    title: "전계 인가 장치",
-    application_number: "1020220082162",
+    applicationNumber: "1020220082162",
+    inventionTitle: "전계 인가 장치",
+    applicantName: "삼성디스플레이",
     similarity: 0.77,
-    image_url: "https://placehold.co/400x300?text=로봇3"
+    drawing: "https://placehold.co/400x300?text=로봇3"
   }
 ];
+
 
 
 // 공개 경로(/files) → 실패 시 /api 로 폴백(fetch+토큰)해서 blob URL로 표출
