@@ -1362,27 +1362,59 @@ ${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getD
                 </div>
               ) : similarityResults?.length ? (
                 similarityResults.map((r, i) => (
-                  <div key={r.similar_patent_code || i} className="min-w-[220px] w-full max-w-[250px] border border-gray-200 rounded-lg bg-white shadow-sm flex-shrink-0 transition-all hover:shadow-md hover:border-indigo-200">
+                  <div
+                    key={r.applicationNumber || i}
+                    className="min-w-[220px] w-full max-w-[250px] border border-gray-200 rounded-lg bg-white shadow-sm flex-shrink-0 transition-all hover:shadow-md hover:border-indigo-200"
+                  >
+                    {/* 대표 이미지 */}
                     <div className="h-32 bg-gray-100 flex items-center justify-center">
                       <img
-                        src={r.image_url}
+                        src={r.basicInfo?.drawing}
                         alt={`유사 결과 ${i + 1}`}
                         className="w-full h-full object-contain"
-                        onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = 'https://placehold.co/400x300/e2e8f0/94a3b8?text=Image+Not+Found'; }}
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src =
+                            "https://placehold.co/400x300/e2e8f0/94a3b8?text=Image+Not+Found";
+                        }}
                       />
                     </div>
+          
+                    {/* 텍스트 정보 */}
                     <div className="p-3">
-                      <p className="text-sm font-semibold text-gray-800 truncate">{r.title || `유사 결과 ${i + 1}`}</p>
-                      <p className="text-xs text-gray-500 mt-1">출원번호: {r.application_number}</p>
-                      <div className="w-full bg-gray-200 rounded-full h-2.5 mt-3">
-                        <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: `${Number(r.similarity * 100 || 0).toFixed(2)}%` }}></div>
-                      </div>
-                      <p className="text-right text-sm font-bold text-blue-700 mt-1">{Number(r.similarity * 100 || 0).toFixed(2)}%</p>
+                      <p className="text-sm font-semibold text-gray-800 truncate">
+                        {r.basicInfo?.inventionTitle || `유사 결과 ${i + 1}`}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        출원번호: {r.basicInfo?.applicationNumber}
+                      </p>
+                      <p className="text-xs text-gray-600 mt-1 line-clamp-2">
+                        {r.basicInfo?.astrtCont || "요약 정보 없음"}
+                      </p>
+          
+                      {/* 유사도 (mock라면 랜덤 or 고정값) */}
+                      {r.similarity !== undefined && (
+                        <>
+                          <div className="w-full bg-gray-200 rounded-full h-2.5 mt-3">
+                            <div
+                              className="bg-blue-600 h-2.5 rounded-full"
+                              style={{
+                                width: `${Number(r.similarity * 100 || 0).toFixed(2)}%`,
+                              }}
+                            ></div>
+                          </div>
+                          <p className="text-right text-sm font-bold text-blue-700 mt-1">
+                            {Number(r.similarity * 100 || 0).toFixed(2)}%
+                          </p>
+                        </>
+                      )}
                     </div>
                   </div>
                 ))
               ) : (
-                <p className="text-gray-600 w-full text-center py-4">AI 분석 결과가 없거나 분석 중입니다.</p>
+                <p className="text-gray-600 w-full text-center py-4">
+                  AI 분석 결과가 없거나 분석 중입니다.
+                </p>
               )}
             </div>
           </section>
