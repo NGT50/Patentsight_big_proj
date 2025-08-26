@@ -1,6 +1,9 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 
 const ThreeDModelViewer = ({ src }) => {
+  const [modelUrl, setModelUrl] = useState('');
+
+  // Lazy-load <model-viewer> web component
   useEffect(() => {
     if (!window.customElements || !window.customElements.get('model-viewer')) {
       const script = document.createElement('script');
@@ -10,12 +13,47 @@ const ThreeDModelViewer = ({ src }) => {
     }
   }, []);
 
+  // Fetch GLB with auth token and convert to blob URL
+  useEffect(() => {
+    if (!src) return;
+    let objectUrl;
+    const fetchModel = async () => {
+      try {
+        const token =
+          localStorage.getItem('token') ||
+          localStorage.getItem('accessToken') ||
+          sessionStorage.getItem('token') ||
+          sessionStorage.getItem('accessToken') || '';
+
+        const res = await fetch(src, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          credentials: 'include',
+        });
+        if (!res.ok) throw new Error('GLB fetch failed');
+        const ct = res.headers.get('content-type') || '';
+        if (!/model\/gltf-binary|application\/octet-stream/.test(ct)) {
+          throw new Error(`Unexpected content-type: ${ct}`);
+        }
+        const blob = await res.blob();
+        objectUrl = URL.createObjectURL(blob);
+        setModelUrl(objectUrl);
+      } catch (e) {
+        console.error('3D 모델 로드 실패:', e);
+        setModelUrl('');
+      }
+    };
+    fetchModel();
+    return () => {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [src]);
+
   return (
     <div className="w-full h-72 bg-gray-100 rounded-lg overflow-hidden border border-gray-200 flex items-center justify-center">
       {/* @ts-ignore */}
       <model-viewer
         style={{ width: '100%', height: '100%' }}
-        src={src}
+        src={modelUrl}
         camera-controls
         auto-rotate
         exposure="1.0"
