@@ -33,7 +33,7 @@ security:
 
 # 외부 API 엔드포인트
 external-api:
-  fastapi-ipc-url: "http://54.161.26.140:8000/predict"
+  fastapi-ipc-url: "http://16.176.246.243:8000/predict"
   draft-url: "http://13.236.174.54:8000/analyze/"
   search-base-url: "http://54.180.170.51:8000"
   validation-url: "http://3.26.101.212:8000/api/ai/validations"
