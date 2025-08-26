@@ -38,12 +38,23 @@ public class FileService {
             attachment.setUploaderId(uploaderId);
             attachment.setFileName(file.getOriginalFilename());
             attachment.setFileUrl(path);
-            attachment.setFileType(determineFileType(file.getOriginalFilename()));
+            FileType type = determineFileType(file.getOriginalFilename());
+            attachment.setFileType(type);
             attachment.setUpdatedAt(LocalDateTime.now());
 
             Patent patent = patentRepository.findById(patentId)
                     .orElseThrow(() -> new IllegalArgumentException("Patent not found"));
             attachment.setPatent(patent);
+
+            if (type == FileType.GLB) {
+                fileRepository.findTopByPatent_PatentIdAndFileType(patentId, FileType.GLB)
+                        .ifPresent(existing -> {
+                            try {
+                                FileUtil.deleteFile(existing.getFileUrl());
+                            } catch (IOException ignored) {}
+                            fileRepository.delete(existing);
+                        });
+            }
 
             fileRepository.save(attachment);
             return toResponse(attachment);
