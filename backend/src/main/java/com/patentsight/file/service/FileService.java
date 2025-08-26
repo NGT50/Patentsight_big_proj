@@ -87,6 +87,42 @@ public class FileService {
         return true;
     }
 
+    /**
+     * Loads the binary content for the given attachment id. Returns {@code null}
+     * when the attachment does not exist.
+     */
+    public FileData loadContent(Long id) {
+        FileAttachment attachment = fileRepository.findById(id).orElse(null);
+        if (attachment == null) {
+            return null;
+        }
+        try {
+            byte[] data = FileUtil.downloadFile(attachment.getFileUrl());
+            return new FileData(attachment, data);
+        } catch (IOException e) {
+            throw new S3UploadException("Could not load file: " + e.getMessage(), e);
+        }
+    }
+
+    /** Container for an attachment and its binary bytes. */
+    public static class FileData {
+        private final FileAttachment attachment;
+        private final byte[] bytes;
+
+        public FileData(FileAttachment attachment, byte[] bytes) {
+            this.attachment = attachment;
+            this.bytes = bytes;
+        }
+
+        public FileAttachment getAttachment() {
+            return attachment;
+        }
+
+        public byte[] getBytes() {
+            return bytes;
+        }
+    }
+
     private FileResponse toResponse(FileAttachment attachment) {
         FileResponse res = new FileResponse();
         res.setFileId(attachment.getFileId());
