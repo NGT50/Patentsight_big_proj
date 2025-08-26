@@ -75,7 +75,7 @@ export const searchSimilarPatents = async ({ searchQuery, top_n = 5 }) => {
   const patents = rawPatents.map((p, idx) => ({
     id: idx + 1,
     title: p.basicInfo?.inventionTitle || "제목 없음",
-    applicantName: p.basicInfo?.applicantName || "출원인 정보 없음",
+    applicant: p.basicInfo?.applicantName || "출원인 정보 없음",   // ✅ 키 이름을 applicant 로 변경
     summary: p.basicInfo?.astrtCont || "요약 정보가 없습니다.",
     image: p.basicInfo?.drawing || null,
     ipc: p.basicInfo?.ipcNumber || "N/A",
