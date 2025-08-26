@@ -366,7 +366,7 @@ export default function PatentReview() {
       if (!url) return;
       try {
         setIsSearchingSimilarity(true);
-        const results = await searchDesignImageByUrl(url); // 변경: 파일 전송
+        const results = await searchDesignImageByBlob(url); // 변경: 파일 전송
         if (results && results.results) {
           setSimilarityResults(results.results);
           if (results.mock) {
