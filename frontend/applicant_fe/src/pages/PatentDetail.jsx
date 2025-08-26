@@ -51,15 +51,18 @@ const PatentDetail = () => {
           console.error('리뷰 조회 실패:', err);
         }
 
-        if (detail.attachments && detail.attachments.length > 0) {
+        const attachmentIds = detail.attachmentIds || detail.attachments || [];
+        if (attachmentIds.length > 0) {
           try {
             const [imgs, others] = await Promise.all([
-              getImageUrlsByIds(detail.attachments),
-              getNonImageFilesByIds(detail.attachments),
+              getImageUrlsByIds(attachmentIds),
+              getNonImageFilesByIds(attachmentIds),
             ]);
             setImages(imgs);
             const glb = others.find(
-              (f) => /\.glb($|\?|#)/i.test(f.name || '') || /\.glb($|\?|#)/i.test(f.url || '')
+              (f) =>
+                /\.glb($|\?|#)/i.test(f.name || '') ||
+                /\.glb($|\?|#)/i.test(f.url || '')
             );
             setGlbUrl(glb ? glb.url : '');
           } catch (err) {
@@ -163,10 +166,10 @@ const PatentDetail = () => {
             <p className="text-gray-700 whitespace-pre-wrap">{patent.summary || 'N/A'}</p>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-800 mb-2">도면의 간단한 설명</h2>
-            {(images.length > 0 || glbUrl) && (
-              <div className="space-y-4 mb-4">
+          {(images.length > 0 || glbUrl) && (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <h2 className="text-lg font-semibold text-gray-800 mb-2">도면</h2>
+              <div className="space-y-4">
                 {images.length > 0 && (
                   <div className="flex flex-wrap gap-4">
                     {images.map((src, idx) => (
@@ -181,7 +184,11 @@ const PatentDetail = () => {
                 )}
                 {glbUrl && <ModelViewer3D src={glbUrl} />}
               </div>
-            )}
+            </div>
+          )}
+
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h2 className="text-lg font-semibold text-gray-800 mb-2">도면의 간단한 설명</h2>
             <p className="text-gray-700 whitespace-pre-wrap">{patent.drawingDescription || 'N/A'}</p>
           </div>
 
