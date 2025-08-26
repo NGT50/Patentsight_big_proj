@@ -15,6 +15,7 @@ import {
   generateRejectionDraft,
   searchDesignImageByBlob
 } from '../api/ai';
+import { sendChatMessage as sendChatbotMessage, checkChatbotHealth } from '../api/chatbot';
 
 // 파일 API
 import { getImageUrlsByIds, getNonImageFilesByIds, toAbsoluteFileUrl } from '../api/files';
@@ -462,61 +463,49 @@ export default function DesignReview() {
   }, [design, drawingSources]);
 
   const sendChatMessage = async (message = inputMessage) => {
-    if (!message.trim() || !design || !design.patentId) {
-      const errorMessage = {
-        id: safeUUID(),
-        type: 'bot',
-        message: '오류: 디자인 정보가 올바르지 않아 AI와 대화를 시작할 수 없습니다.',
-        timestamp: new Date()
-      };
-      setChatMessages(prev => [...prev, errorMessage]);
+    if (!message.trim()) {
       return;
     }
 
     const newUserMessage = { id: safeUUID(), type: 'user', message, timestamp: new Date() };
     setChatMessages(prev => [...prev, newUserMessage]);
-    setInputMessage(''); setIsTyping(true);
-
-    const messagePayload = { message, context: { image_urls: contextImageUrls } };
+    setInputMessage(''); 
+    setIsTyping(true);
 
     try {
-      let currentSessionId = chatSessionId;
-      if (!currentSessionId) {
-        const userId = getCurrentUserId();
-        const sessionResponse = await startChatSession(design.patentId, userId);
-        const sid = sessionResponse?.session_id || sessionResponse?.id;
-        if (!sid) throw new Error('Failed to get a valid session_id from the server.');
-        currentSessionId = sid;
-        setChatSessionId(currentSessionId);
+      // 챗봇 서버 상태 확인
+      const isHealthy = await checkChatbotHealth();
+      if (!isHealthy) {
+        throw new Error('챗봇 서버가 응답하지 않습니다. 서버가 실행 중인지 확인해주세요.');
       }
 
-      const botResponse = await sendChatMessageToServer(currentSessionId, messagePayload);
-      const botMessage = {
-        id: botResponse?.message_id || safeUUID(),
-        type: 'bot',
-        message: botResponse?.content ?? '응답이 비어 있습니다.',
-        timestamp: botResponse?.created_at ? new Date(botResponse.created_at) : new Date()
-      };
-      setChatMessages(prev => [...prev, botMessage]);
+      // 디자인 정보 추출
+      const applicationText = design?.description || design?.summary || '';
+      const claimsText = design?.claims?.join('\n') || '';
+      
+      // 세션 ID 생성 (디자인 ID 기반)
+      const sessionId = `design_${design?.patentId || 'default'}_${Date.now()}`;
 
-      if (botResponse?.executed_features?.length > 0) {
-        const featuresMessage = {
+      // 챗봇 API 호출
+      const response = await sendChatbotMessage(sessionId, message, applicationText, claimsText);
+      
+      if (response.success) {
+        const botMessage = {
           id: safeUUID(),
-          type: 'bot-features',
-          features: botResponse.executed_features,
-          results: botResponse.features_result,
+          type: 'bot',
+          message: response.data,
           timestamp: new Date()
         };
-        setChatMessages(prev => [...prev, featuresMessage]);
+        setChatMessages(prev => [...prev, botMessage]);
+      } else {
+        throw new Error(response.error);
       }
     } catch (error) {
       console.error('챗봇 메시지 전송 실패:', error);
       const errorMessage = {
         id: safeUUID(),
         type: 'bot',
-        message: error.message === 'Failed to get a valid session_id from the server.'
-          ? '오류: AI와 새로운 대화 세션을 시작하지 못했습니다. 서버 응답을 확인해주세요.'
-          : '죄송합니다. AI 도우미와 연결하는 데 문제가 발생했습니다.',
+        message: `죄송합니다. AI 도우미와 연결하는 데 문제가 발생했습니다: ${error.message}`,
         timestamp: new Date()
       };
       setChatMessages(prev => [...prev, errorMessage]);
@@ -525,7 +514,54 @@ export default function DesignReview() {
     }
   };
 
-  const handleQuickQuestion = (query) => sendChatMessage(query);
+  const handleQuickQuestion = async (query, forcedIntent = null) => {
+    if (!query.trim()) return;
+
+    const newUserMessage = { id: safeUUID(), type: 'user', message: query, timestamp: new Date() };
+    setChatMessages(prev => [...prev, newUserMessage]);
+    setIsTyping(true);
+
+    try {
+      // 챗봇 서버 상태 확인
+      const isHealthy = await checkChatbotHealth();
+      if (!isHealthy) {
+        throw new Error('챗봇 서버가 응답하지 않습니다. 서버가 실행 중인지 확인해주세요.');
+      }
+
+      // 디자인 정보 추출
+      const applicationText = design?.description || design?.summary || '';
+      const claimsText = design?.claims?.join('\n') || '';
+      
+      // 세션 ID 생성 (디자인 ID 기반)
+      const sessionId = `design_${design?.patentId || 'default'}_${Date.now()}`;
+
+      // 챗봇 API 호출 (forced_intent 포함)
+      const response = await sendChatbotMessage(sessionId, query, applicationText, claimsText, forcedIntent);
+      
+      if (response.success) {
+        const botMessage = {
+          id: safeUUID(),
+          type: 'bot',
+          message: response.data,
+          timestamp: new Date()
+        };
+        setChatMessages(prev => [...prev, botMessage]);
+      } else {
+        throw new Error(response.error);
+      }
+    } catch (error) {
+      console.error('챗봇 메시지 전송 실패:', error);
+      const errorMessage = {
+        id: safeUUID(),
+        type: 'bot',
+        message: `죄송합니다. AI 도우미와 연결하는 데 문제가 발생했습니다: ${error.message}`,
+        timestamp: new Date()
+      };
+      setChatMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsTyping(false);
+    }
+  };
 
   const getStatusColorClass = (currentStatus) => {
     switch (currentStatus) {
@@ -1261,14 +1297,14 @@ ${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getD
           <p className="text-sm font-medium text-gray-700 mb-3">빠른 질문</p>
           <div className="grid grid-cols-2 gap-2">
             {[
-              { id: 'q1', text: '유사 디자인', icon: Copy, query: '이 디자인과 유사한 디자인을 찾아줘' },
-              { id: 'q2', text: '심미성 분석', icon: Lightbulb, query: '이 디자인의 심미성에 대해 분석해줘' },
-              { id: 'q3', text: '법적 근거', icon: Scale, query: '디자인 등록 거절에 대한 법적 근거는 뭐야?' },
-              { id: 'q4', text: '심사 기준', icon: GanttChart, query: '디자인 심사 기준에 대해 알려줘' }
+              { id: 'q1', text: '문서 점검', icon: FileText, query: '이 디자인 문서에 문제가 있는지 확인해줘', intent: 'validate_doc' },
+              { id: 'q2', text: '유사 디자인', icon: Copy, query: '이 디자인과 유사한 디자인을 찾아줘', intent: 'similar_patent' },
+              { id: 'q3', text: '거절사유', icon: Scale, query: '이 디자인의 거절사유를 분석해줘', intent: 'rejection_draft' },
+              { id: 'q4', text: '청구항 초안', icon: ScrollText, query: '이 디자인의 청구항 초안을 생성해줘', intent: 'claim_draft' }
             ].map((q) => (
               <button
                 key={q.id}
-                onClick={() => handleQuickQuestion(q.query)}
+                onClick={() => handleQuickQuestion(q.query, q.intent)}
                 className="p-2 text-xs bg-gray-50 hover:bg-indigo-50 border border-gray-200 hover:border-indigo-300 rounded-lg transition-all flex flex-col items-center gap-1"
               >
                 <q.icon className="w-4 h-4 text-indigo-600" />
