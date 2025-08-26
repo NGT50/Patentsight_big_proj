@@ -383,7 +383,7 @@ const DocumentEditor = () => {
                   <div className="mt-6">
                     <label className="block text-lg font-semibold text-gray-800 mb-2">3D 모델</label>
                     {modelFile ? (
-                      <ThreeDModelViewer src={modelFile.fileUrl} />
+                      <ThreeDModelViewer src={`/api/files/${modelFile.fileId}/content`} />
                     ) : (
                       <p className="text-sm text-gray-500">생성된 3D 모델이 없습니다.</p>
                     )}
