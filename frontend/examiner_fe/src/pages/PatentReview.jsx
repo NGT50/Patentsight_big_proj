@@ -374,6 +374,8 @@ export default function PatentReview() {
       if (!drawingSources || drawingSources.length === 0) return;
       const first = drawingSources[0];
       const url = resolveToLocalFileUrl(first, patent?.patentId);
+      console.log('[auto-sim] srcLike=', first, 'resolved=', url);
+      const results = await searchDesignImageByBlob(url);
       if (!url) return;
       try {
         setIsSearchingSimilarity(true);

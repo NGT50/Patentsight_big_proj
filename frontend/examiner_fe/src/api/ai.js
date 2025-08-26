@@ -125,37 +125,74 @@ export async function searchDesignImageByBlob(imgUrl) {
     sessionStorage.getItem('token') ||
     sessionStorage.getItem('accessToken') || '';
 
-  // 8080 절대 오리진만 강제 (상대경로면 붙여줌), 나머진 그대로
   const API_ORIGIN =
     (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_ORIGIN) ||
     'http://35.175.253.22:8080';
-  const absUrl = imgUrl.startsWith('http') ? imgUrl : `${API_ORIGIN}${imgUrl}`;
 
-  // /api/* 라우트면 토큰만 붙여서 “그대로” 가져오기
-  const needAuth = new URL(absUrl).pathname.startsWith('/api/');
-  const res = await fetch(absUrl, {
+  const toAbs = (u) => (u.startsWith('http') ? u : `${API_ORIGIN}${u}`);
+
+  // 경로 해석
+  const url = new URL(toAbs(imgUrl), window.location.origin);
+  const p = url.pathname;
+
+  // 1) /files/{id}/content  또는 /api/files/{id}/content  → 그대로 사용
+  let m = p.match(/^\/(?:api\/)?files\/(\d+)\/content$/);
+  let fetchUrl = null;
+
+  if (m) {
+    const fileId = m[1];
+    fetchUrl = toAbs(`/api/files/${fileId}/content`);
+  } else {
+    // 2) /api/files/{patentId}/{fileName} → 실제 fileId를 조회해서 /api/files/{id}/content로 변환
+    m = p.match(/^\/api\/files\/(\d+)\/(.+)$/);
+    if (m) {
+      const patentId = m[1];
+      const fileName = m[2]; // 이미 인코딩된 상태일 수 있음
+      const fileId = await getFileIdByPatentAndName(patentId, fileName);
+      if (fileId) {
+        fetchUrl = toAbs(`/api/files/${fileId}/content`);
+      } else {
+        // 2-폴백) 못 찾으면 원래 URL로 시도 (백엔드에 해당 라우트가 없으면 404 떨어짐)
+        fetchUrl = toAbs(imgUrl);
+      }
+    } else {
+      // 3) 기타 외부/기타 경로 → 절대경로로 그냥 시도
+      fetchUrl = toAbs(imgUrl);
+    }
+  }
+
+  // 실제 이미지 GET
+  const needAuth = fetchUrl.includes('/api/');
+  const res = await fetch(fetchUrl, {
     headers: needAuth && token ? { Authorization: `Bearer ${token}` } : {},
     credentials: 'include',
   });
   if (!res.ok) {
+    const t = await res.text().catch(() => '');
+    console.warn('image fetch failed:', res.status, t.slice(0, 200));
     throw new Error(`image fetch failed: ${res.status}`);
   }
 
   const blob = await res.blob();
+
+  // 폼 구성 후 유사 이미지 검색 호출
   const form = new FormData();
   form.append('file', blob, 'drawing.png');
 
-  // 백엔드 프록시로 업로드
-  const upload = await fetch(`${API_ORIGIN}/api/ai/search/design/image`, {
+  const searchRes = await fetch(toAbs('/api/ai/search/design/image'), {
     method: 'POST',
     body: form,
     headers: token ? { Authorization: `Bearer ${token}` } : {},
     credentials: 'include',
   });
-  if (!upload.ok) {
-    throw new Error(`search api failed: ${upload.status}`);
+
+  if (!searchRes.ok) {
+    const t = await searchRes.text().catch(() => '');
+    console.warn('search api failed:', searchRes.status, t.slice(0, 200));
+    throw new Error(`search api failed: ${searchRes.status}`);
   }
-  return upload.json();
+
+  return searchRes.json();
 }
 
 
@@ -252,3 +289,36 @@ export const generateRejectionDraft = async (patentId, fileId) => {
     }
   );
 };
+// === ai.js 내에 추가: 파일명 -> fileId 조회 (캐싱 포함) ===
+const __fileIdCache = new Map(); // key: `${patentId}|${fileName}` -> fileId
+
+async function getFileIdByPatentAndName(patentId, fileName) {
+  const key = `${patentId}|${fileName}`;
+  if (__fileIdCache.has(key)) return __fileIdCache.get(key);
+
+  // 1) 특허 상세에서 attachmentIds 얻기
+  const { data: patent } = await axiosInstance.get(`/api/patents/${encodeURIComponent(patentId)}`);
+  const ids = Array.isArray(patent?.attachmentIds) ? patent.attachmentIds : [];
+  if (!ids.length) return null;
+
+  // 2) 각 파일 메타를 조회하며 이름 매칭
+  for (const id of ids) {
+    try {
+      const { data: meta } = await axiosInstance.get(`/api/files/${id}`);
+      // DB의 file_name은 원본명(예: "3.png")
+      if (!meta?.fileName) continue;
+      // 디코딩 후 비교 (UI에서 인코딩된 이름이 올 수 있음)
+      const want = decodeURIComponent(fileName);
+      if (meta.fileName === want) {
+        __fileIdCache.set(key, meta.fileId ?? id);
+        return meta.fileId ?? id;
+      }
+    } catch {
+      /* skip */
+    }
+  }
+  return null;
+}
+
+// === 교체: 유사 이미지 전용 fetch ===
+
