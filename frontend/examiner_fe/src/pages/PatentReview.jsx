@@ -1354,70 +1354,61 @@ ${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getD
             <h3 className="font-semibold text-xl mb-4 text-gray-800 flex items-center gap-2">
               <Copy className="w-5 h-5 text-blue-500" /> AI 유사 특허 분석
             </h3>
-            <div className="flex gap-4 overflow-x-auto pb-2 -mx-2 px-2">
-              {isSearchingSimilarity ? (
-                <div className="w-full flex justify-center items-center py-8">
-                  <div className="w-8 h-8 border-4 border-gray-200 border-t-indigo-500 rounded-full animate-spin"></div>
-                  <p className="ml-4 text-gray-600">유사 특허를 검색하고 있습니다...</p>
-                </div>
-              ) : similarityResults?.length ? (
-                similarityResults.map((r, i) => (
+          
+            {isSearchingSimilarity ? (
+              <div className="w-full flex justify-center items-center py-8">
+                <div className="w-8 h-8 border-4 border-gray-200 border-t-indigo-500 rounded-full animate-spin"></div>
+                <p className="ml-3 text-gray-600 font-medium">유사 특허 검색 중...</p>
+              </div>
+            ) : similarityResults.length > 0 ? (
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {similarityResults.map((item, idx) => (
                   <div
-                    key={r.applicationNumber || i}
-                    className="min-w-[220px] w-full max-w-[250px] border border-gray-200 rounded-lg bg-white shadow-sm flex-shrink-0 transition-all hover:shadow-md hover:border-indigo-200"
+                    key={idx}
+                    className="border rounded-lg shadow-sm bg-white overflow-hidden hover:shadow-md transition-all"
                   >
-                    {/* 대표 이미지 */}
-                    <div className="h-32 bg-gray-100 flex items-center justify-center">
-                      <img
-                        src={r.basicInfo?.drawing}
-                        alt={`유사 결과 ${i + 1}`}
-                        className="w-full h-full object-contain"
-                        onError={(e) => {
-                          e.currentTarget.onerror = null;
-                          e.currentTarget.src =
-                            "https://placehold.co/400x300/e2e8f0/94a3b8?text=Image+Not+Found";
-                        }}
-                      />
+                    <div className="relative w-full h-40 bg-gray-100 flex items-center justify-center">
+                      {item.image_url ? (
+                        <img
+                          src={item.image_url}
+                          alt={item.title}
+                          className="w-full h-full object-contain"
+                        />
+                      ) : (
+                        <div className="text-gray-400 text-sm">이미지 없음</div>
+                      )}
+                      <span className="absolute top-2 left-2 bg-indigo-600 text-white text-xs font-semibold px-2 py-0.5 rounded">
+                        유사도 {(item.similarity * 100).toFixed(1)}%
+                      </span>
                     </div>
           
-                    {/* 텍스트 정보 */}
                     <div className="p-3">
-                      <p className="text-sm font-semibold text-gray-800 truncate">
-                        {r.basicInfo?.inventionTitle || `유사 결과 ${i + 1}`}
+                      <h4 className="font-semibold text-gray-800 text-sm truncate mb-1">
+                        {item.title}
+                      </h4>
+                      <p className="text-xs text-gray-600 mb-2">
+                        출원번호: {item.application_number}
                       </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        출원번호: {r.basicInfo?.applicationNumber}
-                      </p>
-                      <p className="text-xs text-gray-600 mt-1 line-clamp-2">
-                        {r.basicInfo?.astrtCont || "요약 정보 없음"}
-                      </p>
-          
-                      {/* 유사도 (mock라면 랜덤 or 고정값) */}
-                      {r.similarity !== undefined && (
-                        <>
-                          <div className="w-full bg-gray-200 rounded-full h-2.5 mt-3">
-                            <div
-                              className="bg-blue-600 h-2.5 rounded-full"
-                              style={{
-                                width: `${Number(r.similarity * 100 || 0).toFixed(2)}%`,
-                              }}
-                            ></div>
-                          </div>
-                          <p className="text-right text-sm font-bold text-blue-700 mt-1">
-                            {Number(r.similarity * 100 || 0).toFixed(2)}%
-                          </p>
-                        </>
-                      )}
+                      <a
+                        href={`https://plus.kipris.or.kr/kipo-mobile/search/detail.do?applno=${item.application_number}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-xs text-indigo-600 hover:underline"
+                      >
+                        특허 상세 보기
+                      </a>
                     </div>
                   </div>
-                ))
-              ) : (
-                <p className="text-gray-600 w-full text-center py-4">
-                  AI 분석 결과가 없거나 분석 중입니다.
-                </p>
-              )}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="w-full py-6 text-center text-gray-500 text-sm border border-dashed border-gray-300 rounded-lg bg-gray-50">
+                아직 유사 특허 검색 결과가 없습니다.  
+                <br /> 상단 챗봇에서 "유사특허 검색"을 입력해보세요.
+              </div>
+            )}
           </section>
+
 
           <div className="text-center mt-6">
             <button
