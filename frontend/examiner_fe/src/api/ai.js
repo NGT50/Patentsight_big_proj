@@ -122,18 +122,34 @@ export async function searchDesignImageByBlob(imgUrl) {
     sessionStorage.getItem('accessToken') || '';
 
   // /api/files/** URL이면 CORS 회피용 /stream 으로 전환
+// src/api/ai.js  ─ toStreamUrl 교체
   const toStreamUrl = (u) => {
     try {
       const url = new URL(u, window.location.origin);
+
+      // 1) 새 포맷: /api/files/{patentId}/{fileName} → /stream
       if (url.pathname.startsWith('/api/files/')) {
-        url.pathname = url.pathname
-          .replace(/\/content$/, '')
-          .replace(/\/$/, '') + '/stream';
+        if (!url.pathname.endsWith('/stream')) {
+          url.pathname = url.pathname.replace(/\/$/, '') + '/stream';
+        }
         return url.toString();
       }
-    } catch {}
-    return u;
+
+      // 2) 레거시 포맷: /files/{id}/content → /api/files/content/{id}/stream 로 강제 매핑
+      const m = url.pathname.match(/^\/files\/(\d+)\/content$/);
+      if (m) {
+        const fileId = m[1];
+        url.pathname = `/api/files/content/${fileId}/stream`;
+        return url.toString();
+      }
+
+      // 3) 기타 외부 URL은 그대로 (이미지 프록시가 필요하면 별도 처리)
+      return u;
+    } catch {
+      return u;
+    }
   };
+
 
   const fetchUrl = toStreamUrl(imgUrl);
   const res = await fetch(fetchUrl, {
