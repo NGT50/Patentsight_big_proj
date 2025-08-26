@@ -30,6 +30,10 @@ const ThreeDModelViewer = ({ src }) => {
           credentials: 'include',
         });
         if (!res.ok) throw new Error('GLB fetch failed');
+        const ct = res.headers.get('content-type') || '';
+        if (!/model\/gltf-binary|application\/octet-stream/.test(ct)) {
+          throw new Error(`Unexpected content-type: ${ct}`);
+        }
         const blob = await res.blob();
         objectUrl = URL.createObjectURL(blob);
         setModelUrl(objectUrl);
