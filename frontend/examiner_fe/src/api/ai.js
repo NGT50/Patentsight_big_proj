@@ -125,44 +125,19 @@ export async function searchDesignImageByBlob(imgUrl) {
     sessionStorage.getItem('token') ||
     sessionStorage.getItem('accessToken') || '';
 
-  // 서버가 이해하는 스트림 경로로 강제 정규화
-  // 목표: /api/files/content/{id}/stream  (이 포맷으로 맞춰 보냄)
-  const toStreamUrl = (u) => {
-    try {
-      const url = new URL(u, window.location.origin);
-      const p = url.pathname;
+  // 8080 절대 오리진만 강제 (상대경로면 붙여줌), 나머진 그대로
+  const API_ORIGIN =
+    (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_ORIGIN) ||
+    'http://35.175.253.22:8080';
+  const absUrl = imgUrl.startsWith('http') ? imgUrl : `${API_ORIGIN}${imgUrl}`;
 
-      // 1) 레거시: /files/{id}/content  →  /api/files/{id}/content  (존재하는 엔드포인트)
-      let m = p.match(/^\/files\/(\d )\/content$/);
-      if (m) return `/api/files/${m[1]}/content`;
-
-      // 2) 이미 정답 경로면 그대로
-      m = p.match(/^\/api\/files\/(\d )\/content$/);
-      if (m) return p;
-
-
-      
-
-      // 4) 기타는 그대로
-      return u;
-    } catch {
-      return u;
-    }
-  };
-
-  // 상대 경로면 반드시 8080 절대 오리진으로 바꿔서 호출
-  const normalized = toStreamUrl(imgUrl);
-  const fetchUrl = normalized.startsWith('http') ? normalized : toApiAbsolute(normalized);
-
-  const res = await fetch(fetchUrl, {
-    headers: fetchUrl.includes('/api/') && token ? { Authorization: `Bearer ${token}` } : {},
+  // /api/* 라우트면 토큰만 붙여서 “그대로” 가져오기
+  const needAuth = new URL(absUrl).pathname.startsWith('/api/');
+  const res = await fetch(absUrl, {
+    headers: needAuth && token ? { Authorization: `Bearer ${token}` } : {},
     credentials: 'include',
   });
-
   if (!res.ok) {
-    // 디버깅에 도움: 서버가 HTML을 돌려주면 JSON 파싱 에러가 나니, 여기서 막아줌
-    const t = await res.text().catch(() => '');
-    console.warn('image stream failed:', res.status, t.slice(0, 200));
     throw new Error(`image fetch failed: ${res.status}`);
   }
 
@@ -170,20 +145,17 @@ export async function searchDesignImageByBlob(imgUrl) {
   const form = new FormData();
   form.append('file', blob, 'drawing.png');
 
-  // 실제 유사 이미지 검색 호출 (백엔드 프록시)
-  const r = await fetch(toApiAbsolute('/api/ai/search/design/image'), {
+  // 백엔드 프록시로 업로드
+  const upload = await fetch(`${API_ORIGIN}/api/ai/search/design/image`, {
     method: 'POST',
     body: form,
     headers: token ? { Authorization: `Bearer ${token}` } : {},
     credentials: 'include',
   });
-
-  if (!r.ok) {
-    const t = await r.text().catch(() => '');
-    console.warn('search api failed:', r.status, t.slice(0, 200));
-    throw new Error(`search api failed: ${r.status}`);
+  if (!upload.ok) {
+    throw new Error(`search api failed: ${upload.status}`);
   }
-  return r.json();
+  return upload.json();
 }
 
 
