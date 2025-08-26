@@ -117,7 +117,7 @@ export const searchDesignImage = async (input) => {
 };
 
 // 이미지 파일(blob)로 직접 유사 디자인 검색
-// 이미지 파일(blob)로 직접 유사 디자인 검색
+// === 교체: 유사 이미지 전용 fetch (강화판) ===
 export async function searchDesignImageByBlob(imgUrl) {
   const token =
     localStorage.getItem('token') ||
@@ -131,37 +131,53 @@ export async function searchDesignImageByBlob(imgUrl) {
 
   const toAbs = (u) => (u.startsWith('http') ? u : `${API_ORIGIN}${u}`);
 
-  // 경로 해석
-  const url = new URL(toAbs(imgUrl), window.location.origin);
-  const p = url.pathname;
+  // 1) 절대 URL로 만들고 pathname 정규화(끝 슬래시 제거)
+  const abs = toAbs(imgUrl);
+  const u = new URL(abs);
+  let p = u.pathname.replace(/\/+$/, ''); // trailing slash 제거
 
-  // 1) /files/{id}/content  또는 /api/files/{id}/content  → 그대로 사용
-  let m = p.match(/^\/(?:api\/)?files\/(\d+)\/content$/);
   let fetchUrl = null;
 
-  if (m) {
-    const fileId = m[1];
+  // 2) [최우선] 이미 fileId 경로면 그대로 사용 (뒤 슬래시 허용)
+  //    예) /api/files/48/content  또는 /files/48/content
+  const mFileId = p.match(/^\/(?:api\/)?files\/(\d+)\/content$/);
+  if (mFileId) {
+    const fileId = mFileId[1];
     fetchUrl = toAbs(`/api/files/${fileId}/content`);
   } else {
-    // 2) /api/files/{patentId}/{fileName} → 실제 fileId를 조회해서 /api/files/{id}/content로 변환
-    m = p.match(/^\/api\/files\/(\d+)\/(.+)$/);
-    if (m) {
-      const patentId = m[1];
-      const fileName = m[2]; // 이미 인코딩된 상태일 수 있음
-      const fileId = await getFileIdByPatentAndName(patentId, fileName);
-      if (fileId) {
-        fetchUrl = toAbs(`/api/files/${fileId}/content`);
+    // 3) 특허ID/파일명 경로만 "파일명→fileId 조회" 시도
+    //    예) /api/files/{patentId}/{fileName}
+    const mName = p.match(/^\/api\/files\/(\d+)\/(.+)$/);
+    if (mName) {
+      const patentId = mName[1];
+      const rawName = mName[2]; // 인코딩 상태일 수 있음
+      // 파일명 안전장치: content 같은 예약토큰/확장자 없는 문자열은 스킵
+      const decodedName = decodeURIComponent(rawName || '');
+      const looksLikeRealFileName = /\./.test(decodedName) && decodedName.toLowerCase() !== 'content';
+
+      if (looksLikeRealFileName) {
+        // 혹시 과거에 잘못 캐시된 항목 제거
+        const badKey = `${patentId}|content`;
+        if (__fileIdCache?.has?.(badKey)) __fileIdCache.delete(badKey);
+
+        const fileId = await getFileIdByPatentAndName(patentId, rawName);
+        if (fileId) {
+          fetchUrl = toAbs(`/api/files/${fileId}/content`);
+        } else {
+          // 메타 못 찾으면 원본 그대로 시도
+          fetchUrl = abs;
+        }
       } else {
-        // 2-폴백) 못 찾으면 원래 URL로 시도 (백엔드에 해당 라우트가 없으면 404 떨어짐)
-        fetchUrl = toAbs(imgUrl);
+        // 파일명 모양이 아니면 원본 그대로
+        fetchUrl = abs;
       }
     } else {
-      // 3) 기타 외부/기타 경로 → 절대경로로 그냥 시도
-      fetchUrl = toAbs(imgUrl);
+      // 4) 기타 경로/외부 URL은 그대로
+      fetchUrl = abs;
     }
   }
 
-  // 실제 이미지 GET
+  // 5) 실제 이미지 GET (토큰 필요하면 붙임)
   const needAuth = fetchUrl.includes('/api/');
   const res = await fetch(fetchUrl, {
     headers: needAuth && token ? { Authorization: `Bearer ${token}` } : {},
@@ -169,13 +185,13 @@ export async function searchDesignImageByBlob(imgUrl) {
   });
   if (!res.ok) {
     const t = await res.text().catch(() => '');
-    console.warn('image fetch failed:', res.status, t.slice(0, 200));
+    console.warn('image fetch failed:', res.status, t.slice(0, 200), '→', fetchUrl);
     throw new Error(`image fetch failed: ${res.status}`);
   }
 
   const blob = await res.blob();
 
-  // 폼 구성 후 유사 이미지 검색 호출
+  // 6) 폼 구성 후 유사 이미지 검색 호출
   const form = new FormData();
   form.append('file', blob, 'drawing.png');
 
@@ -194,6 +210,7 @@ export async function searchDesignImageByBlob(imgUrl) {
 
   return searchRes.json();
 }
+
 
 
 
