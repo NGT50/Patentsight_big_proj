@@ -383,6 +383,7 @@ export default function DesignReview() {
                 /\.glb($|\?|#)/i.test(f?.name || '') ||
                 /\.glb($|\?|#)/i.test(f?.url || '')
             );
+            // Use backend endpoint to stream GLB content instead of direct S3 URLs
             setGlbModelUrl(glb ? `/api/files/${glb.id}/content` : '');
           } catch {
             setAttachmentImageUrls([]); setAttachmentOtherFiles([]); setGlbModelUrl('');
