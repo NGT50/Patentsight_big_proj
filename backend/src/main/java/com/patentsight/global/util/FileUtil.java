@@ -3,6 +3,10 @@ package com.patentsight.global.util;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.UUID;
 
 import org.slf4j.Logger;
@@ -103,6 +107,36 @@ public class FileUtil {
             S3.deleteObject(req);
         } catch (S3Exception | SdkClientException e) {
             throw new IOException("S3 delete failed: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Downloads the file for the given key or URL and returns its bytes. If the
+     * input refers to a local file path it will be read directly; otherwise an
+     * S3 getObject call is made.
+     */
+    public static byte[] downloadFile(String key) throws IOException {
+        if (key == null || key.isEmpty()) {
+            throw new IOException("No file key provided");
+        }
+        if (key.startsWith("http://") || key.startsWith("https://")) {
+            try (InputStream in = URI.create(key).toURL().openStream()) {
+                return in.readAllBytes();
+            }
+        }
+        Path path = Path.of(key);
+        if (Files.exists(path)) {
+            return Files.readAllBytes(path);
+        }
+        ensureAwsCredentials("download object '" + key + "'");
+        try {
+            GetObjectRequest req = GetObjectRequest.builder()
+                    .bucket(BUCKET)
+                    .key(key)
+                    .build();
+            return S3.getObjectAsBytes(req).asByteArray();
+        } catch (S3Exception | SdkClientException e) {
+            throw new IOException("S3 download failed: " + e.getMessage(), e);
         }
     }
 
