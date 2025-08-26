@@ -3,31 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { getPatentDetail } from '../api/patents';
 import { getReviewByPatentId } from '../api/reviews';
 import { getImageUrlsByIds, getNonImageFilesByIds } from '../api/files';
-
-function ModelViewer3D({ src }) {
-  useEffect(() => {
-    if (!window.customElements || !window.customElements.get('model-viewer')) {
-      const script = document.createElement('script');
-      script.type = 'module';
-      script.src = 'https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js';
-      document.head.appendChild(script);
-    }
-  }, []);
-  return (
-    <div className="w-full h-72 bg-gray-100 rounded-lg overflow-hidden border border-gray-200 flex items-center justify-center">
-      {/* @ts-ignore */}
-      <model-viewer
-        style={{ width: '100%', height: '100%' }}
-        src={src}
-        camera-controls
-        auto-rotate
-        exposure="1.0"
-        shadow-intensity="1"
-        ar
-      />
-    </div>
-  );
-}
+import ThreeDModelViewer from '../components/ThreeDModelViewer';
 
 const PatentDetail = () => {
   const { id } = useParams();
@@ -64,7 +40,7 @@ const PatentDetail = () => {
                 /\.glb($|\?|#)/i.test(f.name || '') ||
                 /\.glb($|\?|#)/i.test(f.url || '')
             );
-            setGlbUrl(glb ? glb.url : '');
+            setGlbUrl(glb ? `/api/files/${glb.id}/content` : '');
           } catch (err) {
             console.error('첨부 파일 로드 실패:', err);
           }
@@ -166,24 +142,25 @@ const PatentDetail = () => {
             <p className="text-gray-700 whitespace-pre-wrap">{patent.summary || 'N/A'}</p>
           </div>
 
-          {(images.length > 0 || glbUrl) && (
+          {images.length > 0 && (
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <h2 className="text-lg font-semibold text-gray-800 mb-2">도면</h2>
-              <div className="space-y-4">
-                {images.length > 0 && (
-                  <div className="flex flex-wrap gap-4">
-                    {images.map((src, idx) => (
-                      <img
-                        key={idx}
-                        src={src}
-                        alt={`drawing-${idx}`}
-                        className="max-w-full h-48 object-contain rounded border border-gray-200"
-                      />
-                    ))}
-                  </div>
-                )}
-                {glbUrl && <ModelViewer3D src={glbUrl} />}
+              <div className="flex flex-wrap gap-4">
+                {images.map((src, idx) => (
+                  <img
+                    key={idx}
+                    src={src}
+                    alt={`drawing-${idx}`}
+                    className="max-w-full h-48 object-contain rounded border border-gray-200"
+                  />
+                ))}
               </div>
+            </div>
+          )}
+          {glbUrl && (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <h2 className="text-lg font-semibold text-gray-800 mb-2">3D 모델</h2>
+              <ThreeDModelViewer src={glbUrl} />
             </div>
           )}
 

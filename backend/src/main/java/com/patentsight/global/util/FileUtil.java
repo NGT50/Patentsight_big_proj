@@ -129,12 +129,12 @@ public class FileUtil {
             return Files.readAllBytes(path);
         }
         ensureAwsCredentials("download object '" + key + "'");
-        try {
-            GetObjectRequest req = GetObjectRequest.builder()
-                    .bucket(BUCKET)
-                    .key(key)
-                    .build();
-            return S3.getObjectAsBytes(req).asByteArray();
+        GetObjectRequest req = GetObjectRequest.builder()
+                .bucket(BUCKET)
+                .key(key)
+                .build();
+        try (InputStream in = S3.getObject(req)) {
+            return in.readAllBytes();
         } catch (S3Exception | SdkClientException e) {
             throw new IOException("S3 download failed: " + e.getMessage(), e);
         }
