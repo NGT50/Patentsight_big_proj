@@ -65,5 +65,34 @@ class FileServiceTest {
         // cleanup saved file
         FileUtil.deleteFile(res.getFileUrl());
     }
+
+    @Test
+    void createReplacesExistingGlb() throws Exception {
+        MockMultipartFile glb = new MockMultipartFile(
+                "file", "model.glb", "model/gltf-binary", "glb".getBytes());
+
+        Patent patent = new Patent();
+        patent.setPatentId(10L);
+        when(patentRepository.findById(10L)).thenReturn(java.util.Optional.of(patent));
+
+        FileAttachment existing = new FileAttachment();
+        existing.setFileId(5L);
+        existing.setFileUrl("oldKey");
+        when(fileRepository.findTopByPatent_PatentIdAndFileType(10L, FileType.GLB))
+                .thenReturn(java.util.Optional.of(existing));
+
+        when(fileRepository.save(any(FileAttachment.class))).thenAnswer(invocation -> {
+            FileAttachment att = invocation.getArgument(0);
+            att.setFileId(6L);
+            return att;
+        });
+
+        FileResponse res = fileService.create(glb, null, 10L);
+
+        assertEquals(FileType.GLB, res.getFileType());
+        verify(fileRepository).delete(existing);
+
+        FileUtil.deleteFile(res.getFileUrl());
+    }
 }
 
