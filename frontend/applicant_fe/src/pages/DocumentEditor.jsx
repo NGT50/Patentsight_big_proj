@@ -23,11 +23,15 @@ const DocumentEditor = () => {
   const queryClient = useQueryClient();
   const location = useLocation();
   const [drawingFiles, setDrawingFiles] = useState([]);
+  const [selectedDrawingId, setSelectedDrawingId] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState(null);
   const [attachedPdf, setAttachedPdf] = useState(null);
   const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
   const isDataLoadedFromServerRef = useRef(false);
+
+  const imageFiles = drawingFiles.filter(f => !f.fileUrl?.toLowerCase().endsWith('.glb'));
+  const selectedImageIndex = imageFiles.findIndex(f => f.fileId === selectedDrawingId);
 
   // --- 데이터 로딩 (React Query) ---
   const { data, isLoading, isError } = useQuery({
@@ -99,6 +103,9 @@ const DocumentEditor = () => {
         })
       );
       setDrawingFiles(prev => [...prev, ...uploaded]);
+      if (!selectedDrawingId && uploaded.length > 0) {
+        setSelectedDrawingId(uploaded[0].fileId);
+      }
     } catch (error) {
       console.error('도면 업로드 실패:', error);
       setUploadError('도면 업로드에 실패했습니다. 다시 시도해주세요.');
@@ -170,12 +177,13 @@ const DocumentEditor = () => {
   };
 
   const handleGenerate3D = async () => {
-    if (drawingFiles.length === 0) {
-      alert('먼저 도면 이미지를 업로드해주세요.');
+    const target = drawingFiles.find(f => f.fileId === selectedDrawingId && !f.fileUrl?.toLowerCase().endsWith('.glb'));
+    if (!target) {
+      alert('3D로 변환할 도면을 선택해주세요.');
       return;
     }
     try {
-      const { fileId, fileUrl } = await generate3DModel({ patentId, imageId: drawingFiles[0].fileId });
+      const { fileId, fileUrl } = await generate3DModel({ patentId, imageId: target.fileId });
       setDrawingFiles(prev => [...prev, { fileId, fileUrl, fileName: 'model.glb' }]);
       alert('3D 도면 생성이 완료되었습니다.');
     } catch (err) {
@@ -311,19 +319,41 @@ const DocumentEditor = () => {
               )}
               {activeTab === 'drawings' && (
                 <div ref={el => fieldRefs.current['drawings'] = el} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                  <label className="block text-lg font-semibold text-gray-800 mb-3">도면 업로드</label>
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="block text-lg font-semibold text-gray-800">도면 업로드</label>
+                    {imageFiles.length > 0 && (
+                      <span className="text-xs text-gray-500">
+                        선택된 도면: {selectedImageIndex >= 0 ? selectedImageIndex + 1 : '-'} / {imageFiles.length}
+                      </span>
+                    )}
+                  </div>
                   <input type="file" multiple accept="image/png, image/jpeg" onChange={handleDrawingUpload} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"/>
                   {isUploading && <p className="text-sm text-gray-500 mt-2">업로드 중...</p>}
                   {uploadError && <p className="text-sm text-red-500 mt-2">{uploadError}</p>}
-                  <div className="grid grid-cols-3 gap-4 mt-4">{drawingFiles.map((f, index) => (
-                    <div key={f.fileId || index} className="border rounded-lg overflow-hidden flex items-center justify-center p-2">
-                      {f.fileUrl?.toLowerCase().endsWith('.glb') ? (
-                        <a href={f.fileUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">3D 모델 다운로드</a>
-                      ) : (
-                        <img src={f.fileUrl} alt={`도면 미리보기 ${index + 1}`} className="w-full h-auto object-cover" />
-                      )}
-                    </div>
-                  ))}</div>
+                  <div className="grid grid-cols-3 gap-4 mt-4">
+                    {drawingFiles.map((f, index) => {
+                      const isGlb = f.fileUrl?.toLowerCase().endsWith('.glb');
+                      const isSelected = f.fileId === selectedDrawingId;
+                      return (
+                        <div
+                          key={f.fileId || index}
+                          onClick={() => !isGlb && setSelectedDrawingId(f.fileId)}
+                          className={`relative border rounded-lg overflow-hidden flex items-center justify-center p-2 ${!isGlb ? 'cursor-pointer' : ''} ${isSelected ? 'ring-2 ring-indigo-500' : ''}`}
+                        >
+                          {isGlb ? (
+                            <a href={f.fileUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">3D 모델 다운로드</a>
+                          ) : (
+                            <>
+                              <img src={f.fileUrl} alt={`도면 미리보기 ${index + 1}`} className="w-full h-auto object-cover" />
+                              {isSelected && (
+                                <span className="absolute top-1 right-1 text-[10px] px-1.5 py-0.5 bg-indigo-600 text-white rounded">선택됨</span>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
             </div>
