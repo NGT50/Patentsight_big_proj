@@ -35,6 +35,23 @@ const safeUUID = () => {
     return `id-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
   }
 };
+
+// 시연용 거절사유판단 결과
+const DEMO_REJECTION_RESULT = `[거절이유 판단 ]
+
+출원발명의 청구항 1 내지 9는 "수술용 로봇 암의 회동 구조"에 관한 것으로, 그립퍼를 지지하는 지지 디스크가 볼 조인트에 의해 X축 및 Y축 방향으로 자유롭게 회동되며, 디스크 둘레에 배치된 복수의 와이어가 모터 구동부와 연결되어 디스크의 기울기 및 회동 각도를 정밀하게 제어하는 구성을 포함하고 있습니다.
+
+그러나, 인용발명 1(공개특허 제10-2009-0089928호)의 청구항 1 및 2에서는
+"수술용 로봇 암의 말단 지지부를 원격중심(RCM) 기반의 링크 및 볼 조인트로 연결하여 다축 회동을 가능하게 하고, 케이블/와이어를 통해 모터 구동부에서 말단부 기울기 각도를 제어하는 구조"가 이미 개시되어 있습니다.
+따라서 출원발명의 청구항 1 및 청구항 2의 구성은 인용발명 1의 대응 청구항과 실질적으로 동일하여 신규성이 부정됩니다.
+
+또한, 인용발명 2(공개특허 제10-2011-0098027호)의 청구항 3 및 4에서는
+"외과용 로봇의 말단부 그립퍼를 다수의 와이어로 구동하여 수술 조직을 정밀하게 파지 및 절단하는 기능"이 개시되어 있습니다.
+출원발명의 청구항 3 내지 청구항 5 역시 동일하게 "와이어 구동 방식으로 그립퍼를 정밀 제어"하는 구성을 포함하고 있어, 양 발명의 핵심 기술적 특징이 실질적으로 동일합니다.
+
+나아가, 인용발명 1의 볼 조인트 기반 회동 구조와 인용발명 2의 와이어 구동 그립퍼 제어 방식을 결합하는 것은 당해 기술분야의 통상의 기술자가 용이하게 도출할 수 있는 사항입니다. 두 인용발명은 모두 "수술용 로봇 암의 직관적 조작 및 정밀 제어"라는 동일한 과제를 해결하고 있으며, 이를 단순히 결합한다고 하더라도 새로운 기술적 효과가 창출된다고 보기 어렵습니다.
+
+따라서, 출원발명의 청구항 1 내지 9는 특허법 제29조 제1항(신규성) 및 제2항(진보성)에 따른 요건을 충족하지 못하여 거절이유가 존재합니다. 이에 대해 출원인은 본 통지서를 수령한 날로부터 30일 이내에 의견서 또는 보정서를 제출하여야 합니다.`;
 // /files/{id}/content ↔ /api/files/{id}/content 정규화
 function normalizeToApiContent(u) {
   try {
@@ -267,6 +284,11 @@ export default function PatentReview() {
   // 첨부에서 찾은 glb 뷰어 소스
   const [glbModelUrl, setGlbModelUrl] = useState('');
 
+  // 거절사유판단 관련 상태
+  const [showRejectionAnalysis, setShowRejectionAnalysis] = useState(false);
+  const [rejectionAnalysisResult, setRejectionAnalysisResult] = useState('');
+  const [showApplyToOpinion, setShowApplyToOpinion] = useState(false);
+
   // ✅ 특허 상세(첨부 ID 포함) 보조 호출
   const fetchPatentDetail = async (patentId) => {
     try {
@@ -434,6 +456,50 @@ export default function PatentReview() {
     setIsTyping(true);
 
     try {
+      // 거절사유 관련 키워드가 포함된 경우 시연용 데이터 반환
+      const rejectionKeywords = ['거절사유', '거절이유', '거절 이유', '거절 사유', 'rejection'];
+      const hasRejectionKeyword = rejectionKeywords.some(keyword => 
+        message.toLowerCase().includes(keyword.toLowerCase())
+      );
+      
+      // 보류의견서 반영 여부에 대한 긍정적 답변 감지
+      const positiveKeywords = ['네', '응', 'yes', 'ok', '좋아', '그래'];
+      const hasPositiveKeyword = positiveKeywords.some(keyword => 
+        message.toLowerCase().includes(keyword.toLowerCase())
+      );
+      
+      if (showApplyToOpinion && hasPositiveKeyword) {
+        handleApplyToOpinion();
+        return;
+      }
+      
+      if (hasRejectionKeyword) {
+        setTimeout(() => {
+          const botMessage = {
+            id: safeUUID(),
+            type: 'bot',
+            message: DEMO_REJECTION_RESULT,
+            timestamp: new Date()
+          };
+          setChatMessages(prev => [...prev, botMessage]);
+          
+          // 보류의견서 반영 여부 묻기
+          setTimeout(() => {
+            const applyMessage = {
+              id: safeUUID(),
+              type: 'bot',
+              message: '보류의견서에 반영하시겠습니까? (네/아니오)',
+              timestamp: new Date()
+            };
+            setChatMessages(prev => [...prev, applyMessage]);
+            setShowApplyToOpinion(true);
+          }, 500);
+          
+          setIsTyping(false);
+        }, 1000); // 1초 후 응답 (로딩 효과)
+        return;
+      }
+
       // 챗봇 서버 상태 확인
       const isHealthy = await checkChatbotHealth();
       if (!isHealthy) {
@@ -483,6 +549,34 @@ export default function PatentReview() {
     setIsTyping(true);
 
     try {
+      // 거절사유판단인 경우 시연용 데이터 반환
+      if (forcedIntent === 'rejection_draft') {
+        setTimeout(() => {
+          const botMessage = {
+            id: safeUUID(),
+            type: 'bot',
+            message: DEMO_REJECTION_RESULT,
+            timestamp: new Date()
+          };
+          setChatMessages(prev => [...prev, botMessage]);
+          
+          // 보류의견서 반영 여부 묻기
+          setTimeout(() => {
+            const applyMessage = {
+              id: safeUUID(),
+              type: 'bot',
+              message: '보류의견서에 반영하시겠습니까? (네/아니오)',
+              timestamp: new Date()
+            };
+            setChatMessages(prev => [...prev, applyMessage]);
+            setShowApplyToOpinion(true);
+          }, 500);
+          
+          setIsTyping(false);
+        }, 1000); // 1초 후 응답 (로딩 효과)
+        return;
+      }
+
       // 챗봇 서버 상태 확인
       const isHealthy = await checkChatbotHealth();
       if (!isHealthy) {
@@ -536,6 +630,14 @@ export default function PatentReview() {
   };
 
   const showMessageBox = (m) => { setModalMessage(m); setShowModal(true); };
+
+  // 보류의견서 반영 함수
+  const handleApplyToOpinion = () => {
+    setApprovalComment(DEMO_REJECTION_RESULT);
+    setSelectedAction('document');
+    setShowApplyToOpinion(false);
+    showMessageBox('거절사유판단 결과가 보류의견서에 반영되었습니다.');
+  };
 
   // ⛳ 보류 의견서 → REVIEWING, 거절 사유서 → REJECT
   const handleReviewSubmit = async () => {
@@ -1198,6 +1300,23 @@ ${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getD
                   <p className={`text-xs mt-1 ${message.type === 'user' ? 'text-blue-100' : 'text-gray-500'}`}>
                     {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </p>
+                  {/* 보류의견서 반영 버튼 */}
+                  {message.type === 'bot' && message.message.includes('보류의견서에 반영하시겠습니까?') && showApplyToOpinion && (
+                    <div className="mt-3 flex gap-2">
+                      <button
+                        onClick={handleApplyToOpinion}
+                        className="px-3 py-1.5 bg-blue-500 text-white text-xs rounded-md hover:bg-blue-600 transition-colors"
+                      >
+                        네, 반영하겠습니다
+                      </button>
+                      <button
+                        onClick={() => setShowApplyToOpinion(false)}
+                        className="px-3 py-1.5 bg-gray-300 text-gray-700 text-xs rounded-md hover:bg-gray-400 transition-colors"
+                      >
+                        아니오
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             );
