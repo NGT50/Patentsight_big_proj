@@ -9,7 +9,7 @@ import {
   generateFullDraft,
   generate3DModel,
 } from '../api/patents';
-import { uploadFile, getFileDetail } from '../api/files';
+import { uploadFile, getFileDetail, toAbsoluteFileUrl } from '../api/files';
 import {
   FileText,
   Save,
@@ -111,7 +111,12 @@ const DocumentEditor = () => {
           const glbMeta = metas.find((m) => m.fileType === 'GLB');
           setModelFile(
             glbMeta
-              ? { fileId: glbMeta.fileId, fileUrl: glbMeta.fileUrl, fileName: glbMeta.fileName }
+              ? {
+                  fileId: glbMeta.fileId,
+                  // Always stream GLB through backend proxy instead of direct S3 URL
+                  fileUrl: toAbsoluteFileUrl(`/api/files/${glbMeta.fileId}/content`),
+                  fileName: glbMeta.fileName,
+                }
               : null
           );
         } catch (err) {
@@ -235,11 +240,12 @@ const DocumentEditor = () => {
       return;
     }
     try {
-      const { fileId, fileUrl } = await generate3DModel({
+      const { fileId } = await generate3DModel({
         patentId,
         imageId: target.fileId,
       });
-      setModelFile({ fileId, fileUrl, fileName: 'model.glb' });
+      // Use backend streaming endpoint for the generated GLB
+      setModelFile({ fileId, fileUrl: toAbsoluteFileUrl(`/api/files/${fileId}/content`), fileName: 'model.glb' });
       alert('3D 도면 생성이 완료되었습니다.');
     } catch (err) {
       console.error('3D 변환 실패:', err);
@@ -409,7 +415,7 @@ const DocumentEditor = () => {
                   <div className="mt-6">
                     <label className="block text-lg font-semibold text-gray-800 mb-2">3D 모델</label>
                     {modelFile ? (
-                      <ThreeDModelViewer src={`/api/files/${modelFile.fileId}/content`} />
+                      <ThreeDModelViewer src={modelFile.fileUrl} />
                     ) : (
                       <p className="text-sm text-gray-500">생성된 3D 모델이 없습니다.</p>
                     )}
