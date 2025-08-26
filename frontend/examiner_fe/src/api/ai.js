@@ -132,18 +132,16 @@ export async function searchDesignImageByBlob(imgUrl) {
       const url = new URL(u, window.location.origin);
       const p = url.pathname;
 
-      // 1) 레거시: /files/{id}/content → /api/files/content/{id}/stream
-      let m = p.match(/^\/files\/(\d+)\/content$/);
-      if (m) return `/api/files/content/${m[1]}/stream`;
+      // 1) 레거시: /files/{id}/content  →  /api/files/{id}/content  (존재하는 엔드포인트)
+      let m = p.match(/^\/files\/(\d )\/content$/);
+      if (m) return `/api/files/${m[1]}/content`;
 
-      // 2) 잘못된 변형: /api/files/{id}/content(/stream)? → /api/files/content/{id}/stream
-      m = p.match(/^\/api\/files\/(\d+)\/content(?:\/stream)?$/);
-      if (m) return `/api/files/content/${m[1]}/stream`;
+      // 2) 이미 정답 경로면 그대로
+      m = p.match(/^\/api\/files\/(\d )\/content$/);
+      if (m) return p;
 
-      // 3) 새 포맷: /api/files/{patentId}/{fileName} → 항상 /stream 덧붙임
-      if (p.startsWith('/api/files/')) {
-        return p.replace(/\/$/, '') + '/stream';
-      }
+
+      
 
       // 4) 기타는 그대로
       return u;
