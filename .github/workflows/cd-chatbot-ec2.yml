@@ -1,11 +1,11 @@
 name: CD chatbot → EC2 (CICD)
- 
+
 on:
   push:
-    branches: [ "CICD" ]      # CICD 브랜치에 푸시될 때만
+    branches: [ "CICD" ]          # CICD 브랜치에 푸시될 때만
     paths:
-      - "chatbot/**"          # chatbot 변경시에만 트리거
-  workflow_dispatch:          # 수동 실행 버튼
+      - "chatbot/**"              # chatbot 변경시에만 트리거
+  workflow_dispatch:              # 수동 실행 버튼
 
 concurrency:
   group: cd-ec2-chatbot
@@ -54,15 +54,41 @@ jobs:
           strip_components: 1
           overwrite: true
 
-      - name: Install dependencies on EC2
+      # ✅ .env를 printf로 안전하게 생성
+      - name: Create .env on EC2
         uses: appleboy/ssh-action@v1.1.0
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.KEY }}
           script: |
+            set -e
+            CHATBOT_DIR="/home/${{ secrets.USERNAME }}/chatbot"
+            cd "$CHATBOT_DIR"
+            printf "%s\n" \
+              "CLAIM_DRAFT_URL=http://3.26.101.212:8000/api/ai/drafts/claims" \
+              "VALIDATE_URL=http://3.26.101.212:8000/api/ai/validations" \
+              "# SIMILAR_URL=http://13.236.174.54:8000/api/search/similar" \
+              "REJECTION_URL=http://13.236.174.54:8000/analyze" \
+              "REJECTION_TXT_URL=http://13.236.174.54:8000/analyze-txt" \
+              "SIMILAR_URL=http://3.27.137.18:8080/" > .env
+            echo "Wrote $(wc -c < .env) bytes to .env"
+
+      - name: Install Python and dependencies on EC2
+        uses: appleboy/ssh-action@v1.1.0
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.KEY }}
+          script: |
+            sudo apt-get update
+            sudo apt-get install -y python3 python3-pip python3-venv
+            sudo ln -sf /usr/bin/python3 /usr/bin/python
+            sudo ln -sf /usr/bin/pip3 /usr/bin/pip
             cd /home/${{ secrets.USERNAME }}/chatbot
-            python -m pip install --upgrade pip
+            python3 -m venv venv
+            source venv/bin/activate
+            pip install --upgrade pip
             pip install -r requirements.txt
 
       - name: Restart chatbot service on EC2
@@ -91,7 +117,12 @@ jobs:
               sleep 2
             fi
 
-            # 챗봇 서버 백그라운드에서 실행
+            # 가상환경 활성화 및 .env export (이중 안전)
+            source venv/bin/activate
+            set -a
+            [ -f .env ] && source .env
+            set +a
+
             echo "> 챗봇 서버를 시작합니다."
             nohup python run_chatbot.py > chatbot.log 2>&1 &
             CHATBOT_PID=$!
@@ -105,5 +136,7 @@ jobs:
               echo "✅ 챗봇 서버가 성공적으로 시작되었습니다."
             else
               echo "❌ 챗봇 서버 시작에 실패했습니다."
+              echo "최근 로그 200줄:"
+              tail -n 200 chatbot.log || true
               exit 1
             fi
