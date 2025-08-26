@@ -81,21 +81,23 @@ export const validatePatentDocument = async (patentId) => {
 /* ------------------------ 유사 이미지 검색 ------------------------ */
 
 /** [디자인 이미지 검색] 파일 업로드 (스펙: POST /api/ai/search/design/image form-data[file]) */
+/** [디자인 이미지 검색] 파일 업로드 (스펙: POST /api/ai/search/design/image form-data[file]) */
 export const searchDesignImageByFile = async (file) => {
   return swallow404(
     async () => {
       const form = new FormData();
       form.append('file', file);
       const { data } = await axiosInstance.post(
-      '/api/ai/search/design/image',
-       form,
-       { headers: { 'Content-Type': 'multipart/form-data' } }
+        '/api/ai/search/design/image',
+        form,
+        { headers: { 'Content-Type': 'multipart/form-data' } }
       );
       return data;
     },
-    { results: [], input_image: null, mock: true }
+    { results: [], input_image: null, mock: true } // 404일 경우 더미 응답
   );
 };
+
 
 /** [디자인 이미지 검색] URL로 업로드 (내부에서 File로 변환) */
 export const searchDesignImageByUrl = async (imageUrl) => {
