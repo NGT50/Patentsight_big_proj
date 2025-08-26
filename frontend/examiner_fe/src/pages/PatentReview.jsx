@@ -14,7 +14,8 @@ import {
   sendChatMessageToServer,
   validatePatentDocument,
   generateRejectionDraft,
-  searchDesignImageByBlob, // 첫 번째 2D 도면으로 자동 유사이미지 검색
+  searchDesignImageByBlob, 
+  searchDesignImageByUrl,// 첫 번째 2D 도면으로 자동 유사이미지 검색
 } from '../api/ai';
 
 // 파일 API (메타 조회 → 안전한 URL 만들기)
@@ -364,9 +365,12 @@ export default function PatentReview() {
       if (!url) return;
       try {
         setIsSearchingSimilarity(true);
-        const results = await searchDesignImageByBlob(url); // 변경: 파일 전송
+        const results = await searchDesignImageByUrl(url); // 변경: 파일 전송
         if (results && results.results) {
           setSimilarityResults(results.results);
+          if (results.mock) {
+          console.warn('유사도 결과: MOCK 응답');
+          }
         } else {
           setSimilarityResults([]);
         }
