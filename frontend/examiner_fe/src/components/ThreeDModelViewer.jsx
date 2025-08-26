@@ -60,7 +60,7 @@ export default function ThreeDModelViewer({ src }) {
         src={modelUrl}
         camera-controls
         auto-rotate
-        exposure="-2.5"
+        exposure="0.4"
         shadow-intensity="1"
         ar
       />
