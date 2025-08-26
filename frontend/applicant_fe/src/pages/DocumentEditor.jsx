@@ -202,14 +202,15 @@ const DocumentEditor = () => {
 
   // [추가] ChatPanel에서 호출할 메시지 전송 함수
   const handleSendMessage = (content) => {
-    if (!sessionId) {
-      alert("채팅 세션이 아직 준비되지 않았습니다.");
-      return;
-    }
-    const userMessage = { sender: 'user', content };
-    setMessages(prev => [...prev, userMessage]);
-    setIsAiTyping(true);
-    sendMessageMutation.mutate({ sessionId, content });
+    if (!sessionId) {
+      alert("채팅 세션이 아직 준비되지 않았습니다.");
+      return;
+    }
+    const userMessage = { sender: 'user', content };
+    setMessages(prev => [...prev, userMessage]);
+    setIsAiTyping(true);
+    // 현재 편집기의 document 상태를 documentData 라는 이름으로 함께 전달합니다.
+    sendMessageMutation.mutate({ sessionId, content, documentData: document });
   };
 
   // --- 로딩 및 에러 UI ---

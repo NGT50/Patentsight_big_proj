@@ -5,7 +5,7 @@ const FAST_API_PREFIXES = [
   '/api/patents/parse-pdf',
   '/api/ai/validations',
   '/api/ai/draft/full-document',
-  '/api/ai/chat/sessions' // [수정] 챗봇 관련 API는 FastAPI가 담당하도록 여기에 위치해야 합니다.
+   // [수정] 챗봇 관련 API는 FastAPI가 담당하도록 여기에 위치해야 합니다.
 ];
 
 // 🚀 2. Spring 백엔드가 담당할 엔드포인트 목록
@@ -17,7 +17,8 @@ const SPRING_API_PREFIXES = [
   '/api/users',
   // [수정] '/api/ai'는 FastAPI의 AI 기능들과 충돌하므로, 더 구체적으로 명시합니다.
   // 만약 Spring에 '/api/ai/drafts' 같은 기능이 있다면 여기에 추가합니다.
-  '/api/ai/drafts' 
+  '/api/ai/drafts',
+  '/api/ai/chat/sessions'
 ];
 
 const instance = axios.create({
