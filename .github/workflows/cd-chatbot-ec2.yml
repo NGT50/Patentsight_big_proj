@@ -54,7 +54,7 @@ jobs:
           strip_components: 1
           overwrite: true
 
-      # ⬇️ 여기에 .env 생성
+      # ✅ .env를 printf로 안전하게 생성
       - name: Create .env on EC2
         uses: appleboy/ssh-action@v1.1.0
         with:
@@ -65,14 +65,13 @@ jobs:
             set -e
             CHATBOT_DIR="/home/${{ secrets.USERNAME }}/chatbot"
             cd "$CHATBOT_DIR"
-            cat > .env <<'EOF'
-CLAIM_DRAFT_URL=http://3.26.101.212:8000/api/ai/drafts/claims
-VALIDATE_URL=http://3.26.101.212:8000/api/ai/validations
-# SIMILAR_URL=http://13.236.174.54:8000/api/search/similar
-REJECTION_URL=http://13.236.174.54:8000/analyze
-REJECTION_TXT_URL=http://13.236.174.54:8000/analyze-txt
-SIMILAR_URL=http://3.27.137.18:8080/
-EOF
+            printf "%s\n" \
+              "CLAIM_DRAFT_URL=http://3.26.101.212:8000/api/ai/drafts/claims" \
+              "VALIDATE_URL=http://3.26.101.212:8000/api/ai/validations" \
+              "# SIMILAR_URL=http://13.236.174.54:8000/api/search/similar" \
+              "REJECTION_URL=http://13.236.174.54:8000/analyze" \
+              "REJECTION_TXT_URL=http://13.236.174.54:8000/analyze-txt" \
+              "SIMILAR_URL=http://3.27.137.18:8080/" > .env
             echo "Wrote $(wc -c < .env) bytes to .env"
 
       - name: Install Python and dependencies on EC2
@@ -82,22 +81,13 @@ EOF
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.KEY }}
           script: |
-            # Python 설치
             sudo apt-get update
             sudo apt-get install -y python3 python3-pip python3-venv
-
-            # Python 심볼릭 링크 생성
             sudo ln -sf /usr/bin/python3 /usr/bin/python
             sudo ln -sf /usr/bin/pip3 /usr/bin/pip
-
-            # 챗봇 디렉토리로 이동
             cd /home/${{ secrets.USERNAME }}/chatbot
-
-            # 가상환경 생성 및 활성화
             python3 -m venv venv
             source venv/bin/activate
-
-            # 의존성 설치
             pip install --upgrade pip
             pip install -r requirements.txt
 
@@ -127,13 +117,12 @@ EOF
               sleep 2
             fi
 
-            # 가상환경 활성화 및 .env 내보내기(파이썬도 .env 읽지만, export로 이중 안전)
+            # 가상환경 활성화 및 .env export (이중 안전)
             source venv/bin/activate
             set -a
             [ -f .env ] && source .env
             set +a
 
-            # 챗봇 서버 백그라운드에서 실행
             echo "> 챗봇 서버를 시작합니다."
             nohup python run_chatbot.py > chatbot.log 2>&1 &
             CHATBOT_PID=$!
