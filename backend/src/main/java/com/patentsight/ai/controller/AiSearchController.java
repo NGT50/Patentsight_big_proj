@@ -38,17 +38,34 @@ public class AiSearchController {
     // AiSearchController.java (발췌)
     @PostMapping("/design/image")
     public ResponseEntity<?> searchDesignByImage(@RequestParam("file") MultipartFile file) {
-    try {
-        return ResponseEntity.ok(searchService.searchDesignByImage(file));
-    } catch (WebClientRequestException e) {
-        if (e.getCause() instanceof SocketTimeoutException) {
-        return ResponseEntity.status(504).body(Map.of("error","Upstream timeout (external search)"));
+        try {
+            return ResponseEntity.ok(searchService.searchDesignByImage(file));
+        } catch (org.springframework.web.reactive.function.client.WebClientRequestException e) {
+            if (e.getCause() instanceof java.net.SocketTimeoutException) {
+                return ResponseEntity.status(504).body(Map.of(
+                    "error", "Upstream timeout (external search)",
+                    "detail", e.getMessage()
+                ));
+            }
+            return ResponseEntity.status(502).body(Map.of(
+                "error", "Bad gateway (connect failed)",
+                "detail", e.getMessage()
+            ));
+        } catch (org.springframework.web.reactive.function.client.WebClientResponseException e) {
+            // 외부 서버가 4xx/5xx + 본문을 보낸 경우
+            return ResponseEntity.status(502).body(Map.of(
+                "error", "Upstream error",
+                "status", e.getRawStatusCode(),
+                "body", e.getResponseBodyAsString()
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of(
+                "error", "Internal error",
+                "detail", e.getMessage()
+            ));
         }
-        return ResponseEntity.badRequest().body(Map.of("error","External request failed","detail",e.getMessage()));
-    } catch (Exception e) {
-        return ResponseEntity.internalServerError().body(Map.of("error","Internal error","detail",e.getMessage()));
     }
-    }
+
 
 
     @PostMapping("/design/text")
