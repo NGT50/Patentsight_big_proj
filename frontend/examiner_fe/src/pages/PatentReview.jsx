@@ -103,7 +103,6 @@ function SmartImage({ source, className, alt }) {
   return <img alt={alt} src={resolvedSrc} className={className} onError={handleError} />;
 }
 
-
 // 도면 URL 파서 (JSON 배열/콤마/개행/단일 URL)
 function extractDrawingUrls(raw) {
   if (!raw) return [];
@@ -161,16 +160,35 @@ function buildPatentDrawingSources(p) {
   return out;
 }
 
-// 실제 호출용 URL로 변환 (객체는 /api/files 경로, 파일명 인코딩)
-function resolveToUrl(srcLike) {
-  if (typeof srcLike === 'string') return toAbsoluteFileUrl(srcLike);
-  if (srcLike && srcLike.patentId && srcLike.fileName) {
+// 외부(S3 등) URL이 들어와도 항상 동일 오리진(/api/files/**)으로 강제
+function resolveToLocalFileUrl(srcLike, currentPatentId) {
+  // 케이스 A: {patentId, fileName}
+  if (srcLike && typeof srcLike === 'object' && srcLike.patentId && srcLike.fileName) {
     const enc = encodeURIComponent(srcLike.fileName);
     return `/api/files/${srcLike.patentId}/${enc}`;
   }
+  // 케이스 B: 문자열 URL
+  if (typeof srcLike === 'string') {
+    try {
+      const abs = toAbsoluteFileUrl(srcLike);
+      const u = new URL(abs, window.location.origin);
+      // 이미 same-origin이고 /files|/api/files 면 /api/files 로 통일
+      if (u.origin === window.location.origin &&
+          (u.pathname.startsWith('/files/') || u.pathname.startsWith('/api/files/'))) {
+        return u.pathname.replace('/files/', '/api/files/');
+      }
+      // 외부(S3 등) → 파일명만 추출해서 /api/files/{patentId}/{fileName}
+      const last = decodeURIComponent((u.pathname.split('/').pop() || '').split('?')[0]);
+      const clean = last || 'file.bin';
+      const enc = encodeURIComponent(clean);
+      if (!currentPatentId) return null;
+      return `/api/files/${currentPatentId}/${enc}`;
+    } catch {
+      return null;
+    }
+  }
   return null;
 }
-
 // 파일명에서 UUID 프리픽스 제거
 function cleanFileName(name = '') {
   const decoded = decodeURIComponent(name);
@@ -243,8 +261,11 @@ export default function PatentReview() {
   }, [patent, attachmentImageUrls]);
 
   const contextImageUrls = useMemo(
-    () => drawingSources.map(resolveToUrl).filter(Boolean),
-    [drawingSources]
+    () =>
+      drawingSources
+        .map((src) => resolveToLocalFileUrl(src, patent?.patentId))
+        .filter(Boolean),
+    [drawingSources, patent?.patentId]
   );
 
   const [selectedDrawingIdx, setSelectedDrawingIdx] = useState(0);
@@ -341,7 +362,7 @@ export default function PatentReview() {
       if (!patent) return;
       if (!drawingSources || drawingSources.length === 0) return;
       const first = drawingSources[0];
-      const url = resolveToUrl(first);
+      const url = resolveToLocalFileUrl(first, patent?.patentId);
       if (!url) return;
       try {
         setIsSearchingSimilarity(true);
