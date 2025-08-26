@@ -53,16 +53,7 @@ export async function getImageUrlsByIds(fileIds = []) {
   const metas = await fetchMetas(fileIds);
   return metas
     .filter((m) => isImageName(m.fileName || ''))
-    // .map((m) => {
-    //   const primary = m.fileUrl || m.url || '';
-    //   if (primary) return toAbsoluteFileUrl(primary);
-    //   if (m.patentId && m.fileName) {
-    //     const enc = encodeURIComponent(m.fileName);
-    //     return toAbsoluteFileUrl(`/api/files/${m.patentId}/${enc}`);
-    //   }
-    //   return '';
-    // })
-    .map((m) => `/api/files/${m.fileId}/content`)
+    .map((m) => toAbsoluteFileUrl(`/api/files/${m.fileId}/content`))
     .filter(Boolean);
 }
 
@@ -77,7 +68,7 @@ export async function getNonImageFilesByIds(fileIds = []) {
         ? {
             id: m.fileId,
             name: m.fileName || m.name || '',
-            url: `/api/files/${m.fileId}/content`,
+            url: toAbsoluteFileUrl(`/api/files/${m.fileId}/content`),
           }
         : null
     )

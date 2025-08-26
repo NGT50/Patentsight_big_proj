@@ -102,7 +102,6 @@ function SmartImage({ source, className, alt }) {
 
   return <img alt={alt} src={resolvedSrc} className={className} onError={handleError} />;
 }
-
 // 도면 URL 파서 (JSON 배열/콤마/개행/단일 URL)
 function extractDrawingUrls(raw) {
   if (!raw) return [];
@@ -310,7 +309,7 @@ export default function PatentReview() {
                 /\.glb($|\?|#)/i.test(f?.name || '') ||
                 /\.glb($|\?|#)/i.test(f?.url || '')
             );
-            setGlbModelUrl(glb ? `/api/files/${glb.id}/content` : '');
+            setGlbModelUrl(glb ? glb.url : '');
           } catch (e) {
             console.warn('첨부 로드 실패:', e);
             setAttachmentImageUrls([]);
