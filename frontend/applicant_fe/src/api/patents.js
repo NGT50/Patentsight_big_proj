@@ -204,7 +204,7 @@ export const startChatSession = async (patentId) => {
 // [추가] 챗봇 메시지 전송 API
 export const sendMessageToSession = async ({ sessionId, content }) => {
   try {
-    const res = await axios.post(`/api/ai/chat/sessions/${sessionId}/messages`, { content });
+    const res = await axios.post(`/api/ai/chat/sessions/${sessionId}/messages`, { message: content });
     return res.data; // { sender: "ai", content: "..." } 를 반환
   } catch (error) {
     console.error('챗봇 메시지 전송 실패:', error);
