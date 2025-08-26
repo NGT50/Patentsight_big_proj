@@ -1461,63 +1461,60 @@ ${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getD
           {/* 유사 특허 분석 */}
           <section className="mb-6 border border-gray-200 p-6 rounded-xl bg-white shadow-sm">
             <h3 className="font-semibold text-xl mb-4 text-gray-800 flex items-center gap-2">
-              <Copy className="w-5 h-5 text-blue-500" /> AI 유사 특허 분석
+              <Copy className="w-5 h-5 text-blue-500" /> 유사 특허 분석
             </h3>
-
+          
             {isSearchingSimilarity ? (
+              // 🔄 로딩 표시
               <div className="w-full flex justify-center items-center py-8">
                 <div className="w-8 h-8 border-4 border-gray-200 border-t-indigo-500 rounded-full animate-spin"></div>
                 <p className="ml-4 text-gray-600">유사 특허를 검색하고 있습니다...</p>
               </div>
-            ) : similarityResults?.length ? (
+            ) : similarityResults.length > 0 ? (
+              // ✅ 검색 결과 카드 뿌리기
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {similarityResults.map((r, i) => (
                   <div
-                    key={r.applicationNumber || `idx-${i}`}
+                    key={r.application_number || `idx-${i}`}
                     className="border border-gray-200 rounded-lg bg-white shadow-sm overflow-hidden hover:shadow-md transition-all"
                   >
                     {/* 대표 이미지 */}
                     <div className="relative h-40 bg-gray-100 flex items-center justify-center">
                       <img
-                        src={r.imageUrl || 'https://placehold.co/400x300/e2e8f0/94a3b8?text=No+Image'}
+                        src={r.image_url || "https://placehold.co/400x300?text=No+Image"}
                         alt={r.title}
                         className="w-full h-full object-contain"
                         onError={(e) => {
                           e.currentTarget.onerror = null;
-                          e.currentTarget.src = 'https://placehold.co/400x300/e2e8f0/94a3b8?text=No+Image';
+                          e.currentTarget.src =
+                            "https://placehold.co/400x300?text=No+Image";
                         }}
                       />
-                      {typeof r.similarity === 'number' && (
+                      {typeof r.similarity === "number" && (
                         <span className="absolute top-2 left-2 bg-indigo-600 text-white text-xs font-semibold px-2 py-0.5 rounded">
                           유사도 {(r.similarity * 100).toFixed(1)}%
                         </span>
                       )}
                     </div>
-
+          
                     {/* 텍스트 정보 */}
                     <div className="p-3">
-                      <h4 className="font-semibold text-gray-800 text-sm truncate">{r.title}</h4>
-                      <p className="text-xs text-gray-600 mt-1">출원번호: {r.applicationNumber || '-'}</p>
-                      <p className="text-xs text-gray-600 mt-1 line-clamp-2">{r.abstract || '요약 정보 없음'}</p>
-
-                      {r.applicationNumber && (
-                        <a
-                          href={`https://plus.kipris.or.kr/kipo-mobile/search/detail.do?applno=${r.applicationNumber}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-block mt-2 text-xs text-indigo-600 hover:underline"
-                        >
-                          특허 상세 보기
-                        </a>
-                      )}
+                      <p className="font-medium text-gray-800 text-sm line-clamp-2">
+                        {r.title}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        출원번호: {r.application_number}
+                      </p>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-gray-600 w-full text-center py-4">AI 분석 결과가 없거나 분석 중입니다.</p>
+              // ❌ 결과 없을 때
+              <p className="text-gray-500 text-sm">검색된 유사 특허가 없습니다.</p>
             )}
           </section>
+
 
           <div className="text-center mt-6">
             <button
