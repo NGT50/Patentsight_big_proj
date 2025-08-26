@@ -22,6 +22,7 @@ public class Patent {
     @Enumerated(EnumType.STRING)
     private PatentStatus status;
 
+    @Column(name = "submitted_at")
     private LocalDateTime submittedAt;
 
     private String cpc;
@@ -54,7 +55,8 @@ public class Patent {
 
     @ElementCollection
     @CollectionTable(name = "patent_claims", joinColumns = @JoinColumn(name = "patent_id"))
-    @Column(name = "claim_text")
+    @Lob
+    @Column(name = "claim_text", columnDefinition = "LONGTEXT")
     private List<String> claims;
 
     // getters and setters

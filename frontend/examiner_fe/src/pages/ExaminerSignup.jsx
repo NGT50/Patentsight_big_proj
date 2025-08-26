@@ -429,12 +429,9 @@ function ExaminerSignup() {
     birthDate: '',
     email: '',
     phone: '',
-    department: 'PATENT',
+    department: '',
     position: '',
-    employeeNumber: '',
-    examinerField: 'patent',
-    agreeTerms: false,
-    agreePrivacy: false
+    employeeNumber: ''
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -467,6 +464,30 @@ function ExaminerSignup() {
           formatted = `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
         } else {
           formatted = `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7)}`;
+        }
+        
+        setFormData(prev => ({
+          ...prev,
+          [name]: formatted
+        }));
+        return;
+      }
+    }
+    
+    // 생년월일 자동 포맷팅 (YYYY-MM-DD 형식)
+    if (name === 'birthDate') {
+      // 숫자만 추출
+      const numbers = value.replace(/[^0-9]/g, '');
+      
+      // 8자리까지만 허용
+      if (numbers.length <= 8) {
+        let formatted = '';
+        if (numbers.length <= 4) {
+          formatted = numbers;
+        } else if (numbers.length <= 6) {
+          formatted = `${numbers.slice(0, 4)}-${numbers.slice(4)}`;
+        } else {
+          formatted = `${numbers.slice(0, 4)}-${numbers.slice(4, 6)}-${numbers.slice(6)}`;
         }
         
         setFormData(prev => ({
@@ -691,10 +712,12 @@ function ExaminerSignup() {
             <FormGroup>
               <Label>생년월일 *</Label>
               <Input
-                type="date"
+                type="text"
                 name="birthDate"
                 value={formData.birthDate}
                 onChange={handleInputChange}
+                placeholder="YYYY-MM-DD"
+                maxLength="10"
                 required
               />
             </FormGroup>
@@ -703,24 +726,14 @@ function ExaminerSignup() {
           <Row>
             <FormGroup>
               <Label>부서 *</Label>
-              <select
+              <Input
+                type="text"
                 name="department"
                 value={formData.department}
                 onChange={handleInputChange}
+                placeholder="부서명을 입력하세요"
                 required
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  backgroundColor: 'white'
-                }}
-              >
-                <option value="PATENT">특허</option>
-                <option value="DESIGN">디자인</option>
-                <option value="TRADEMARK">상표</option>
-              </select>
+              />
             </FormGroup>
             <FormGroup>
               <Label>직급 *</Label>
@@ -734,99 +747,20 @@ function ExaminerSignup() {
             </FormGroup>
           </Row>
 
-                     <Row>
-             <FormGroup>
-               <Label>사원번호 *</Label>
-               <Input
-                 type="text"
-                 name="employeeNumber"
-                 value={formData.employeeNumber}
-                 onChange={handleInputChange}
-                 required
-               />
-             </FormGroup>
-             <FormGroup>
-               <Label>연락처 *</Label>
-               <Input
-                 type="tel"
-                 name="phone"
-                 value={formData.phone}
-                 onChange={handleInputChange}
-                 placeholder="010-1234-5678"
-                 maxLength="13"
-                 required
-               />
-             </FormGroup>
-           </Row>
-
-          <FormGroup>
-            <Label>심사 분야 *</Label>
-            <RadioGroup>
-              <RadioItem>
-                <input
-                  type="radio"
-                  name="examinerField"
-                  value="patent"
-                  checked={formData.examinerField === 'patent'}
-                  onChange={handleInputChange}
-                />
-                <span>특허</span>
-              </RadioItem>
-              <RadioItem>
-                <input
-                  type="radio"
-                  name="examinerField"
-                  value="utility"
-                  checked={formData.examinerField === 'utility'}
-                  onChange={handleInputChange}
-                />
-                <span>실용신안</span>
-              </RadioItem>
-              <RadioItem>
-                <input
-                  type="radio"
-                  name="examinerField"
-                  value="design"
-                  checked={formData.examinerField === 'design'}
-                  onChange={handleInputChange}
-                />
-                <span>디자인</span>
-              </RadioItem>
-              <RadioItem>
-                <input
-                  type="radio"
-                  name="examinerField"
-                  value="trademark"
-                  checked={formData.examinerField === 'trademark'}
-                  onChange={handleInputChange}
-                />
-                <span>상표</span>
-              </RadioItem>
-            </RadioGroup>
-          </FormGroup>
-
-          <CheckboxGroup>
-            <CheckboxItem>
-              <input
-                type="checkbox"
-                name="agreeTerms"
-                checked={formData.agreeTerms}
+          <Row>
+            <FormGroup>
+              <Label>사원번호 *</Label>
+              <Input
+                type="text"
+                name="employeeNumber"
+                value={formData.employeeNumber}
                 onChange={handleInputChange}
                 required
               />
-              <span>이용약관에 동의합니다 *</span>
-            </CheckboxItem>
-            <CheckboxItem>
-              <input
-                type="checkbox"
-                name="agreePrivacy"
-                checked={formData.agreePrivacy}
-                onChange={handleInputChange}
-                required
-              />
-              <span>개인정보처리방침에 동의합니다 *</span>
-            </CheckboxItem>
-          </CheckboxGroup>
+            </FormGroup>
+          </Row>
+
+
 
           {/* 에러 메시지 */}
           {error && (

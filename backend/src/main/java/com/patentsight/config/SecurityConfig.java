@@ -1,31 +1,141 @@
 package com.patentsight.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.http.HttpMethod;
+
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
 
 @Configuration
+@EnableWebSecurity
+@EnableMethodSecurity
 public class SecurityConfig {
 
-    // 비밀번호 암호화용 Bean
+    @Value("${security.jwt.secret}")
+    private String jwtSecret;
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
-    // 테스트용: 모든 요청을 허용
+    // ✅ CORS 설정
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(Arrays.asList(
+                "http://35.175.253.22:3000",   // 출원인 프론트
+                "http://35.175.253.22:3001",   // 심사관 프론트
+                "http://localhost:3000",       // 로컬 출원인
+                "http://localhost:3001",       // 로컬 심사관
+                "http://35.175.253.22:5173",   // Vite 기본 포트
+                "http://localhost:5173"        // 로컬 vite
+        ));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+        configuration.setAllowedHeaders(Collections.singletonList("*"));
+        configuration.setExposedHeaders(Arrays.asList("Authorization")); // 필요 시
+        configuration.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
+    }
+
+    @Bean
+    public JwtAuthenticationConverter jwtAuthenticationConverter() {
+        JwtGrantedAuthoritiesConverter delegate = new JwtGrantedAuthoritiesConverter();
+        delegate.setAuthorityPrefix("ROLE_");
+        delegate.setAuthoritiesClaimName("roles");
+
+        JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
+        converter.setJwtGrantedAuthoritiesConverter(jwt -> {
+            Set<org.springframework.security.core.GrantedAuthority> grants =
+                    new HashSet<>(Optional.ofNullable(delegate.convert(jwt)).orElseGet(Collections::emptySet));
+            Object role = jwt.getClaim("role");
+            if (role instanceof String s && !s.isBlank()) {
+                grants.add(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_" + s));
+            }
+            return grants;
+        });
+        return converter;
+    }
+
+    @Bean
+    public JwtDecoder jwtDecoder() {
+        SecretKey key = new SecretKeySpec(jwtSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+        return NimbusJwtDecoder.withSecretKey(key).macAlgorithm(MacAlgorithm.HS256).build();
+    }
+
+    @Bean
+    public SecurityFilterChain filterChain(
+            HttpSecurity http,
+            JwtAuthenticationConverter jwtAuthenticationConverter) throws Exception {
+
         http
-                .csrf(csrf -> csrf.disable()) // 🔹 REST API라 CSRF 비활성화
-                .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin())) // 🔹 H2 콘솔 iframe 허용
-                .authorizeHttpRequests(auth -> auth
-                        .anyRequest().permitAll() // 🔹 모든 요청 허용
-                );
+            .cors(Customizer.withDefaults())
+            .csrf(csrf -> csrf.disable())
+            .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .authorizeHttpRequests(auth -> auth
+                // ✅ 프리플라이트 전부 허용
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+                // ✅ 공개 파일 보기/프록시(이미지 <img> + fetch(blob) 용)
+                .requestMatchers(HttpMethod.GET,
+                    "/api/files/*/content",
+                    "/api/files/*/stream",
+                    "/api/files/*/*",          // /api/files/{patentId}/{fileName}
+                    "/api/files/*/*/stream",   // /api/files/{patentId}/{fileName}/stream
+                    "/files/**",               // 정적 프록시 쓸 경우
+                    "/uploads/**",             // (배포중 로컬 리소스 남아있을 때)
+                    "/favicon.ico",
+                    "/static/**",
+                    "/assets/**"
+                ).permitAll()
+
+                // ✅ 로그인/회원가입 등 공개 API
+                .requestMatchers(
+                    "/api/users/login",
+                    "/api/users/signup",
+                    "/api/users/applicant",
+                    "/api/users/examiner",
+                    "/api/users/verify-code",
+                    "/h2-console/**",
+                    "/actuator/health", "/actuator/info"
+                ).permitAll()
+
+                // ✅ 권한 필요 API
+                .requestMatchers(HttpMethod.PATCH, "/api/opinions/**").hasRole("EXAMINER")
+
+                // ⛔ 그 외는 인증 필요 (예: /api/ai/search/** 등)
+                .anyRequest().authenticated()
+            )
+            .oauth2ResourceServer(oauth -> oauth
+                .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter))
+            );
 
         return http.build();
     }
+
 }
+

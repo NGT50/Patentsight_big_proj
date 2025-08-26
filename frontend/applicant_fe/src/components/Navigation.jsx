@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import logo from '../assets/logo.png';
 import NotificationPopup from './NotificationPopup';
 import { getNotifications, getUnreadCount } from '../data/notifications';
@@ -225,14 +225,12 @@ const NotificationBadge = styled.div`
   border: 2px solid white;
 `;
 
-function Navigation({ isLoggedIn, onLoginSuccess, onLogout, userInfo }) {
+function Navigation({ isLoggedIn, onLogout, userInfo }) {
   const navigate = useNavigate();
-  const location = useLocation();
   const [timeLeft, setTimeLeft] = useState(30 * 60);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
 
   // 핸들러 함수들을 먼저 정의
   const handleLogout = () => {
@@ -272,14 +270,13 @@ function Navigation({ isLoggedIn, onLoginSuccess, onLogout, userInfo }) {
   const loadNotifications = async () => {
     if (!isLoggedIn) return;
     
-    setIsLoadingNotifications(true);
     try {
       // 알림 목록과 미확인 개수를 병렬로 로드
       const [notificationData, unreadCountData] = await Promise.all([
         getNotifications(),
         getUnreadCount()
       ]);
-      
+
       setNotifications(notificationData);
       setUnreadCount(unreadCountData);
     } catch (error) {
@@ -287,8 +284,6 @@ function Navigation({ isLoggedIn, onLoginSuccess, onLogout, userInfo }) {
       // 에러 발생 시 빈 배열로 설정
       setNotifications([]);
       setUnreadCount(0);
-    } finally {
-      setIsLoadingNotifications(false);
     }
   };
 

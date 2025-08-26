@@ -1,27 +1,30 @@
 package com.patentsight.ai.dto;
 
 public class Generated3DModelResponse {
-    private String resultId;
-    private String filePath;
+    private Long fileId;
+    private String fileUrl;
 
-    public Generated3DModelResponse(String resultId, String filePath) {
-        this.resultId = resultId;
-        this.filePath = filePath;
+    public Generated3DModelResponse() {
     }
 
-    public String getResultId() {
-        return resultId;
+    public Generated3DModelResponse(Long fileId, String fileUrl) {
+        this.fileId = fileId;
+        this.fileUrl = fileUrl;
     }
 
-    public void setResultId(String resultId) {
-        this.resultId = resultId;
+    public Long getFileId() {
+        return fileId;
     }
 
-    public String getFilePath() {
-        return filePath;
+    public void setFileId(Long fileId) {
+        this.fileId = fileId;
     }
 
-    public void setFilePath(String filePath) {
-        this.filePath = filePath;
+    public String getFileUrl() {
+        return fileUrl;
+    }
+
+    public void setFileUrl(String fileUrl) {
+        this.fileUrl = fileUrl;
     }
 }

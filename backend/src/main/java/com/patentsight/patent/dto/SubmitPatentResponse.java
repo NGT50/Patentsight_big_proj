@@ -14,4 +14,5 @@ public class SubmitPatentResponse {
     private PatentStatus status;
     private String applicationNumber;
     private String ipcCode;
+    private String applicantName;
 }

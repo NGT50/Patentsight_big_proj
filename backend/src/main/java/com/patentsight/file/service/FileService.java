@@ -2,6 +2,8 @@ package com.patentsight.file.service;
 
 import com.patentsight.file.domain.FileAttachment;
 import com.patentsight.file.dto.FileResponse;
+import com.patentsight.file.domain.FileType;
+import com.patentsight.file.exception.S3UploadException;
 import com.patentsight.file.repository.FileRepository;
 import com.patentsight.global.util.FileUtil;
 import com.patentsight.patent.domain.Patent;
@@ -36,16 +38,28 @@ public class FileService {
             attachment.setUploaderId(uploaderId);
             attachment.setFileName(file.getOriginalFilename());
             attachment.setFileUrl(path);
+            FileType type = determineFileType(file.getOriginalFilename());
+            attachment.setFileType(type);
             attachment.setUpdatedAt(LocalDateTime.now());
 
             Patent patent = patentRepository.findById(patentId)
                     .orElseThrow(() -> new IllegalArgumentException("Patent not found"));
             attachment.setPatent(patent);
 
+            if (type == FileType.GLB) {
+                fileRepository.findTopByPatent_PatentIdAndFileType(patentId, FileType.GLB)
+                        .ifPresent(existing -> {
+                            try {
+                                FileUtil.deleteFile(existing.getFileUrl());
+                            } catch (IOException ignored) {}
+                            fileRepository.delete(existing);
+                        });
+            }
+
             fileRepository.save(attachment);
             return toResponse(attachment);
         } catch (IOException e) {
-            throw new RuntimeException("Could not store file", e);
+            throw new S3UploadException("Could not store file: " + e.getMessage(), e);
         }
     }
 
@@ -64,11 +78,12 @@ public class FileService {
             String path = FileUtil.saveFile(file);
             attachment.setFileName(file.getOriginalFilename());
             attachment.setFileUrl(path);
+            attachment.setFileType(determineFileType(file.getOriginalFilename()));
             attachment.setUpdatedAt(LocalDateTime.now());
             fileRepository.save(attachment);
             return toResponse(attachment);
         } catch (IOException e) {
-            throw new RuntimeException("Could not update file", e);
+            throw new S3UploadException("Could not update file: " + e.getMessage(), e);
         }
     }
 
@@ -83,16 +98,64 @@ public class FileService {
         return true;
     }
 
+    /**
+     * Loads the binary content for the given attachment id. Returns {@code null}
+     * when the attachment does not exist.
+     */
+    public FileData loadContent(Long id) {
+        FileAttachment attachment = fileRepository.findById(id).orElse(null);
+        if (attachment == null) {
+            return null;
+        }
+        try {
+            byte[] data = FileUtil.downloadFile(attachment.getFileUrl());
+            return new FileData(attachment, data);
+        } catch (IOException e) {
+            throw new S3UploadException("Could not load file: " + e.getMessage(), e);
+        }
+    }
+
+    /** Container for an attachment and its binary bytes. */
+    public static class FileData {
+        private final FileAttachment attachment;
+        private final byte[] bytes;
+
+        public FileData(FileAttachment attachment, byte[] bytes) {
+            this.attachment = attachment;
+            this.bytes = bytes;
+        }
+
+        public FileAttachment getAttachment() {
+            return attachment;
+        }
+
+        public byte[] getBytes() {
+            return bytes;
+        }
+    }
+
     private FileResponse toResponse(FileAttachment attachment) {
         FileResponse res = new FileResponse();
         res.setFileId(attachment.getFileId());
         res.setPatentId(attachment.getPatent() != null ? attachment.getPatent().getPatentId() : null);
         res.setUploaderId(attachment.getUploaderId());
         res.setFileName(attachment.getFileName());
-        res.setFileUrl(attachment.getFileUrl());
+        res.setFileUrl(FileUtil.getPublicUrl(attachment.getFileUrl()));
+        res.setFileType(attachment.getFileType());
         res.setContent(attachment.getContent());
         res.setUpdatedAt(attachment.getUpdatedAt());
         return res;
+    }
+
+    private FileType determineFileType(String name) {
+        if (name == null) return null;
+        String ext = name.contains(".") ? name.substring(name.lastIndexOf('.') + 1).toLowerCase() : "";
+        return switch (ext) {
+            case "png", "jpg", "jpeg", "gif", "bmp" -> FileType.IMAGE;
+            case "glb" -> FileType.GLB;
+            case "pdf" -> FileType.PDF;
+            default -> null;
+        };
     }
 
     public FileAttachment findById(Long id) {

@@ -1,7 +1,11 @@
 package com.patentsight.patent.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.patentsight.patent.domain.PatentStatus;
 import com.patentsight.patent.domain.PatentType;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 public class PatentResponse {
@@ -13,6 +17,12 @@ public class PatentResponse {
     private List<Long> attachmentIds;
     private String cpc;
     private String applicationNumber;
+    @JsonProperty("applicationDate")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
+    private LocalDate applicationDate;
+    @JsonProperty("submittedAt")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
+    private LocalDateTime submittedAt;
     private String inventor;
     private String technicalField;
     private String backgroundTechnology;
@@ -20,6 +30,8 @@ public class PatentResponse {
     private String summary;
     private String drawingDescription;
     private List<String> claims;
+    private String ipc;
+    private String applicantName;
 
     public Long getPatentId() { return patentId; }
     public void setPatentId(Long patentId) { this.patentId = patentId; }
@@ -37,6 +49,10 @@ public class PatentResponse {
     public void setCpc(String cpc) { this.cpc = cpc; }
     public String getApplicationNumber() { return applicationNumber; }
     public void setApplicationNumber(String applicationNumber) { this.applicationNumber = applicationNumber; }
+    public LocalDate getApplicationDate() { return applicationDate; }
+    public void setApplicationDate(LocalDate applicationDate) { this.applicationDate = applicationDate; }
+    public LocalDateTime getSubmittedAt() { return submittedAt; }
+    public void setSubmittedAt(LocalDateTime submittedAt) { this.submittedAt = submittedAt; }
     public String getInventor() { return inventor; }
     public void setInventor(String inventor) { this.inventor = inventor; }
     public String getTechnicalField() { return technicalField; }
@@ -51,6 +67,10 @@ public class PatentResponse {
     public void setDrawingDescription(String drawingDescription) { this.drawingDescription = drawingDescription; }
     public List<String> getClaims() { return claims; }
     public void setClaims(List<String> claims) { this.claims = claims; }
+    public String getIpc() { return ipc; }
+    public void setIpc(String ipc) { this.ipc = ipc; }
+    public String getApplicantName() { return applicantName; }
+    public void setApplicantName(String applicantName) { this.applicantName = applicantName; }
     // CICD test용 주석3
     public static class InventionDetails {
         private String problemToSolve;

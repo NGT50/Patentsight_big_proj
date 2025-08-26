@@ -1,400 +1,1138 @@
-import { useState, useEffect } from 'react';
+// src/pages/PatentReview.jsx
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-// 필요한 모든 Lucide React 아이콘을 임포트합니다. 챗봇 관련 아이콘 추가
-import { 
-  Info, FileText, Image, MessageSquare, Copy, FlaskConical, 
-  CheckCircle, XCircle, Send, Bot, Maximize2, Minimize2, Lightbulb, GanttChart, Scale, X
-} from 'lucide-react'; 
-// import Header from '../components/Header';
-import { patentDetailMockData } from '../mocks/patentDetailMock';
+import {
+  Info, FileText, Image, MessageSquare, Copy, FlaskConical,
+  CheckCircle, Send, Bot, Lightbulb, GanttChart, Scale, X, ScrollText, Check, File as FileIcon
+} from 'lucide-react';
+
+import axiosInstance from '../api/axiosInstance';
+
+import { submitReview, getReviewDetail } from '../api/review';
+import {
+  startChatSession,
+  sendChatMessageToServer,
+  validatePatentDocument,
+  generateRejectionDraft,
+  searchDesignImageByBlob, 
+  searchDesignImageByUrl,// 첫 번째 2D 도면으로 자동 유사이미지 검색
+} from '../api/ai';
+import { sendChatMessage as sendChatbotMessage, checkChatbotHealth } from '../api/chatbot';
+
+// 파일 API (메타 조회 → 안전한 URL 만들기)
+import { getImageUrlsByIds, getNonImageFilesByIds, toAbsoluteFileUrl } from '../api/files';
 import ThreeDModelViewer from '../components/ThreeDModelViewer';
 
+/* ------------------------- 보조 ------------------------- */
+
+// 안전 UUID
+const safeUUID = () => {
+  try {
+    if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+    const rnd = Math.random().toString(36).slice(2);
+    return `id-${Date.now().toString(36)}-${rnd}`;
+  } catch {
+    return `id-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+  }
+};
+// /files/{id}/content ↔ /api/files/{id}/content 정규화
+function normalizeToApiContent(u) {
+  try {
+    const abs = new URL(u, window.location.origin);
+    const p = abs.pathname.replace(/\/+$/, '');
+    let m = p.match(/^\/api\/files\/(\d+)\/content$/);
+    if (m) return `/api/files/${m[1]}/content`;
+    m = p.match(/^\/files\/(\d+)\/content$/);
+    if (m) return `/api/files/${m[1]}/content`;
+    return u; // 다른 형태면 손대지 않음
+  } catch {
+    // 절대/상대 경로 문자열일 수 있으니 마지막 시도
+    let m = String(u).match(/^\/api\/files\/(\d+)\/content$/);
+    if (m) return `/api/files/${m[1]}/content`;
+    m = String(u).match(/^\/files\/(\d+)\/content$/);
+    if (m) return `/api/files/${m[1]}/content`;
+    return u;
+  }
+}
+
+
+// 공개 경로(/files) → 실패 시 /api 로 폴백(fetch+토큰)해서 blob URL로 표출
+function SmartImage({ source, className, alt }) {
+  const [resolvedSrc, setResolvedSrc] = React.useState('');
+  const [triedAuthFetch, setTriedAuthFetch] = React.useState(false);
+  const prevObjectUrlRef = React.useRef(null);
+
+  const toPair = React.useMemo(() => {
+    if (typeof source === 'string') {
+      const abs = toAbsoluteFileUrl(source);
+      const isApi = /^\/api\/files\//.test(abs) || /^https?:\/\/.+\/api\/files\//.test(abs);
+      return {
+        publicUrl: abs.replace('/api/files/', '/files/'),
+        apiUrl: isApi ? abs : null,
+      };
+    }
+    if (source && source.patentId && source.fileName) {
+      const enc = encodeURIComponent(source.fileName);
+      return {
+        publicUrl: `/files/${source.patentId}/${enc}`,
+        apiUrl: `/api/files/${source.patentId}/${enc}`,
+      };
+    }
+    return { publicUrl: '', apiUrl: null };
+  }, [source]);
+
+  React.useEffect(() => {
+    if (prevObjectUrlRef.current) {
+      URL.revokeObjectURL(prevObjectUrlRef.current);
+      prevObjectUrlRef.current = null;
+    }
+    setResolvedSrc(toPair.publicUrl || '');
+    setTriedAuthFetch(false);
+    return () => {
+      if (prevObjectUrlRef.current) {
+        URL.revokeObjectURL(prevObjectUrlRef.current);
+        prevObjectUrlRef.current = null;
+      }
+    };
+  }, [toPair.publicUrl, toPair.apiUrl]);
+
+  const handleError = async () => {
+    if (toPair.apiUrl && !triedAuthFetch) {
+      setTriedAuthFetch(true);
+      try {
+        const token =
+          localStorage.getItem('token') ||
+          localStorage.getItem('accessToken') ||
+          sessionStorage.getItem('token') ||
+          sessionStorage.getItem('accessToken') || '';
+
+        const res = await fetch(toPair.apiUrl, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          credentials: 'include',
+        });
+        if (!res.ok) throw new Error('auth fetch failed');
+
+        const blob = await res.blob();
+        const objUrl = URL.createObjectURL(blob);
+        prevObjectUrlRef.current = objUrl;
+        setResolvedSrc(objUrl);
+        return;
+      } catch {
+        /* empty */
+      }
+    }
+    setResolvedSrc('https://placehold.co/400x300/e2e8f0/94a3b8?text=Image+Not+Found');
+  };
+
+  if (!resolvedSrc) {
+    return (
+      <div className="w-full h-32 bg-gray-50 border border-gray-200 flex items-center justify-center text-xs text-gray-500">
+        이미지 없음
+      </div>
+    );
+  }
+
+  return <img alt={alt} src={resolvedSrc} className={className} onError={handleError} />;
+}
+// 도면 URL 파서 (JSON 배열/콤마/개행/단일 URL)
+function extractDrawingUrls(raw) {
+  if (!raw) return [];
+
+  const toStr = (v) => (v == null ? '' : String(v)).trim();
+  const isUrl = (s) => /^(https?:\/\/|\/|data:image\/)/i.test(toStr(s));
+
+    try {
+      const j = JSON.parse(raw);
+      if (Array.isArray(j)) {
+        return j.map(toStr).filter(isUrl);
+      }
+    } catch {
+      /* empty */
+    }
+
+  const candidates = toStr(raw)
+    .split(/[\s,;\n\r]+/)
+    .map(toStr)
+    .filter(Boolean);
+
+  const urls = candidates.filter(isUrl);
+  if (urls.length) return urls;
+
+  if (isUrl(raw)) return [toStr(raw)];
+  return [];
+}
+
+/** 특허 상세에서 도면 소스 구성 */
+function buildPatentDrawingSources(p) {
+  if (!p) return [];
+  const list = [];
+
+  // 1) drawingDescription 내 URL
+  list.push(...extractDrawingUrls(p.drawingDescription));
+
+  // 2) drawingFileNames -> {patentId, fileName}
+  if (Array.isArray(p.drawingFileNames) && p.drawingFileNames.length > 0) {
+    list.push(...p.drawingFileNames.map(fn => ({ patentId: p.patentId, fileName: fn })));
+  }
+
+  // 3) (옵션) p.drawings / p.drawingImageUrl 도 있으면 병합
+  if (Array.isArray(p.drawings) && p.drawings.length > 0) list.push(...p.drawings);
+  if (p.drawingImageUrl) list.push(p.drawingImageUrl);
+
+  // 문자열 중복 제거
+  const seen = new Set();
+  const out = [];
+  for (const it of list) {
+    if (typeof it === 'string') {
+      const abs = toAbsoluteFileUrl(it);
+      if (!seen.has(abs)) { seen.add(abs); out.push(abs); }
+    } else out.push(it);
+  }
+  return out;
+}
+
+// 외부(S3 등) URL이 들어와도 항상 동일 오리진(/api/files/**)으로 강제
+function resolveToLocalFileUrl(srcLike, currentPatentId) {
+  // 케이스 A: {patentId, fileName}
+  if (srcLike && typeof srcLike === 'object' && srcLike.patentId && srcLike.fileName) {
+    const enc = encodeURIComponent(srcLike.fileName);
+    return `/api/files/${srcLike.patentId}/${enc}`;
+  }
+  // 케이스 B: 문자열 URL
+  if (typeof srcLike === 'string') {
+    try {
+      const abs = toAbsoluteFileUrl(srcLike);
+      const u = new URL(abs, window.location.origin);
+      // 이미 same-origin이고 /files|/api/files 면 /api/files 로 통일
+      if (u.origin === window.location.origin &&
+          (u.pathname.startsWith('/files/') || u.pathname.startsWith('/api/files/'))) {
+        return u.pathname.replace('/files/', '/api/files/');
+      }
+      // 외부(S3 등) → 파일명만 추출해서 /api/files/{patentId}/{fileName}
+      const last = decodeURIComponent((u.pathname.split('/').pop() || '').split('?')[0]);
+      const clean = last || 'file.bin';
+      const enc = encodeURIComponent(clean);
+      if (!currentPatentId) return null;
+      return `/api/files/${currentPatentId}/${enc}`;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+// 파일명에서 UUID 프리픽스 제거
+function cleanFileName(name = '') {
+  const decoded = decodeURIComponent(name);
+  return decoded.replace(/^[0-9a-fA-F-]{36}_/, '');
+}
+
+/* ------------------------- 컴포넌트 ------------------------- */
+
 export default function PatentReview() {
-  const { id } = useParams(); // URL 파라미터에서 ID를 가져옵니다.
+  const { id } = useParams();
   const navigate = useNavigate();
 
-  const patent = patentDetailMockData[id];
+  const [patent, setPatent] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // 심사 의견 관련 상태
-  const [reviewType, setReviewType] = useState('approval'); // 'approval' 또는 'rejection'
+  const [selectedAction, setSelectedAction] = useState('document');
   const [approvalComment, setApprovalComment] = useState('');
   const [rejectionComment, setRejectionComment] = useState('');
-  const [status, setStatus] = useState(patent?.status || '심사대기');
+  const [status, setStatus] = useState('심사대기');
+  const [approvalDocumentText, setApprovalDocumentText] = useState('');
 
-  // 챗봇 관련 상태
+  // 챗봇
   const [isChatOpen, setIsChatOpen] = useState(false);
-  const [isMinimized, setIsMinimized] = useState(false);
   const [chatMessages, setChatMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [chatSessionId, setChatSessionId] = useState(null);
 
-  // 빠른 질문 버튼 데이터
-  const quickQuestions = [
-    { text: '유사 특허', icon: Copy, query: '유사 특허' },
-    { text: '진보성', icon: Lightbulb, query: '진보성' },
-    { text: '법적 근거', icon: Scale, query: '법적 근거' },
-    { text: '심사 기준', icon: GanttChart, query: '심사 기준' },
-  ];
+  // 모달
+  const [showModal, setShowModal] = useState(false);
+  const [modalMessage, setModalMessage] = useState('');
 
-  // 챗봇 메시지 전송 함수
-  const sendChatMessage = async (message = inputMessage) => {
-    if (!message.trim()) return;
+  // 유사 이미지 상태
+  const [similarityResults, setSimilarityResults] = useState([]);
+  const [isSearchingSimilarity, setIsSearchingSimilarity] = useState(false);
 
-    const newUserMessage = {
-      id: Date.now(),
-      type: 'user',
-      message: message,
-      timestamp: new Date()
+  // 첨부 분류
+  const [attachmentImageUrls, setAttachmentImageUrls] = useState([]); // string[]
+  const [attachmentOtherFiles, setAttachmentOtherFiles] = useState([]); // {id,name,url}[]
+
+
+  const [validationErrors, setValidationErrors] = useState([]);
+  const [hasValidated, setHasValidated] = useState(false); // 한 번이라도 점검했는지
+
+  // 첨부에서 찾은 glb 뷰어 소스
+  const [glbModelUrl, setGlbModelUrl] = useState('');
+
+  // ✅ 특허 상세(첨부 ID 포함) 보조 호출
+  const fetchPatentDetail = async (patentId) => {
+    try {
+      const { data } = await axiosInstance.get(`/api/patents/${patentId}`);
+      return data || null;
+    } catch (e) {
+      console.warn('특허 상세 조회 실패:', e);
+      return null;
+    }
+  };
+
+  // 도면 소스(첨부 이미지 + 특허에서 추출/병합)
+  const drawingSources = useMemo(() => {
+    const fromPatent = buildPatentDrawingSources(patent);
+    const merged = [...attachmentImageUrls, ...fromPatent];
+    const seen = new Set();
+    return merged.filter((v) => {
+      const k = typeof v === 'string' ? v : `${v.patentId}/${v.fileName}`;
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
+  }, [patent, attachmentImageUrls]);
+
+  const contextImageUrls = useMemo(
+    () =>
+      drawingSources
+        .map((src) => resolveToLocalFileUrl(src, patent?.patentId))
+        .filter(Boolean),
+    [drawingSources, patent?.patentId]
+  );
+
+  const [selectedDrawingIdx, setSelectedDrawingIdx] = useState(0);
+  useEffect(() => { setSelectedDrawingIdx(0); }, [drawingSources.length]);
+
+  // 🔧 상세 & 첨부 로딩 + 상태매핑
+  useEffect(() => {
+    const fetchReviewData = async () => {
+      if (!id) return;
+      setLoading(true);
+      try {
+        const data = await getReviewDetail(id);
+        setPatent(data);
+
+        // 첨부 이미지/비이미지 로드 (없으면 특허 상세로 보완)
+        let attachmentIds = Array.isArray(data.attachmentIds) ? data.attachmentIds : [];
+
+        if ((!attachmentIds || attachmentIds.length === 0) && data.patentId) {
+          const patentDetail = await fetchPatentDetail(data.patentId);
+          if (patentDetail) {
+            if (Array.isArray(patentDetail.attachmentIds)) {
+              attachmentIds = patentDetail.attachmentIds;
+            }
+            if (Array.isArray(patentDetail.drawingFileNames)) {
+              setPatent(prev => prev ? { ...prev, drawingFileNames: patentDetail.drawingFileNames } : prev);
+            }
+          }
+        }
+
+        if (attachmentIds && attachmentIds.length > 0) {
+          try {
+            const [imgs, others] = await Promise.all([
+              getImageUrlsByIds(attachmentIds),
+              getNonImageFilesByIds(attachmentIds),
+            ]);
+            setAttachmentImageUrls(imgs);
+            setAttachmentOtherFiles(others);
+
+            // 🔎 첨부 비이미지에서 .glb 찾기 → 3D 도면 자동 표시용
+            const glb = others.find(
+              f =>
+                /\.glb($|\?|#)/i.test(f?.name || '') ||
+                /\.glb($|\?|#)/i.test(f?.url || '')
+            );
+            setGlbModelUrl(glb ? glb.url : '');
+          } catch (e) {
+            console.warn('첨부 로드 실패:', e);
+            setAttachmentImageUrls([]);
+            setAttachmentOtherFiles([]);
+            setGlbModelUrl('');
+          }
+        } else {
+          setAttachmentImageUrls([]);
+          setAttachmentOtherFiles([]);
+          setGlbModelUrl('');
+        }
+
+        // 상태 매핑 (Review.Decision: SUBMITTED/REVIEWING/APPROVE/REJECT)
+        let translatedStatus = '';
+        switch (data.decision) {
+          case 'APPROVE':
+            translatedStatus = '심사완료';
+            setSelectedAction('approval');
+            setApprovalDocumentText(data.comment || '최종 등록 승인됨.');
+            break;
+          case 'REJECT':
+            translatedStatus = '거절';
+            setSelectedAction('rejection');
+            setRejectionComment(data.comment || '');
+            break;
+          case 'REVIEWING':
+            translatedStatus = '심사중';
+            if (data.comment) setApprovalComment(data.comment);
+            break;
+          case 'SUBMITTED':
+          default:
+            translatedStatus = '심사대기';
+            break;
+        }
+        setStatus(translatedStatus);
+      } catch (err) {
+        console.error('특허 상세 정보 조회 실패:', err);
+      } finally {
+        setLoading(false);
+      }
     };
+
+    fetchReviewData();
+  }, [id]);
+
+  // ✅ 첨부 이미지 “첫 장”만으로 자동 유사분석
+  useEffect(() => {
+    (async () => {
+      if (!patent) return;
+
+      // 1) 첨부 이미지 배열에서 첫 장만 사용
+      const firstImg = (attachmentImageUrls && attachmentImageUrls[0]) ? attachmentImageUrls[0] : null;
+
+      // 2) 첨부 이미지가 없다면, 예외적으로 drawingSources 첫 항목을 fallback
+      const src = firstImg || (drawingSources && drawingSources[0]) || null;
+      if (!src) return;
+
+      // 3) /files/{id}/content 또는 /api/files/{id}/content 로만 정규화 (그 외는 그대로)
+      const target = normalizeToApiContent(src);
+      console.log('[auto-sim] srcLike=', src, '→ target=', target);
+
+      try {
+        setIsSearchingSimilarity(true);
+        const results = await searchDesignImageByBlob(target);
+        if (results && results.results) {
+          setSimilarityResults(results.results);
+          if (results.mock) console.warn('유사도 결과: MOCK 응답');
+        } else {
+          setSimilarityResults([]);
+        }
+      } catch (e) {
+        console.warn('자동 유사 분석 실패:', e);
+        setSimilarityResults([]);
+      } finally {
+        setIsSearchingSimilarity(false);
+      }
+    })();
+    // 첨부 이미지가 준비되면 실행되도록 의존성에 포함
+  }, [patent, attachmentImageUrls, drawingSources]);
+
+
+  const sendChatMessage = async (message = inputMessage) => {
+    if (!message.trim()) {
+      return;
+    }
+
+    const newUserMessage = { id: safeUUID(), type: 'user', message, timestamp: new Date() };
     setChatMessages(prev => [...prev, newUserMessage]);
     setInputMessage('');
     setIsTyping(true);
 
-    // 봇 응답 시뮬레이션
-    setTimeout(() => {
-      const responses = {
-        '유사 특허': `${patent.title}과 관련된 유사 특허를 분석해보니, 다음과 같은 특허들이 발견되었습니다:\n1. 특허번호 2023-000123: "음성 인식 기반 스마트 어시스턴트"\n   - 유사점: 음성 인식 기술 사용\n   - 차이점: IoT 기기 제어에 특화, 실시간 번역 기능 없음\n2. 특허번호 2023-000456: "실시간 음성 번역 장치"\n     - 유사점: 실시간 번역 기능\n     - 차이점: 딥러닝 기반 노이즈 제거 기술 미포함\n현재 출원의 진보성이 인정될 가능성이 높습니다.`,
-        '진보성': `이 발명의 기술적 진보성을 다음 관점에서 검토해보세요:\n**신규성 (Novelty)**\n- 딥러닝 + 실시간 번역 + 노이즈 제거의 결합이 새로운가?\n- 기존 선행기술과의 명확한 차이점 존재\n**진보성 (Inventive Step)**\n  - 정확도 30% 향상은 통상의 기술자가 쉽게 도달할 수 없는 수준\n- 다양한 환경에서의 안정성은 기술적 난제 해결\n**산업상 이용가능성**\n- 음성 인식, 번역 서비스, AI 어시스턴트 등 다방면 활용 가능\n권장사항: 등록 결정이 적절해 보입니다.`,
-        '법적 근거': `특허법 관련 조항을 검토해드립니다:\n**특허법 제29조 (특허요건)**\n1. 산업상 이용할 수 있는 발명 - ✅ 충족\n2. 신규성 - ✅ 기존 기술과 차별화됨\n3. 진보성 - ✅ 기술적 진보 명확\n**특허법 제42조 (특허출원서의 기재사항)**\n- 청구범위가 명확하고 간결하게 기재 - ✅ 확인 필요\n- 발명의 상세한 설명 - ✅ 충분히 기재됨\n**특허법 제136조 (거절결정)**\n거절 사유에 해당하지 않으므로 등록 결정 권장`,
-        '심사 기준': `AI/딥러닝 관련 발명의 심사 기준:\n**기술적 특징 명확성**\n- 알고리즘의 구체적 구현 방법 기재 ✅\n- 하드웨어와의 연계성 명시 ✅\n**효과의 구체성**\n  - 정량적 성능 향상 (30% 정확도 개선) ✅\n- 기존 기술 대비 우수성 입증 ✅\n**청구범위 적정성**\n- 과도한 권리범위 주장 여부 검토 필요\n- 핵심 기술적 특징 포함 여부 ✅\n권장사항: 현재 출원은 심사 기준을 잘 충족하고 있습니다.`
-      };
-      let botResponse = "죄송합니다. 더 구체적인 질문을 해주시면 도움을 드릴 수 있습니다.";
-
-      // 키워드 매칭으로 응답 선택
-      const messageKeys = Object.keys(responses);
-      for (const key of messageKeys) {
-        if (message.includes(key) || message.includes(key.substring(0, 2))) {
-          botResponse = responses[key];
-          break;
-        }
+    try {
+      // 챗봇 서버 상태 확인
+      const isHealthy = await checkChatbotHealth();
+      if (!isHealthy) {
+        throw new Error('챗봇 서버가 응답하지 않습니다. 서버가 실행 중인지 확인해주세요.');
       }
-      const botMessage = {
-        id: Date.now() + 1,
+
+      // 특허 정보 추출
+      const applicationText = patent?.description || patent?.summary || patent?.backgroundTechnology || '';
+      const claimsText = patent?.claims?.join('\n') || '';
+      
+      // 세션 ID 생성 (특허 ID 기반)
+      const sessionId = `patent_${patent?.patentId || 'default'}_${Date.now()}`;
+
+      // 챗봇 API 호출
+      const response = await sendChatbotMessage(sessionId, message, applicationText, claimsText);
+      
+      if (response.success) {
+        const botMessage = {
+          id: safeUUID(),
+          type: 'bot',
+          message: response.data,
+          timestamp: new Date()
+        };
+        setChatMessages(prev => [...prev, botMessage]);
+      } else {
+        throw new Error(response.error);
+      }
+    } catch (error) {
+      console.error('챗봇 메시지 전송 실패:', error);
+      const errorMessage = {
+        id: safeUUID(),
         type: 'bot',
-        message: botResponse,
+        message: `죄송합니다. AI 도우미와 연결하는 데 문제가 발생했습니다: ${error.message}`,
         timestamp: new Date()
       };
-      setChatMessages(prev => [...prev, botMessage]);
+      setChatMessages(prev => [...prev, errorMessage]);
+    } finally {
       setIsTyping(false);
-    }, 1500);
-  };
-
-  const handleQuickQuestion = (query) => {
-    sendChatMessage(query);
-  };
-
-  // 특허 데이터가 없을 경우 처리 및 대시보드로 리다이렉트
-  useEffect(() => {
-    if (!patent) {
-      alert('특허 정보를 찾을 수 없습니다. 목록으로 돌아갑니다.');
-      navigate('/patentdashboard');
     }
-  }, [patent, navigate]);
+  };
 
-  const getStatusColorClass = (currentStatus) => {
-    switch (currentStatus) {
-      case '심사중': return 'bg-yellow-100 text-yellow-800';
-      case '심사완료': return 'bg-green-100 text-green-700';
-      case '심사대기': return 'bg-blue-100 text-blue-800';
-      case '거절': return 'bg-red-100 text-red-700';
+  const handleQuickQuestion = async (query, forcedIntent = null) => {
+    if (!query.trim()) return;
+
+    const newUserMessage = { id: safeUUID(), type: 'user', message: query, timestamp: new Date() };
+    setChatMessages(prev => [...prev, newUserMessage]);
+    setIsTyping(true);
+
+    try {
+      // 챗봇 서버 상태 확인
+      const isHealthy = await checkChatbotHealth();
+      if (!isHealthy) {
+        throw new Error('챗봇 서버가 응답하지 않습니다. 서버가 실행 중인지 확인해주세요.');
+      }
+
+      // 특허 정보 추출
+      const applicationText = patent?.description || patent?.summary || patent?.backgroundTechnology || '';
+      const claimsText = patent?.claims?.join('\n') || '';
+      
+      // 세션 ID 생성 (특허 ID 기반)
+      const sessionId = `patent_${patent?.patentId || 'default'}_${Date.now()}`;
+
+      // 챗봇 API 호출 (forced_intent 포함)
+      const response = await sendChatbotMessage(sessionId, query, applicationText, claimsText, forcedIntent);
+      
+      if (response.success) {
+        const botMessage = {
+          id: safeUUID(),
+          type: 'bot',
+          message: response.data,
+          timestamp: new Date()
+        };
+        setChatMessages(prev => [...prev, botMessage]);
+      } else {
+        throw new Error(response.error);
+      }
+    } catch (error) {
+      console.error('챗봇 메시지 전송 실패:', error);
+      const errorMessage = {
+        id: safeUUID(),
+        type: 'bot',
+        message: `죄송합니다. AI 도우미와 연결하는 데 문제가 발생했습니다: ${error.message}`,
+        timestamp: new Date()
+      };
+      setChatMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsTyping(false);
+    }
+  };
+
+  const getStatusColorClass = (s) => {
+    switch (s) {
+      case '심사완료':
       case '등록결정': return 'bg-green-100 text-green-700';
+      case '심사대기': return 'bg-blue-100 text-blue-800';
+      case '심사중': return 'bg-yellow-100 text-yellow-800';
+      case '거절': return 'bg-red-100 text-red-700';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
 
-  const handleReviewSubmit = () => {
-    const currentComment = reviewType === 'approval' ? approvalComment : rejectionComment;
-    
-    if (currentComment.trim() === '') {
-      alert(`${reviewType === 'approval' ? '의견서' : '거절사유서'}를 입력해주세요.`);
-      return;
+  const showMessageBox = (m) => { setModalMessage(m); setShowModal(true); };
+
+  // ⛳ 보류 의견서 → REVIEWING, 거절 사유서 → REJECT
+  const handleReviewSubmit = async () => {
+    let currentComment, decision, message, newStatus;
+    if (selectedAction === 'document') {
+      currentComment = approvalComment;
+      decision = 'REVIEWING';
+      newStatus = '심사중';
+      message = '의견서가 제출되었습니다. 상태가 "심사중"으로 변경됩니다.';
+    } else if (selectedAction === 'rejection') {
+      currentComment = rejectionComment;
+      decision = 'REJECT';
+      newStatus = '거절';
+      message = '거절사유서가 제출되었습니다. 상태가 "거절"으로 변경됩니다.';
+    } else return;
+
+    if (!currentComment?.trim()) return showMessageBox('의견을 입력해주세요.');
+
+    const requestData = { patentId: patent.patentId, decision, comment: currentComment };
+    try {
+      await submitReview(requestData);
+      setStatus(newStatus);
+      showMessageBox(message);
+    } catch (e) {
+      console.error('심사 제출 실패:', e);
+      showMessageBox('심사 제출에 실패했습니다. 다시 시도해 주세요.');
     }
-
-    const newStatus = reviewType === 'approval' ? '등록결정' : '거절';
-    console.log(`특허 ${id}에 대한 ${reviewType === 'approval' ? '승인 의견' : '거절 사유'} 제출:`, currentComment);
-    console.log(`새로운 상태:`, newStatus);
-    alert(`${reviewType === 'approval' ? '의견서' : '거절사유서'}가 제출되었습니다!`);
-    
-    setStatus(newStatus);
   };
 
-  const handleFinalApproval = () => {
-    console.log('최종 출원 승인 처리');
-    alert('출원이 최종 승인되었습니다!');
-    setStatus('등록결정');
+  const prepareFinalApproval = () => {
+    setSelectedAction('approval');
+    const doc = `
+[특허 등록 결정 의견서]
+
+출원번호: ${patent.applicationNumber}
+특허명: ${patent.title}
+출원인: ${patent.applicantName}
+심사관: ${patent.examinerName}
+--------------------------------------------------
+
+귀하의 특허출원 ${patent.applicationNumber}에 대하여 심사한 결과, 본 출원은 특허법 관련 규정에 의거하여 다음과 같은 사유로 특허 등록이 결정되었음을 통지합니다.
+
+1. 신규성 및 진보성:
+ - 본 발명의 핵심 기술인 '${patent.summary}'은 기존 선행기술과 명확히 구별되는 독창적인 기술적 특징을 포함하고 있습니다.
+
+2. 산업상 이용 가능성:
+ - 본 발명은 관련 산업 분야에 적용 가능하며, 시장에 긍정적인 영향을 줄 것으로 기대됩니다.
+
+3. 기재 요건 충족 여부:
+ - 출원서의 청구범위 및 발명의 상세한 설명은 명확하고 구체적으로 기재되어 있습니다.
+
+따라서, 본 발명은 특허 등록 요건을 모두 충족하므로 특허 등록을 결정합니다.
+
+${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getDate()}일
+
+대한민국 특허청
+심사관 ${patent.examinerName}
+    `;
+    setApprovalDocumentText(doc.trim());
   };
 
-  // patent가 없을 경우, useEffect에 의해 리다이렉트될 것이므로 이 컴포넌트는 null을 반환하여 렌더링을 중단
-  if (!patent) {
-    return null; 
-  }
+  const handleFinalizeApproval = async () => {
+    const requestData = { patentId: patent.patentId, decision: 'APPROVE', comment: approvalDocumentText || '최종 등록 승인됨.' };
+    try {
+      await submitReview(requestData);
+      setStatus('심사완료');
+      showMessageBox('특허가 최종 승인 처리되었습니다.');
+    } catch (e) {
+      console.error('최종 승인 실패:', e);
+      showMessageBox('최종 승인 처리에 실패했습니다.');
+    }
+  };
 
-  return (
-    <div className="bg-gradient-to-br from-slate-50 via-gray-50 to-gray-50 min-h-screen relative">
-      {/* Header */}
-      
-      <div className="bg-white shadow-sm border-b">
-        <div className="px-8 py-4 flex justify-between items-center">
-          <h2 className="text-2xl font-bold flex items-center gap-2 text-gray-800">
-            <FlaskConical className="w-7 h-7 text-blue-600"/> 
-            <span>특허 심사 의견서</span>
-          </h2>
-          
-          {/* 챗봇 토글 버튼 - 위치 개선 */}
-          <button
-            onClick={() => setIsChatOpen(!isChatOpen)}
-            className={`fixed right-8 bottom-8 z-50 p-4 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white rounded-full shadow-lg transition-all duration-300 transform hover:scale-105 ${
-              isChatOpen ? 'translate-x-[-420px]' : 'translate-x-0'
-            }`}
-          >
-            <Bot className="w-6 h-6" />
-          </button>
+  const handleDocumentCheck = async () => {
+    if (!patent) return;
+
+    // 🔵 먼저 모달을 로딩 상태로 띄움
+    showMessageBox('오류 점검 중…');
+
+    try {
+      const results = await validatePatentDocument(patent.patentId);
+
+      // ✅ 응답 정규화
+      const flat = [];
+      if (Array.isArray(results)) {
+        flat.push(...results);
+      } else if (results && typeof results === 'object') {
+        const { formatErrors, contextualErrors, missingSections } = results;
+        if (Array.isArray(formatErrors)) {
+          flat.push(...formatErrors.map(e => ({
+            type: 'FORMAT',
+            field: e.field,
+            message: e.message,
+            id: e.id,
+          })));
+        }
+        if (Array.isArray(contextualErrors)) {
+          flat.push(...contextualErrors.map(e => ({
+            type: 'CONTEXT',
+            field: e.field,
+            claim: e.claim,
+            claimIndex: e.claimIndex,
+            message: e.analysis || e.message,
+            id: e.id,
+          })));
+        }
+        if (Array.isArray(missingSections)) {
+          flat.push(...missingSections.map(e => ({
+            type: 'MISSING',
+            field: e.field,
+            message: e.message,
+            id: e.id,
+          })));
+        }
+      }
+
+      // 페이지 본문 표시용 state 사용 중이라면 여기도 유지
+      setValidationErrors?.(flat);
+      setHasValidated?.(true);
+
+      // 🔵 모달의 내용만 결과로 교체
+      if (flat.length > 0) {
+        const pretty = flat.map((e, i) => {
+          const where =
+            e.claim ? ` (${e.claim}${typeof e.claimIndex === 'number' ? `#${e.claimIndex + 1}` : ''})` :
+            e.field ? ` [${e.field}]` : '';
+          const tag =
+            e.type === 'FORMAT'  ? '형식오류' :
+            e.type === 'CONTEXT' ? '맥락오류' :
+            e.type === 'MISSING' ? '누락섹션' : (e.type || '오류');
+          return `${i + 1}. [${tag}]${where} ${e.message}`;
+        }).join('\n');
+        showMessageBox(`점검 결과 ❗\n\n${pretty}`);
+      } else {
+        showMessageBox('점검 완료 ✨\n\n서류에서 특별한 오류가 발견되지 않았습니다.');
+      }
+    } catch (e) {
+      console.error('출원 서류 점검 실패:', e);
+      showMessageBox('오류: 서류 점검 중 문제가 발생했습니다.');
+    }
+  };
+
+
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="flex items-center space-x-2">
+          <div className="w-4 h-4 bg-indigo-500 rounded-full animate-bounce"></div>
+          <div className="w-4 h-4 bg-purple-500 rounded-full animate-bounce delay-150"></div>
+          <div className="w-4 h-4 bg-indigo-500 rounded-full animate-bounce delay-300"></div>
+          <p className="ml-4 text-gray-700 font-medium">데이터를 불러오는 중입니다...</p>
         </div>
       </div>
+    );
+  }
 
-      <div className="p-8 font-sans">
-        {/* 1. 출원 정보 */}
-        <section className="mb-6 border border-gray-200 p-6 rounded-xl bg-white shadow-sm">
-          <h3 className="font-semibold text-xl mb-4 text-gray-800 flex items-center gap-2">
-            <Info className="w-5 h-5 text-blue-500" /> 출원 정보
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-3 text-gray-700">
-            <p><strong>출원번호:</strong> <span className="font-medium text-gray-900">{patent.id}</span></p>
-            <p><strong>접수일자:</strong> <span className="font-medium text-gray-900">{patent.receptionDate}</span></p>
-            <p><strong>출원인:</strong> <span className="font-medium text-gray-900">{patent.applicant}</span></p>
-            <p><strong>특허명:</strong> <span className="font-medium text-gray-900">{patent.title}</span></p>
-            <p>
-              <strong>심사상태:</strong> 
-              <span className={`font-semibold ${getStatusColorClass(status)} px-2 py-1 rounded text-sm ml-2`}>
-                {status}
-              </span>
-            </p>
-            <p><strong>분류:</strong> <span className="font-medium text-gray-900">{patent.field}</span></p>
-            <p><strong>담당 심사관:</strong> <span className="font-medium text-gray-900">{patent.examiner}</span></p>
+  if (!patent) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <p className="text-gray-700 font-medium">특허 정보를 찾을 수 없습니다.</p>
+      </div>
+    );
+  }
+
+  const isFinalStatus = status === '심사완료' || status === '거절';
+
+  return (
+    <div className="bg-gradient-to-br from-slate-50 via-gray-50 to-gray-50 min-h-screen relative font-sans">
+      <main className={`transition-all duration-300 ease-in-out ${isChatOpen ? 'mr-[450px]' : 'mr-0'}`}>
+        <div className="bg-white shadow-sm border-b">
+          <div className="px-8 py-4 flex justify-between items-center">
+            <h2 className="text-2xl font-bold flex items-center gap-2 text-gray-800">
+              <Image className="w-7 h-7 text-blue-600" />
+              <span>특허 심사 시스템</span>
+            </h2>
+            <button
+              onClick={() => setIsChatOpen(!isChatOpen)}
+              className={`fixed right-8 bottom-8 z-50 p-4 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white rounded-full shadow-lg transition-all duration-300 transform hover:scale-105 ${isChatOpen ? 'translate-x-[-420px]' : 'translate-x-0'}`}
+            >
+              <Bot className="w-6 h-6" />
+            </button>
           </div>
-        </section>
+        </div>
 
-        {/* 2열 레이아웃: 좌측 의견서 작성, 우측 심사 대상 */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          {/* 좌측: 심사 의견 작성 */}
-          <section className="border border-gray-200 p-5 rounded-xl bg-white shadow-sm">
+        <div className="p-8 font-sans">
+          {/* 출원 정보 */}
+          <section className="mb-6 border border-gray-200 p-6 rounded-xl bg-white shadow-sm">
             <h3 className="font-semibold text-xl mb-4 text-gray-800 flex items-center gap-2">
-              <MessageSquare className="w-5 h-5 text-blue-500" /> 심사 의견 작성
+              <Info className="w-5 h-5 text-blue-500" /> 출원 정보
             </h3>
-            
-            {/* 라디오 버튼 */}
-            <div className="mb-4 p-3 bg-gray-50 rounded-lg w-full">
-              <div className="flex gap-6">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="reviewType"
-                    value="approval"
-                    checked={reviewType === 'approval'}
-                    onChange={(e) => setReviewType(e.target.value)}
-                    className="w-4 h-4 text-green-600 focus:ring-green-500"
-                  />
-                  <span className="text-green-700 font-medium flex items-center gap-1">
-                    <CheckCircle className="w-4 h-4" />
-                    의견서 (승인)
-                  </span>
-                </label>
-                
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="reviewType"
-                    value="rejection"
-                    checked={reviewType === 'rejection'}
-                    onChange={(e) => setReviewType(e.target.value)}
-                    className="w-4 h-4 text-red-600 focus:ring-red-500"
-                  />
-                  <span className="text-red-700 font-medium flex items-center gap-1">
-                    <XCircle className="w-4 h-4" />
-                    거절사유서
-                  </span>
-                </label>
-              </div>
-            </div>
-
-            {/* 승인 의견서 작성 */}
-            {reviewType === 'approval' && (
-              <div className="mb-4 w-full">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  승인 의견서 작성
-                </label>
-                <textarea
-                  rows={16}
-                  className="w-full border border-gray-300 px-4 py-3 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all resize-y"
-                  placeholder="등록 결정 이유 및 특허의 진보성, 신규성에 대한 의견을 작성해주세요.
-
-예시:
-- 본 발명은 기존 기술 대비 명확한 기술적 진보성을 보임
-- 선행기술과의 차별점이 명확히 기재되어 있음
-- 청구항이 명확하고 구체적으로 작성됨"
-                  value={approvalComment}
-                  onChange={(e) => setApprovalComment(e.target.value)}
-                />
-              </div>
-            )}
-
-            {/* 거절사유서 작성 */}
-            {reviewType === 'rejection' && (
-              <div className="mb-4 w-full">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  거절사유서 작성
-                </label>
-                <textarea
-                  rows={16}
-                  className="w-full border border-gray-300 px-4 py-3 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all resize-y"
-                  placeholder="거절 이유를 구체적으로 작성해주세요.
-
-예시:
-- 선행기술 문헌: [문헌명, 공개번호]
-- 신규성/진보성 결여 사유
-- 청구항의 불명확성
-- 기재 요건 위반 사항"
-                  value={rejectionComment}
-                  onChange={(e) => setRejectionComment(e.target.value)}
-                />
-              </div>
-            )}
-
-            {/* 의견 제출 버튼 */}
-            <div className="flex justify-end w-full">
-              <button
-                onClick={handleReviewSubmit}
-                className={`px-5 py-2 text-white rounded-lg font-medium flex items-center gap-2 transition-all ${
-                  reviewType === 'approval'
-                    ? 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700'
-                    : 'bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700'
-                }`}
-              >
-                <Send className="w-4 h-4" />
-                {reviewType === 'approval' ? '의견서 제출' : '거절사유서 제출'}
-              </button>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-3 text-gray-700">
+              <p><strong>출원번호:</strong> <span className="font-medium text-gray-900">{patent.applicationNumber}</span></p>
+              <p><strong>접수일자:</strong> <span className="font-medium text-gray-900">{patent.applicationDate}</span></p>
+              <p><strong>출원인:</strong> <span className="font-medium text-gray-900">{patent.applicantName || '정보 없음'}</span></p>
+              <p><strong>특허명:</strong> <span className="font-medium text-gray-900">{patent.title}</span></p>
+              <p>
+                <strong>심사상태:</strong>
+                <span className={`font-semibold ${getStatusColorClass(status)} px-2 py-1 rounded text-sm ml-2`}>{status}</span>
+              </p>
+              <p><strong>분류:</strong> <span className="font-medium text-gray-900">{patent.technicalField}</span></p>
+              <p><strong>담당 심사관:</strong> <span className="font-medium text-gray-900">{patent.examinerName || '정보 없음'}</span></p>
             </div>
           </section>
 
-          {/* 우측: 심사 대상 */}
-          <section className="border border-gray-200 p-6 rounded-xl bg-white shadow-sm">
-            <h3 className="font-semibold text-xl mb-4 flex items-center gap-2 text-gray-800">
-              <FileText className="w-5 h-5 text-blue-500" /> 심사 대상
-            </h3>
-            
-            <div className="mb-4">
-              <h4 className="font-medium text-lg mb-2 text-gray-800 flex items-center gap-1">
-                <FileText className="w-4 h-4 text-blue-400" /> 청구항
-              </h4>
-              {patent.claims && patent.claims.length > 0 ? (
-                <ul className="list-disc list-inside text-sm text-gray-700 space-y-1 bg-gray-50 p-3 rounded-md border border-gray-100 max-h-32 overflow-y-auto">
-                  {patent.claims.map((claim, index) => (
-                    <li key={index}>{claim}</li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-gray-600 text-sm bg-gray-50 p-3 rounded-md border border-gray-100">등록된 청구항이 없습니다.</p>
-              )}
-            </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            {/* 심사 의견서 */}
+            <section className={`border border-gray-200 p-5 rounded-xl bg-white shadow-sm ${isFinalStatus ? 'opacity-60 bg-gray-50' : ''}`}>
+              <h3 className="font-semibold text-xl mb-4 text-gray-800 flex items-center gap-2">
+                <MessageSquare className="w-5 h-5 text-blue-500" /> 심사 의견서 작성
+              </h3>
 
-            {/* 2D 도면과 3D 모델을 좌우로 배치 */}
-            <div className="flex flex-col lg:flex-row gap-6 mb-4">
-              {/* 2D 도면 섹션 */}
-              <div className={`flex-1 ${patent.modelPath ? 'lg:w-1/2' : 'w-full'}`}>
+              <div className="flex gap-1 p-1 bg-gray-50 rounded-xl mb-6 border border-gray-200">
+                <button
+                  onClick={() => setSelectedAction('document')}
+                  disabled={isFinalStatus}
+                  className={`flex-1 py-3 px-4 rounded-lg text-sm font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${selectedAction === 'document' ? 'bg-gradient-to-r from-yellow-500 to-amber-600 text-white shadow-md transform scale-[1.02]' : 'text-yellow-700 bg-yellow-50 hover:bg-yellow-100'}`}
+                >📝 보류 의견서</button>
+                <button
+                  onClick={() => setSelectedAction('rejection')}
+                  disabled={isFinalStatus}
+                  className={`flex-1 py-3 px-4 rounded-lg text-sm font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${selectedAction === 'rejection' ? 'bg-gradient-to-r from-red-500 to-rose-600 text-white shadow-md transform scale-[1.02]' : 'text-red-700 bg-red-50 hover:bg-red-100'}`}
+                >✗ 거절 사유서</button>
+                <button
+                  onClick={prepareFinalApproval}
+                  disabled={isFinalStatus}
+                  className={`flex-1 py-3 px-4 rounded-lg text-sm font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${selectedAction === 'approval' ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-600 hover:to-indigo-700 shadow-md' : 'text-blue-700 bg-blue-50 hover:bg-blue-100'}`}
+                >⚡ 최종 승인</button>
+              </div>
+
+              {(selectedAction === 'document' || selectedAction === 'rejection' || selectedAction === 'approval') && (
+                <div className="mb-4 w-full">
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      {selectedAction === 'document' ? '보류 의견서 작성' : selectedAction === 'rejection' ? '거절 사유서 작성' : '최종 승인 서류'}
+                    </label>
+                    {selectedAction === 'rejection' && (
+                      <button
+                        onClick={async () => {
+                          if (!patent) return;
+                          try {
+                            const draft = await generateRejectionDraft(patent.patentId);
+                            setRejectionComment(draft.content);
+                            showMessageBox('AI 거절 사유서 초안이 생성되었습니다.');
+                          } catch {
+                            showMessageBox('오류: AI 초안 생성에 실패했습니다.');
+                          }
+                        }}
+                        disabled={isFinalStatus}
+                        className="px-3 py-1.5 bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-md hover:bg-indigo-200 transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <Bot className="w-4 h-4 mr-1.5" />
+                        AI 초안 생성
+                      </button>
+                    )}
+                  </div>
+
+                  <textarea
+                    rows={16}
+                    disabled={isFinalStatus}
+                    className="w-full border border-gray-300 px-4 py-3 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all resize-y disabled:bg-gray-100"
+                    placeholder={selectedAction === 'document'
+                      ? '보류 사유 및 보완이 필요한 사항에 대해 작성해주세요.'
+                      : selectedAction === 'rejection'
+                        ? '거절 이유를 구체적으로 작성해주세요.'
+                        : ''}
+                    value={selectedAction === 'document' ? approvalComment : selectedAction === 'rejection' ? rejectionComment : approvalDocumentText}
+                    onChange={(e) => {
+                      if (selectedAction === 'document') setApprovalComment(e.target.value);
+                      else if (selectedAction === 'rejection') setRejectionComment(e.target.value);
+                      else setApprovalDocumentText(e.target.value);
+                    }}
+                  />
+
+                  <div className="flex justify-end w-full mt-4">
+                    {selectedAction === 'document' || selectedAction === 'rejection' ? (
+                      <button
+                        onClick={handleReviewSubmit}
+                        disabled={isFinalStatus}
+                        className={`px-5 py-2 text-white rounded-lg font-medium flex items-center gap-2 transition-all disabled:bg-gray-400 ${selectedAction === 'document'
+                          ? 'bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-600 hover:to-amber-700'
+                          : 'bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700'}`}
+                      >
+                        <Send className="w-4 h-4" />
+                        {selectedAction === 'document' ? '의견서 제출' : '사유서 제출'}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={handleFinalizeApproval}
+                        disabled={isFinalStatus}
+                        className="px-5 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white rounded-lg font-medium flex items-center gap-2 transition-colors disabled:bg-gray-400"
+                      >
+                        <Check className="w-4 h-4" />
+                        최종 승인
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </section>
+
+            {/* 심사 대상 */}
+            <section className="border border-gray-200 p-6 rounded-xl bg-white shadow-sm">
+              <h3 className="font-semibold text-xl mb-4 flex items-center gap-2 text-gray-800">
+                <FileText className="w-5 h-5 text-blue-500" /> 심사 대상
+                <button
+                  onClick={handleDocumentCheck}
+                  className="px-5 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-medium ml-auto transition-colors flex items-center gap-2 text-sm"
+                >
+                  <ScrollText className="w-4 h-4" />
+                  AI 서류 점검
+                </button>
+              </h3>
+
+              {/* 청구항 */}
+              <div className="mb-4">
                 <h4 className="font-medium text-lg mb-2 text-gray-800 flex items-center gap-1">
-                  <Image className="w-4 h-4 text-blue-400" /> 2D 도면
+                  <FileText className="w-4 h-4 text-blue-400" /> 청구항
                 </h4>
-                <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
-                  {patent.images && patent.images.length > 0 ? (
-                    patent.images.map((imagePath, index) => (
-                      <div key={index} className="border border-gray-200 rounded-md overflow-hidden bg-white shadow-sm">
-                        <img src={imagePath} alt={`특허 도면 ${index + 1}`} className="w-full h-20 object-cover bg-gray-200" />
-                        <p className="p-1 text-center text-xs text-gray-600 border-t border-gray-100">도면 {index + 1}</p>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-gray-600 col-span-full text-sm bg-gray-50 p-3 rounded-md border border-gray-100">등록된 2D 도면이 없습니다.</p>
+                {patent.claims?.length ? (
+                  <ul className="list-disc list-inside text-sm text-gray-700 space-y-1 bg-gray-50 p-3 rounded-md border border-gray-100 max-h-32 overflow-y-auto">
+                    {patent.claims.map((c, i) => <li key={i}>{c}</li>)}
+                  </ul>
+                ) : (
+                  <p className="text-gray-600 col-span-full text-sm bg-gray-50 p-3 rounded-md border border-gray-100">등록된 청구항이 없습니다.</p>
+                )}
+              </div>
+
+              {/* 요약 */}
+              <div className="mb-4">
+                <h4 className="font-medium text-lg mb-2 text-gray-800 flex items-center gap-1">
+                  <FileText className="w-4 h-4 text-blue-400" /> 요약
+                </h4>
+                <div className="text-sm text-gray-700 leading-relaxed bg-gray-50 p-3 rounded-md border border-gray-100 max-h-32 overflow-y-auto">
+                  {patent.description || patent.summary}
+                </div>
+              </div>
+
+              {/* 배경기술 */}
+              <div className="mb-4">
+                <h4 className="font-medium text-lg mb-2 text-gray-800 flex items-center gap-1">
+                  <Info className="w-4 h-4 text-blue-400" /> 배경기술
+                </h4>
+                {patent.backgroundTechnology ? (
+                  <div className="text-sm text-gray-700 leading-relaxed bg-gray-50 p-3 rounded-md border border-gray-100 max-h-32 overflow-y-auto">
+                    {patent.backgroundTechnology}
+                  </div>
+                ) : (
+                  <p className="text-gray-600 col-span-full text-sm bg-gray-50 p-3 rounded-md border border-gray-100">등록된 배경기술이 없습니다.</p>
+                )}
+              </div>
+
+              {/* 해결 과제 */}
+              <div className="mb-4">
+                <h4 className="font-medium text-lg mb-2 text-gray-800 flex items-center gap-1">
+                  <X className="w-4 h-4 text-blue-400" /> 해결 과제
+                </h4>
+                {patent.problemToSolve ? (
+                  <div className="text-sm text-gray-700 leading-relaxed bg-gray-50 p-3 rounded-md border border-gray-100 max-h-32 overflow-y-auto">
+                    {patent.problemToSolve}
+                  </div>
+                ) : (
+                  <p className="text-gray-600 col-span-full text-sm bg-gray-50 p-3 rounded-md border border-gray-100">등록된 해결 과제가 없습니다.</p>
+                )}
+              </div>
+
+              {/* 해결 수단 */}
+              <div className="mb-4">
+                <h4 className="font-medium text-lg mb-2 text-gray-800 flex items-center gap-1">
+                  <Check className="w-4 h-4 text-blue-400" /> 해결 수단
+                </h4>
+                {patent.solution ? (
+                  <div className="text-sm text-gray-700 leading-relaxed bg-gray-50 p-3 rounded-md border border-gray-100 max-h-32 overflow-y-auto">
+                    {patent.solution}
+                  </div>
+                ) : (
+                  <p className="text-gray-600 col-span-full text-sm bg-gray-50 p-3 rounded-md border border-gray-100">등록된 해결 수단이 없습니다.</p>
+                )}
+              </div>
+
+              {/* 발명의 효과 */}
+              <div className="mb-4">
+                <h4 className="font-medium text-lg mb-2 text-gray-800 flex items-center gap-1">
+                  <CheckCircle className="w-4 h-4 text-blue-400" /> 발명의 효과
+                </h4>
+                {patent.effect ? (
+                  <div className="text-sm text-gray-700 leading-relaxed bg-gray-50 p-3 rounded-md border border-gray-100 max-h-32 overflow-y-auto">
+                    {patent.effect}
+                  </div>
+                ) : (
+                  <p className="text-gray-600 col-span-full text-sm bg-gray-50 p-3 rounded-md border border-gray-100">등록된 발명의 효과가 없습니다.</p>
+                )}
+              </div>
+
+              {/* 도면 설명 */}
+              <div className="mb-4">
+                <h4 className="font-medium text-lg mb-2 text-gray-800 flex items-center gap-1">
+                  <FileText className="w-4 h-4 text-blue-400" /> 도면 설명
+                </h4>
+                {patent.drawingDescription ? (
+                  <div className="text-sm text-gray-700 leading-relaxed bg-gray-50 p-3 rounded-md border border-gray-100 max-h-32 overflow-y-auto">
+                    {patent.drawingDescription}
+                  </div>
+                ) : (
+                  <p className="text-gray-600 col-span-full text-sm bg-gray-50 p-3 rounded-md border border-gray-100">등록된 도면 설명이 없습니다.</p>
+                )}
+              </div>
+
+              {/* 2D 도면 */}
+              <div className="flex flex-col lg:flex-row gap-6 mb-4">
+                <div className="flex-1 w-full">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-medium text-lg text-gray-800 flex items-center gap-1">
+                      <Image className="w-4 h-4 text-blue-400" /> 2D 도면
+                    </h4>
+                    {drawingSources.length > 0 && (
+                      <span className="text-xs text-gray-500">
+                        선택된 도면: <b>{selectedDrawingIdx + 1}</b> / {drawingSources.length}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
+                    {drawingSources.length > 0 ? (
+                      drawingSources.map((srcLike, i) => {
+                        const active = selectedDrawingIdx === i;
+                        const displayName =
+                          typeof srcLike === 'string'
+                            ? cleanFileName(srcLike.split('/').pop().split('?')[0])
+                            : cleanFileName(srcLike.fileName);
+                        return (
+                          <button
+                            type="button"
+                            key={i}
+                            onClick={() => setSelectedDrawingIdx(i)}
+                            className={`relative border rounded-md overflow-hidden bg-white text-left transition-all focus:outline-none ${active ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-gray-200 hover:ring-1 hover:ring-gray-300'}`}
+                            title={displayName}
+                          >
+                            <SmartImage source={srcLike} alt={`도면 ${i + 1}`} className="w-full h-32 object-contain bg-white" />
+                            {active && (
+                              <span className="absolute top-2 right-2 text-[10px] px-2 py-0.5 rounded-full bg-indigo-600 text-white">
+                                선택됨
+                              </span>
+                            )}
+                            <div className="p-2 text-[11px] text-gray-600 truncate">{displayName}</div>
+                          </button>
+                        );
+                      })
+                    ) : (
+                      <p className="text-gray-600 col-span-full text-sm bg-gray-50 p-3 rounded-md border border-gray-100">
+                        등록된 2D 도면이 없습니다.
+                      </p>
+                    )}
+                  </div>
+
+                  {/* 이미지가 없고 비이미지 첨부만 있을 때 */}
+                  {drawingSources.length === 0 && attachmentOtherFiles.length > 0 && (
+                    <div className="mt-3 bg-gray-50 border border-gray-200 rounded-lg p-3">
+                      <p className="text-sm font-medium text-gray-800 mb-2 flex items-center gap-2">
+                        <FileIcon className="w-4 h-4 text-gray-600" />
+                        이미지가 아닌 첨부 파일
+                      </p>
+                      <ul className="text-sm text-gray-700 space-y-1 max-h-32 overflow-y-auto">
+                        {attachmentOtherFiles.map(f => (
+                          <li key={f.id} className="flex items-center justify-between gap-2">
+                            <span className="truncate">{f.name}</span>
+                            <a href={f.url} target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline text-xs flex-shrink-0">
+                              열기
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   )}
                 </div>
               </div>
 
-              {/* 3D GLB 모델 섹션 */}
-              {patent.modelPath && (
-                <div className="flex-1 lg:w-1/2 mt-6 lg:mt-0">
-                  <h4 className="font-medium text-lg mb-2 text-gray-800 flex items-center gap-1">
-                    <FlaskConical className="w-4 h-4 text-blue-400" /> 3D 특허 모델
+              {/* 3D 도면 (.glb 첨부 자동 표시) */}
+              <div className="mt-6">
+                <div className="flex justify-between items-center mb-2">
+                  <h4 className="font-medium text-lg text-gray-800 flex items-center gap-1">
+                    <Image className="w-4 h-4 text-blue-400" /> 3D 도면
                   </h4>
-                    <ThreeDModelViewer glbPath={patent.modelPath} />
                 </div>
-              )}
-              {!patent.modelPath && patent.images && patent.images.length > 0 && (
-                <div className="flex-1 lg:w-1/2 mt-6 lg:mt-0">
-                  <p className="text-gray-600 text-sm bg-gray-50 p-3 rounded-md border border-gray-100 h-full flex items-center justify-center">
-                    등록된 3D 모델이 없습니다.
-                  </p>
-                </div>
-              )}
-            </div>
-
-            <div>
-              <h4 className="font-medium text-lg mb-2 text-gray-800 flex items-center gap-1">
-                <FileText className="w-4 h-4 text-blue-400" /> 요약
-              </h4>
-              <div className="text-sm text-gray-700 leading-relaxed bg-gray-50 p-3 rounded-md border border-gray-100 max-h-32 overflow-y-auto">
-                {patent.description}
+                {glbModelUrl ? (
+                  <ThreeDModelViewer src={glbModelUrl} />
+                ) : (
+                  <div className="w-full h-24 bg-gray-50 border border-dashed border-gray-300 rounded-lg flex items-center justify-center text-sm text-gray-500">
+                    첨부 파일에서 .glb 파일을 찾지 못했습니다. .glb 파일을 업로드하면 자동으로 표시됩니다.
+                  </div>
+                )}
               </div>
+
+              {/* AI 서류 점검 결과 */}
+              <div className="mt-6">
+                <h4 className="font-medium text-lg text-gray-800 flex items-center gap-1">
+                  <ScrollText className="w-4 h-4 text-blue-400" />
+                  AI 서류 점검 결과
+                </h4>
+
+                {/* 점검 후 오류 없음 배너 */}
+                {hasValidated && validationErrors.length === 0 && (
+                  <div className="mt-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+                    점검 완료 ✨ 서류에서 특별한 오류가 발견되지 않았습니다.
+                  </div>
+                )}
+
+                {/* 오류 리스트 */}
+                {validationErrors.length > 0 && (
+                  <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-4">
+                    <ul className="space-y-2">
+                      {validationErrors.map((e, i) => {
+                        const tag =
+                          e.type === 'FORMAT'  ? '형식오류' :
+                          e.type === 'CONTEXT' ? '맥락오류' :
+                          e.type === 'MISSING' ? '누락섹션' : (e.type || '오류');
+
+                        const where = e.claim
+                          ? ` (${e.claim}${typeof e.claimIndex === 'number' ? `#${e.claimIndex + 1}` : ''})`
+                          : (e.field ? ` [${e.field}]` : '');
+
+                        return (
+                          <li key={e.id || i} className="text-sm text-red-800">
+                            <span className="inline-flex items-center rounded-full border border-red-300 bg-white px-2 py-0.5 text-xs font-semibold text-red-700 mr-2">
+                              {tag}
+                            </span>
+                            <span className="font-medium">{where}</span> {e.message}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                )}
+
+                {/* 아직 점검 전 안내 */}
+                {!hasValidated && (
+                  <p className="mt-2 text-xs text-gray-500">
+                    ※ 상단의 <b>AI 서류 점검</b> 버튼을 눌러 결과를 확인하세요.
+                  </p>
+                )}
+              </div>
+
+            </section>
+          </div>
+
+          {/* 유사 특허 분석 (첫 2D 도면 자동 분석) */}
+          <section className="mb-6 border border-gray-200 p-6 rounded-xl bg-white shadow-sm">
+            <h3 className="font-semibold text-xl mb-4 text-gray-800 flex items-center gap-2">
+              <Copy className="w-5 h-5 text-blue-500" /> AI 유사 특허 분석
+            </h3>
+            <div className="flex gap-4 overflow-x-auto pb-2 -mx-2 px-2">
+              {isSearchingSimilarity ? (
+                <div className="w-full flex justify-center items-center py-8">
+                  <div className="w-8 h-8 border-4 border-gray-200 border-t-indigo-500 rounded-full animate-spin"></div>
+                  <p className="ml-4 text-gray-600">유사 특허를 검색하고 있습니다...</p>
+                </div>
+              ) : similarityResults?.length ? (
+                similarityResults.map((r, i) => (
+                  <div key={r.similar_patent_code || i} className="min-w-[220px] w-full max-w-[250px] border border-gray-200 rounded-lg bg-white shadow-sm flex-shrink-0 transition-all hover:shadow-md hover:border-indigo-200">
+                    <div className="h-32 bg-gray-100 flex items-center justify-center">
+                      <img
+                        src={r.image_url}
+                        alt={`유사 결과 ${i + 1}`}
+                        className="w-full h-full object-contain"
+                        onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = 'https://placehold.co/400x300/e2e8f0/94a3b8?text=Image+Not+Found'; }}
+                      />
+                    </div>
+                    <div className="p-3">
+                      <p className="text-sm font-semibold text-gray-800 truncate">{r.title || `유사 결과 ${i + 1}`}</p>
+                      <p className="text-xs text-gray-500 mt-1">출원번호: {r.application_number}</p>
+                      <div className="w-full bg-gray-200 rounded-full h-2.5 mt-3">
+                        <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: `${Number(r.similarity * 100 || 0).toFixed(2)}%` }}></div>
+                      </div>
+                      <p className="text-right text-sm font-bold text-blue-700 mt-1">{Number(r.similarity * 100 || 0).toFixed(2)}%</p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-gray-600 w-full text-center py-4">AI 분석 결과가 없거나 분석 중입니다.</p>
+              )}
             </div>
           </section>
-        </div>
 
-        {/* 유사 특허 검색 결과 */}
-        <section className="mb-6 border border-gray-200 p-6 rounded-xl bg-white shadow-sm">
-          <h3 className="font-semibold text-xl mb-4 text-gray-800 flex items-center gap-2">
-            <Copy className="w-5 h-5 text-blue-500" /> 유사 특허 검색 결과
-          </h3>
-          <div className="flex gap-4 overflow-x-auto pb-2 -mx-2 px-2">
-            {patent.relatedPatents && patent.relatedPatents.length > 0 ? (
-              patent.relatedPatents.map((similar, index) => (
-                <div key={index} className="min-w-[200px] w-full max-w-[250px] border border-gray-200 rounded-lg overflow-hidden bg-gray-50 shadow-sm flex-shrink-0">
-                  <img src={similar.image} alt={similar.title} className="w-full h-32 object-cover bg-gray-200" />
-                  <div className="p-3">
-                    <p className="text-sm font-medium text-gray-800">특허번호: {similar.id}</p>
-                    <p className="text-xs text-gray-600 mt-1 line-clamp-2">{similar.description}</p>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className="text-gray-600">유사 특허 검색 결과가 없습니다.</p>
-            )}
+          <div className="text-center mt-6">
+            <button
+              onClick={() => navigate('/patent-dashboard')}
+              className="px-6 py-3 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded-lg font-medium transition-all flex items-center gap-2 mx-auto"
+            >
+              목록으로 돌아가기
+            </button>
           </div>
-        </section>
-
-        {/* 최종 승인 버튼 */}
-        <div className="text-center">
-          <button
-            onClick={handleFinalApproval}
-            className="px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white rounded-xl font-bold text-lg transition-all flex items-center gap-3 mx-auto shadow-lg"
-          >
-            <CheckCircle className="w-6 h-6" />
-            최종 출원 승인
-          </button>
-          
-          {/* 목록으로 돌아가기 버튼 */}
-          <button
-            onClick={() => navigate('/patentdashboard')}
-            className="mt-4 px-6 py-3 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded-lg font-medium transition-all flex items-center gap-2 mx-auto"
-          >
-            목록으로 돌아가기
-          </button>
         </div>
-      </div>
+      </main>
 
-      {/* 사이드 챗봇 - 크기와 레이아웃 개선 */}
-      <div className={`fixed right-0 top-0 h-full w-[450px] bg-white shadow-2xl border-l border-gray-200 transform transition-transform duration-300 ease-in-out z-40 ${
-        isChatOpen ? 'translate-x-0' : 'translate-x-full'
-      }`}>
-        {/* 챗봇 헤더 */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+      {/* 사이드 챗봇 패널 */}
+      <div className={`fixed right-0 top-0 h-full w-[450px] bg-white shadow-2xl border-l border-gray-200 transform transition-transform duration-300 ease-in-out z-40 flex flex-col ${isChatOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+        <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50 flex-shrink-0">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
               <Bot className="w-5 h-5 text-white" />
@@ -405,92 +1143,112 @@ export default function PatentReview() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => setIsChatOpen(false)}
-              className="p-1 hover:bg-gray-200 rounded transition-colors"
-            >
+            <button onClick={() => setIsChatOpen(false)} className="p-1 hover:bg-gray-200 rounded transition-colors">
               <X className="w-4 h-4" />
             </button>
           </div>
         </div>
-        {!isMinimized && (
-          <>
-            {/* 빠른 질문 버튼들 */}
-            <div className="p-4 border-b border-gray-100">
-              <p className="text-sm font-medium text-gray-700 mb-3">빠른 질문</p>
-              <div className="grid grid-cols-2 gap-2">
-                {quickQuestions.map((question, index) => (
-                  <button
-                    key={index}
-                    onClick={() => handleQuickQuestion(question.query)}
-                    className="p-2 text-xs bg-gray-50 hover:bg-blue-50 border border-gray-200 hover:border-blue-300 rounded-lg transition-all flex flex-col items-center gap-1"
-                  >
-                    <question.icon className="w-4 h-4 text-blue-600" />
-                    <span className="text-gray-700">{question.text}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-            {/* 채팅 메시지 영역 - 높이 개선 */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4" style={{ height: 'calc(95vh - 300px)' }}>
-              {chatMessages.map((message) => (
-                <div key={message.id} className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[80%] p-3 rounded-lg ${
-                    message.type === 'user' 
-                      ? 'bg-blue-500 text-white' 
-                      : 'bg-gray-100 text-gray-800'
-                  }`}>
-                    <p className="text-sm whitespace-pre-line">{message.message}</p>
-                    <p className={`text-xs mt-1 ${message.type === 'user' ? 'text-blue-100' : 'text-gray-500'}`}>
-                      {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+        
+        <div className="p-4 border-b border-gray-100 flex-shrink-0">
+          <p className="text-sm font-medium text-gray-700 mb-3">빠른 질문</p>
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { id: 'q1', text: '문서 점검', icon: FileText, query: '이 특허 문서에 문제가 있는지 확인해줘', intent: 'validate_doc' },
+              { id: 'q2', text: '유사 특허', icon: Copy, query: '이 특허와 유사한 특허를 찾아줘', intent: 'similar_patent' },
+              { id: 'q3', text: '거절사유', icon: Scale, query: '이 특허의 거절사유를 분석해줘', intent: 'rejection_draft' },
+              { id: 'q4', text: '청구항 초안', icon: ScrollText, query: '이 특허의 청구항 초안을 생성해줘', intent: 'claim_draft' },
+            ].map((q) => (
+              <button
+                key={q.id}
+                onClick={() => handleQuickQuestion(q.query, q.intent)}
+                className="p-2 text-xs bg-gray-50 hover:bg-blue-50 border border-gray-200 hover:border-blue-300 rounded-lg transition-all flex flex-col items-center gap-1"
+              >
+                <q.icon className="w-4 h-4 text-blue-600" />
+                <span className="text-gray-700">{q.text}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+        
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {chatMessages.map((message) => {
+            if (message.type === 'bot-features') {
+              return (
+                <div key={message.id} className="flex justify-start">
+                  <div className="max-w-[85%] p-3 rounded-lg bg-indigo-50 border border-indigo-200 text-sm">
+                    <p className="font-semibold text-indigo-800 mb-2 flex items-center gap-1.5">
+                      <CheckCircle className="w-4 h-4 text-indigo-500" />
+                      AI가 다음 작업을 수행했습니다:
                     </p>
+                    <ul className="space-y-1.5 pl-2">
+                      {message.features.map((feature, index) => (
+                        <li key={index} className="text-gray-700">
+                          - <strong>{feature}:</strong> {message.results[index]}
+                        </li>
+                      ))}
+                    </ul>
                   </div>
                 </div>
-              ))}
-              {isTyping && (
-                <div className="flex justify-start">
-                  <div className="bg-gray-100 p-3 rounded-lg">
-                    <div className="flex space-x-1">
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                    </div>
-                  </div>
+              );
+            }
+            return (
+              <div key={message.id} className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[80%] p-3 rounded-lg ${message.type === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-800'}`}>
+                  <p className="text-sm whitespace-pre-line">{message.message}</p>
+                  <p className={`text-xs mt-1 ${message.type === 'user' ? 'text-blue-100' : 'text-gray-500'}`}>
+                    {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </p>
                 </div>
-              )}
-            </div>
-            {/* 메시지 입력 영역 - 위치와 높이 개선 */}
-            <div className="p-4 border-t border-gray-200 bg-white" style={{ marginBottom: '60px' }}>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={inputMessage}
-                  onChange={(e) => setInputMessage(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && sendChatMessage()}
-                  placeholder="궁금한 점을 물어보세요..."
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                />
-                <button
-                  onClick={() => sendChatMessage()}
-                  disabled={!inputMessage.trim() || isTyping}
-                  className="px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white rounded-lg transition-colors"
-                >
-                  <Send className="w-4 h-4" />
-                </button>
               </div>
-              <p className="text-xs text-gray-500 mt-2">
-                특허 심사와 관련된 질문을 자유롭게 해보세요.
-              </p>
+            );
+          })}
+          {isTyping && (
+            <div className="flex justify-start">
+              <div className="bg-gray-100 p-3 rounded-lg">
+                <div className="flex space-x-1">
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                </div>
+              </div>
             </div>
-          </>
-        )}
+          )}
+        </div>
+        
+        <div className="p-4 border-t border-gray-200 bg-white flex-shrink-0">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={inputMessage}
+              onChange={(e) => setInputMessage(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && sendChatMessage()}
+              placeholder="궁금한 점을 물어보세요..."
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+            />
+            <button
+              onClick={() => sendChatMessage()}
+              disabled={!inputMessage.trim() || isTyping}
+              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white rounded-lg transition-colors"
+            >
+              <Send className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
       </div>
-      {/* 메인 콘텐츠에 오버레이 */}
-      {isChatOpen && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-20 z-30 lg:hidden"
-          onClick={() => setIsChatOpen(false)}
-        />
+      
+      {showModal && (
+        <div className="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-[100]">
+          <div className="bg-white rounded-xl shadow-lg p-6 w-96 max-w-[90%] text-center">
+            <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
+            <p className="text-gray-700 text-lg font-medium mb-6 whitespace-pre-line">{modalMessage}</p>
+            <button
+              onClick={() => setShowModal(false)}
+              className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+            >
+              확인
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

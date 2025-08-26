@@ -1,6 +1,7 @@
 package com.patentsight.file.dto;
 
 import java.time.LocalDateTime;
+import com.patentsight.file.domain.FileType;
 
 /**
  * Generic file metadata returned when creating or requesting a
@@ -14,6 +15,7 @@ public class FileResponse {
     private String fileUrl;
     private String content;
     private LocalDateTime updatedAt;
+    private FileType fileType;
 
     public Long getFileId() {
         return fileId;
@@ -69,5 +71,13 @@ public class FileResponse {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public FileType getFileType() {
+        return fileType;
+    }
+
+    public void setFileType(FileType fileType) {
+        this.fileType = fileType;
     }
 }

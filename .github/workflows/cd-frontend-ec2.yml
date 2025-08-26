@@ -55,7 +55,8 @@ jobs:
             PORT=$([ "$APP_NAME" = "applicant_fe" ] && echo 3000 || echo 3001)
       
             # pm2 재시작(없으면 최초 serve) + 저장
-            pm2 reload "$APP_NAME" || pm2 serve "$APP_DIR" "$PORT" --spa --name "$APP_NAME"
+            # [수정] serve 실행 시 -f 옵션을 추가하여 이미 실행 중인 스크립트를 강제로 덮어씌웁니다.
+            pm2 reload "$APP_NAME" || pm2 serve "$APP_DIR" "$PORT" --spa --name "$APP_NAME" -f
             pm2 save
       
             # 상태 한 줄 + 간단 헬스체크 (tail 금지)

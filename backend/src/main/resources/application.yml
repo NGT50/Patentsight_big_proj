@@ -1,24 +1,48 @@
 spring:
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
-      settings:
-        web-allow-others: true #콘솔 원격 임시로 허용(위험)
-  datasource:
-    url: jdbc:h2:mem:testdb
-#    jdbc:h2:file:./data/testdb 데이터를 계속 유지하려면 변경
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
-
+  datasource: 
+    url: jdbc:mysql://patent-db-new.c05iwow0ip8e.us-east-1.rds.amazonaws.com:3306/patent_db?useSSL=false&serverTimezone=UTC&characterEncoding=UTF-8
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: admin
+    password: tab20200782!
+    
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: update   # 개발 단계는 update, 운영 배포는 validate 권장
     show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+    defer-datasource-initialization: true
+
+  sql:
+    init:
+      mode: always
+      separator: "//"
 
 management:
   endpoints:
     web:
       exposure:
         include: "health,info"
+
+# JWT 관련 설정
+security:
+  jwt:
+    secret: "change-this-to-your-256-bit-secret_______________________"  # 32바이트 이상
+    validity-ms: 86400000   # 토큰 유효기간(ms)
+
+# 외부 API 엔드포인트
+external-api:
+  fastapi-ipc-url: "http://16.176.246.243:8000/predict"
+  draft-url: "http://13.236.174.54:8000/analyze/"
+  search-base-url: "http://54.180.170.51:8000"
+  validation-url: "http://3.26.101.212:8000/api/ai/validations"
+  claim-url: "https://neil-gordon-georgia-thumbnail.trycloudflare.com/generate"
+  similar-search-base-url: "http://3.27.137.18:8080"
+  three-d-model-endpoint: "https://eb1362095826.ngrok-free.app/generate"
+  chatbot-url: "http://35.175.253.22:58080/chat"
+
+aws:
+  accessKeyId: ${AWS_ACCESS_KEY_ID:}
+  secretAccessKey: ${AWS_SECRET_ACCESS_KEY:}
+  region: ${AWS_REGION:us-east-1}

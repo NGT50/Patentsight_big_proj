@@ -1,11 +1,11 @@
 name: CD backend → EC2 (CICD)
-
+ 
 on:
   push:
-    branches: [ "CICD" ]          # CICD 브랜치에 푸시될 때만
+    branches: [ "CICD" ]      # CICD 브랜치에 푸시될 때만
     paths:
-      - "backend/**"              # backend 변경시에만 트리거
-  workflow_dispatch:               # 수동 실행 버튼
+      - "backend/**"          # backend 변경시에만 트리거
+  workflow_dispatch:          # 수동 실행 버튼
 
 concurrency:
   group: cd-ec2-backend
@@ -30,19 +30,30 @@ jobs:
         working-directory: backend
         run: chmod +x gradlew
 
+      - name: Get short Git hash
+        id: vars
+        run: echo "sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
       - name: Build (Gradle bootJar)
         working-directory: backend
-        run: ./gradlew clean bootJar -x test
-
-      - name: Find artifact (jar path)
+        # [수정] --refresh-dependencies 옵션을 추가하여 손상된 캐시를 무시하고 모든 라이브러리를 새로 받도록 강제합니다.
+        run: ./gradlew clean bootJar -x test --refresh-dependencies
+        
+      - name: Prepare artifact (jar path)
         id: findjar
         shell: bash
         run: |
-          JAR=$(ls -t backend/build/libs/*.jar | head -n 1)
-          echo "jar=$JAR" >> $GITHUB_OUTPUT
-          echo "Found JAR: $JAR"
+          ORIG_JAR="backend/build/libs/backend-0.0.1-${{ steps.vars.outputs.sha }}.jar"
+          if [ ! -f "$ORIG_JAR" ]; then
 
-      # (안전장치) EC2에 releases 폴더 보장
+            echo "Jar not found" >&2
+            exit 1
+          fi
+          JAR="backend/build/libs/backend-0.0.1-${{ steps.vars.outputs.sha }}-${{ github.run_number }}.jar"
+          mv "$ORIG_JAR" "$JAR"
+          echo "jar=$JAR" >> $GITHUB_OUTPUT
+          echo "Prepared JAR: $JAR"
+
       - name: Ensure releases dir exists on EC2
         uses: appleboy/ssh-action@v1.1.0
         with:
@@ -52,30 +63,17 @@ jobs:
           script: |
             mkdir -p /home/${{ secrets.USERNAME }}/app/releases
 
-      # JAR 업로드: 상위 폴더(backend/build/libs)를 제거하고 파일만 떨어뜨림
       - name: Upload JAR to EC2
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.KEY }}
-          source: ${{ steps.findjar.outputs.jar }}    # ex) backend/build/libs/*.jar
+          source: ${{ steps.findjar.outputs.jar }}
           target: /home/${{ secrets.USERNAME }}/app/releases/
-          strip_components: 3                          # ★ backend/build/libs 제거
+          strip_components: 3
           overwrite: true
 
-      # (선택) 업로드 확인 - 문제시 로그 확인용
-      - name: Verify upload on EC2
-        uses: appleboy/ssh-action@v1.1.0
-        with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USERNAME }}
-          key: ${{ secrets.KEY }}
-          script: |
-            ls -la /home/${{ secrets.USERNAME }}/app/releases
-            find /home/${{ secrets.USERNAME }}/app/releases -maxdepth 3 -type f -name "*.jar" -print
-
-      # 서비스 재시작: 절대경로 하드코딩 + 최신 JAR 선택
       - name: Restart service on EC2
         uses: appleboy/ssh-action@v1.1.0
         with:
@@ -85,11 +83,31 @@ jobs:
           script: |
             set -e
             APP_DIR="/home/${{ secrets.USERNAME }}/app"
-            LATEST_JAR=$(ls -t "$APP_DIR"/releases/*.jar | head -n 1)
-            echo "Latest jar: $LATEST_JAR"
-            if [ -z "$LATEST_JAR" ]; then
-              echo "ERROR: No jar found under $APP_DIR/releases"; exit 1
+            JAR_NAME=$(basename "${{ steps.findjar.outputs.jar }}")
+            TARGET_JAR="$APP_DIR/releases/$JAR_NAME"
+            echo "Deploying: $TARGET_JAR"
+
+            if [ ! -f "$TARGET_JAR" ]; then
+              echo "ERROR: $TARGET_JAR not found" >&2
+              exit 1
             fi
-            "$APP_DIR"/deploy.sh "$LATEST_JAR"
-            sleep 2
-            curl -fsS "http://127.0.0.1:${APP_PORT:-8080}/actuator/health" || curl -fsS "http://127.0.0.1:${APP_PORT:-8080}" || true
+
+            cd "$APP_DIR"
+
+            PIDS=$(ps -eo pid,comm,args | awk '$2=="java" && $0 ~ /current.jar/ {print $1}' || true)
+            if [ -n "$PIDS" ]; then
+              echo "> 실행 중인 애플리케이션(PID: $PIDS)을 종료합니다."
+              echo "$PIDS" | xargs -r kill || true
+              sleep 5
+              PIDS=$(ps -eo pid,comm,args | awk '$2=="java" && $0 ~ /current.jar/ {print $1}' || true)
+              if [ -n "$PIDS" ]; then
+                echo "> 프로세스가 아직 살아있습니다. 강제 종료합니다."
+                echo "$PIDS" | xargs -r kill -9 || true
+              fi
+            fi
+
+            ln -sfn "$TARGET_JAR" "$APP_DIR/current.jar"
+            nohup java -jar "$APP_DIR/current.jar" > "$APP_DIR/app.log" 2>&1 &
+            echo "> 새 애플리케이션 실행"
+            echo "✅ 배포 완료"
+

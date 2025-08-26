@@ -35,8 +35,23 @@ localStorage.setItem('registeredUsers', JSON.stringify({
 
 This repository contains a sample structure for a patent management service. The backend is implemented with Spring Boot and organized under the `com.patentsight` package. A minimal frontend directory is also included.
 
+**Updated: Fixed examiner_fe deployment issue**
+
 ## Documentation
 
 - [Database ERD](docs/ERD.md)
 - [Patent API Specification](docs/patent-api.md)
+
+## AWS S3 Configuration
+
+The backend stores uploaded files in Amazon S3. Configure the deployment
+environment with either an EC2 IAM role or the following environment variables:
+
+- `AWS_REGION`
+- `S3_BUCKET`
+- `AWS_ACCESS_KEY_ID`
+- `AWS_SECRET_ACCESS_KEY`
+
+These values allow the application to upload, delete, and access files in the
+configured S3 bucket.
 

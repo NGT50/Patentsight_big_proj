@@ -4,6 +4,7 @@ import styled from 'styled-components';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 
+
 // 팀의 공용 컴포넌트
 import Navigation from './components/Navigation';
 import SubNavigation from './components/SubNavigation';
@@ -29,7 +30,7 @@ import PatentDetail from './pages/PatentDetail';
 import PrivateRoute from './components/PrivateRoute'; // PrivateRoute 컴포넌트 import
 import LandingPage from './pages/LandingPage';
 import ApplicantAdmin from './pages/ApplicantAdmin';
-
+import DraftsListPage from './pages/DraftsListPage';
 // 우리가 만든 상태관리 및 라우팅 로직
 import useAuthStore from './stores/authStore';
 
@@ -98,9 +99,10 @@ function App() {
               <Route path="/mypage" element={<MyPage />} />
               <Route path="/search" element={<SearchResult />} />
               <Route path="/new-patent-choice" element={<NewPatentChoicePage />} />
-              <Route path="/check/patents" element={<PatentCheckListPage />} />
+              <Route path="/check/patents" element={<DraftsListPage />} />
               <Route path="/check/designs" element={<DesignCheckListPage />} />
-              <Route path="/patent/:id" element={<DocumentEditor />} />
+              <Route path="/patent/:id" element={<PatentDetail />} />
+              <Route path="/patent/:id/edit" element={<DocumentEditor />} />
               <Route path="/submit/:id" element={<FinalSubmitPage />} />
             </Routes>
           </MainContent>

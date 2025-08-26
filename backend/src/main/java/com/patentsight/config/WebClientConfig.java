@@ -26,7 +26,7 @@ public class WebClientConfig {
     @Bean(name = "externalAiWebClient")
     public WebClient externalAiWebClient() {
         HttpClient httpClient = HttpClient.create()
-                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 5000)
+                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 50000)
                 .responseTimeout(Duration.ofMinutes(3))
                 .doOnConnected(conn ->
                         conn.addHandlerLast(new ReadTimeoutHandler(180, TimeUnit.SECONDS))
