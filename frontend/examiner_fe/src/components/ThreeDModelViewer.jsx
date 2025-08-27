@@ -68,29 +68,29 @@ export default function ThreeDModelViewer({ src }) {
   }, [src]);
 
   return (
-    <div className="w-full h-72 bg-gray-100 rounded-lg overflow-hidden border border-gray-200 flex items-center justify-center">
+    <div className="w-full h-72 bg-gray-800 rounded-lg overflow-hidden border border-gray-200 flex items-center justify-center">
       {isLoading && (
-        <div className="flex flex-col items-center justify-center text-gray-600">
-          <div className="w-8 h-8 border-4 border-gray-300 border-t-blue-500 rounded-full animate-spin mb-2"></div>
+        <div className="flex flex-col items-center justify-center text-gray-300">
+          <div className="w-8 h-8 border-4 border-gray-600 border-t-blue-400 rounded-full animate-spin mb-2"></div>
           <p className="text-sm">3D 모델 로딩 중...</p>
         </div>
       )}
       
       {hasError && (
-        <div className="flex flex-col items-center justify-center text-red-600">
+        <div className="flex flex-col items-center justify-center text-red-400">
           <p className="text-sm font-medium mb-2">3D 모델 로드 실패</p>
-          <p className="text-xs text-gray-500">파일을 확인해주세요</p>
+          <p className="text-xs text-gray-400">파일을 확인해주세요</p>
         </div>
       )}
       
       {modelUrl && !isLoading && !hasError && (
         /* @ts-ignore */
         <model-viewer
-          style={{ width: '100%', height: '100%', backgroundColor: '#f8f9fa' }}
+          style={{ width: '100%', height: '100%', backgroundColor: '#374151' }}
           src={modelUrl}
           camera-controls
           auto-rotate
-          exposure="1.0"
+          exposure="1.2"
           shadow-intensity="1.0"
           environment-image="neutral"
           shadow-softness="0.5"
