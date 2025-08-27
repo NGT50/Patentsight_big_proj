@@ -8,12 +8,6 @@ import {
 
 import axiosInstance from '../api/axiosInstance';
 
-<<<<<<< HEAD
-=======
-import mock2 from '../assets/mock2.jpg';
-import mock3 from '../assets/mock3.glb';
-
->>>>>>> 1590818a00033e1ea73d2fc33cbae9ec7d7ef674
 import { submitReview, getReviewDetail } from '../api/review';
 import {
   startChatSession,
@@ -79,12 +73,6 @@ function normalizeToApiContent(u) {
 }
 // public 폴더에 올려둔 이미지를 안전하게 불러오기
 const publicAsset = (file) => `${process.env.PUBLIC_URL || ''}/${file}`;
-<<<<<<< HEAD
-=======
-// 퍼블릭 목 에셋
-const MOCK_2D_DRAWING = mock2;
-const MOCK_3D_MODEL = mock3;
->>>>>>> 1590818a00033e1ea73d2fc33cbae9ec7d7ef674
 
 
 // 유사특허 목데이터 (발표용)
