@@ -90,7 +90,7 @@ function mockSimilarityResults(inputImg) {
         similarity: 0.96,
         title: '수술용 로봇',
         applicant: 'Mock Applicant A',
-        image_url: '/3020110011889.jpg',
+        image_url: '/3020180042386.jpg',
       },
       {
         application_number: '3020157000418',
