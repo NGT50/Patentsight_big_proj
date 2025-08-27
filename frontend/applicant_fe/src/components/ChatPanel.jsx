@@ -4,10 +4,15 @@ import { Bot } from 'lucide-react';
 
 const ChatPanel = ({ messages, onSendMessage, isTyping, initialLoading, onApplySuggestion }) => {
   const [input, setInput] = useState('');
-  const messagesEndRef = useRef(null);
+  const scrollContainerRef = useRef(null);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({
+        top: scrollContainerRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
   }, [messages, isTyping]);
 
   const handleSubmit = (e) => {
@@ -48,7 +53,7 @@ const ChatPanel = ({ messages, onSendMessage, isTyping, initialLoading, onApplyS
         <Bot className="w-5 h-5 text-blue-600" />
         <h2 className="text-lg font-bold text-gray-800">AI 어시스턴트</h2>
       </div>
-      <div className="flex-1 p-4 overflow-y-auto bg-gray-50/50 space-y-4">
+      <div ref={scrollContainerRef} className="flex-1 p-4 overflow-y-auto bg-gray-50/50 space-y-4">
         {initialLoading ? (
           <div className="flex items-center justify-center h-full text-gray-500">
             AI 어시스턴트를 준비 중입니다...
@@ -96,7 +101,6 @@ const ChatPanel = ({ messages, onSendMessage, isTyping, initialLoading, onApplyS
             </div>
           </div>
         )}
-        <div ref={messagesEndRef} />
       </div>
       <div className="p-4 border-t bg-white rounded-b-xl">
         <form onSubmit={handleSubmit} className="flex gap-2">
