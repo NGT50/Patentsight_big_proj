@@ -505,6 +505,7 @@ export default function PatentReview() {
           
                                // 수술용 로봇 암의 회동 구조 도면 이미지 설정 (public 폴더의 도면1, 도면2, 도면3 사용)
           const robotArmDrawingImages = [
+            '/도면1.jpg', // 도 1: 본 발명에 따른 수술용 로봇 암의 전체 구성도
 
           ];
           
