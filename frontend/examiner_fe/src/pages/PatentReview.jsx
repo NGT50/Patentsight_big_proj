@@ -8,8 +8,8 @@ import {
 
 import axiosInstance from '../api/axiosInstance';
 
-import mock2 from '../assets/mock/mock2.jpg';
-import mock3 from '../assets/mock/mock3.glb';
+import mock2 from '../assets/mock2.jpg';
+import mock3 from '../assets/mock3.glb';
 
 import { submitReview, getReviewDetail } from '../api/review';
 import {
@@ -78,7 +78,7 @@ function normalizeToApiContent(u) {
 const publicAsset = (file) => `${process.env.PUBLIC_URL || ''}/${file}`;
 // 퍼블릭 목 에셋
 const MOCK_2D_DRAWING = mock2;
-const MOCK_3D_MODEL   = mock3;
+const MOCK_3D_MODEL = mock3;
 
 
 // 유사특허 목데이터 (발표용)
