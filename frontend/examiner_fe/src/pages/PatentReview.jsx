@@ -8,7 +8,7 @@ import {
 
 import axiosInstance from '../api/axiosInstance';
 
-
+import mock2 from '../assets/mock2.jpg';
 import mock3Url from '../assets/mock3.glb?url';
 
 import { submitReview, getReviewDetail } from '../api/review';
@@ -299,6 +299,10 @@ function resolveToLocalFileUrl(srcLike, currentPatentId) {
     try {
       const abs = toAbsoluteFileUrl(srcLike);
       const u = new URL(abs, window.location.origin);
+      // ✅ 로컬 자산(/assets/**)은 그대로 사용
+      if (u.origin === window.location.origin && u.pathname.startsWith('/assets/')) {
+        return u.pathname; // 그대로 통과
+      }
       if (
         u.origin === window.location.origin &&
         (u.pathname.startsWith('/files/') || u.pathname.startsWith('/api/files/'))
@@ -448,17 +452,17 @@ export default function PatentReview() {
             const glb = others.find(
               (f) => /\.glb($|\?|#)/i.test(f?.name || '') || /\.glb($|\?|#)/i.test(f?.url || '')
             );
-            setGlbModelUrl(glb ? glb.url : '');
+            setGlbModelUrl(glb ? glb.url : mock3Url);
           } catch (e) {
             console.warn('첨부 로드 실패:', e);
-            setAttachmentImageUrls([]);
+            setAttachmentImageUrls([MOCK_2D_DRAWING]);
             setAttachmentOtherFiles([]);
-            setGlbModelUrl('');
+            setGlbModelUrl(mock3Url);
           }
         } else {
-          setAttachmentImageUrls([]);
+          setAttachmentImageUrls([MOCK_2D_DRAWING]);
           setAttachmentOtherFiles([]);
-          setGlbModelUrl('');
+          setGlbModelUrl(mock3Url);
         }
 
         // 상태 매핑 (Review.Decision: SUBMITTED/REVIEWING/APPROVE/REJECT)
