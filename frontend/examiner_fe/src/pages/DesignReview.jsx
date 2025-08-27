@@ -1243,7 +1243,7 @@ ${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getD
               { id: 'q1', text: '문서 점검', icon: FileText, query: '이 디자인 문서에 문제가 있는지 확인해줘', intent: 'validate_doc' },
               { id: 'q2', text: '유사 디자인', icon: Copy, query: '이 디자인과 유사한 디자인을 찾아줘', intent: 'similar_patent' },
               { id: 'q3', text: '거절사유', icon: Scale, query: '이 디자인의 거절사유를 분석해줘', intent: 'rejection_draft' },
-              { id: 'q4', text: '청구항 초안', icon: ScrollText, query: '이 디자인의 청구항 초안을 생성해줘', intent: 'claim_draft' }
+              { id: 'q4', text: '기타', icon: ScrollText, query: '이 디자인에 대해 궁금한 점을 물어보세요', intent: 'general' }
             ].map((q) => (
               <button
                 key={q.id}

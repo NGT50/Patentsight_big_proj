@@ -16,6 +16,44 @@ const swallow404 = async (fn, fallback) => {
     throw e;
   }
 };
+// src/api/ai.js
+
+function mockSimilarityResults(inputImg) {
+  return {
+    results: [
+      {
+        application_number: '3020180042386',
+        similarity: 0.96,
+        title: '수술용 로봇',
+        applicant: 'Mock Applicant A',
+        image_url: '/3020180042386.jpg',
+      },
+      {
+        application_number: '3020157000418',
+        similarity: 0.91,
+        title: '환자 측 카트에 설치된 수술용 로봇 암',
+        applicant: 'Mock Applicant B',
+        image_url: '/3020157000418.jpg',
+      },
+      {
+        application_number: '3020110011889',
+        similarity: 0.87,
+        title: '수술용 로봇',
+        applicant: 'Mock Applicant C',
+        image_url: '/3020110011889.jpg',
+      },
+      {
+        application_number: '3020190046746',
+        similarity: 0.80,
+        title: '수술용 로봇암',
+        applicant: 'Mock Applicant D',
+        image_url: '/3020190046746.jpg',
+      },
+    ],
+    input_image: inputImg || '/vite.svg',
+    mock: true,
+  };
+}
 
 /** URL → File 변환 유틸 (이미지 URL도 form-data로 업로드 가능하게) */
 async function toFileFromUrl(url, filename = 'image.png') {
@@ -120,6 +158,8 @@ export const searchDesignImage = async (input) => {
 // === 교체: 유사 이미지 전용 fetch (강화판) ===
 // src/api/ai.js  — 기존 함수 통째로 교체
 export async function searchDesignImageByBlob(imgUrl) {
+
+  return mockSimilarityResults(imgUrl);
   const token =
     localStorage.getItem('token') ||
     localStorage.getItem('accessToken') ||
@@ -186,12 +226,6 @@ export async function searchDesignImageByBlob(imgUrl) {
 
   return searchRes.json();
 }
-
-
-
-
-
-
 
 /** [상표 이미지 검색] (스펙: POST /api/ai/search/trademark/image form-data[file]) */
 export const searchTrademarkImage = async (input) => {
@@ -313,6 +347,3 @@ async function getFileIdByPatentAndName(patentId, fileName) {
   }
   return null;
 }
-
-// === 교체: 유사 이미지 전용 fetch ===
-

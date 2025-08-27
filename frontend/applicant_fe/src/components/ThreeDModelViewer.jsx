@@ -31,7 +31,7 @@ const ThreeDModelViewer = ({ src }) => {
         src={src}
         camera-controls
         auto-rotate
-        exposure="1.0" // 노출 값을 조금 높여 더 밝게 보이도록 조정했습니다.
+        exposure="0.4"
         shadow-intensity="1"
         ar
       />
