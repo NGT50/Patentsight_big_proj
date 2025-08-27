@@ -453,17 +453,17 @@ export default function PatentReview() {
               (f) => /\.glb($|\?|#)/i.test(f?.name || '') || /\.glb($|\?|#)/i.test(f?.url || '')
             );
             setGlbModelUrl(glb ? glb.url : mock3Url);
-          } catch (e) {
-            console.warn('첨부 로드 실패:', e);
-            setAttachmentImageUrls([MOCK_2D_DRAWING]);
-            setAttachmentOtherFiles([]);
-            setGlbModelUrl(mock3Url);
-          }
-        } else {
-          setAttachmentImageUrls([MOCK_2D_DRAWING]);
-          setAttachmentOtherFiles([]);
-          setGlbModelUrl(mock3Url);
-        }
+                     } catch (e) {
+             console.warn('첨부 로드 실패:', e);
+             setAttachmentImageUrls([]);
+             setAttachmentOtherFiles([]);
+             setGlbModelUrl(mock3Url);
+           }
+                 } else {
+           setAttachmentImageUrls([]);
+           setAttachmentOtherFiles([]);
+           setGlbModelUrl(mock3Url);
+         }
 
         // 상태 매핑 (Review.Decision: SUBMITTED/REVIEWING/APPROVE/REJECT)
         let translatedStatus = '';
