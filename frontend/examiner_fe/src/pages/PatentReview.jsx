@@ -384,12 +384,16 @@ export default function PatentReview() {
     const fromPatent = buildPatentDrawingSources(patent);
     const merged = [...attachmentImageUrls, ...fromPatent];
     const seen = new Set();
-    return merged.filter((v) => {
+    const result = merged.filter((v) => {
       const k = typeof v === 'string' ? v : `${v.patentId}/${v.fileName}`;
       if (seen.has(k)) return false;
       seen.add(k);
       return true;
     });
+    
+
+    
+    return result;
   }, [patent, attachmentImageUrls]);
 
   const contextImageUrls = useMemo(
@@ -497,11 +501,11 @@ export default function PatentReview() {
           
           // 수술용 로봇 암의 회동 구조 도면 이미지 설정
           const robotArmDrawingImages = [
-            publicAsset('3020180042386.jpg'), // 도 1: 본 발명에 따른 수술용 로봇 암의 전체 구성도
-            publicAsset('3020157000418.jpg'), // 도 2: 지지 디스크와 중심바의 볼 조인트 결합 구조 단면도
-            publicAsset('3020110011889.jpg'), // 도 3: 지지 디스크의 둘레면에 배치된 3개의 와이어 및 모터 구동부와의 연결 관계 사시도
-            publicAsset('3020190046746.jpg'), // 도 4: 와이어 구동에 의한 지지 디스크의 기울기 및 회동 동작 예시도
-            publicAsset('mock2.jpg') // 도 5: 본 발명의 로봇 암이 실제 수술 상황에서 조직을 파지하거나 절단하는 작동 예시도
+            '/3020180042386.jpg', // 도 1: 본 발명에 따른 수술용 로봇 암의 전체 구성도
+            '/3020157000418.jpg', // 도 2: 지지 디스크와 중심바의 볼 조인트 결합 구조 단면도
+            '/3020110011889.jpg', // 도 3: 지지 디스크의 둘레면에 배치된 3개의 와이어 및 모터 구동부와의 연결 관계 사시도
+            '/3020190046746.jpg', // 도 4: 와이어 구동에 의한 지지 디스크의 기울기 및 회동 동작 예시도
+            mock2 // 도 5: 본 발명의 로봇 암이 실제 수술 상황에서 조직을 파지하거나 절단하는 작동 예시도
           ];
           
           setPatent(prev => ({
@@ -1520,21 +1524,33 @@ ${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getD
                 </div>
               </div>
 
-              {/* 3D 도면 (.glb 첨부 자동 표시) */}
-              <div className="mt-6">
-                <div className="flex justify-between items-center mb-2">
-                  <h4 className="font-medium text-lg text-gray-800 flex items-center gap-1">
-                    <Image className="w-4 h-4 text-blue-400" /> 3D 도면
-                  </h4>
-                </div>
-                {glbModelUrl ? (
-                  <ThreeDModelViewer src={glbModelUrl} />
-                ) : (
-                  <div className="w-full h-24 bg-gray-50 border border-dashed border-gray-300 rounded-lg flex items-center justify-center text-sm text-gray-500">
-                    첨부 파일에서 .glb 파일을 찾지 못했습니다. .glb 파일을 업로드하면 자동으로 표시됩니다.
-                  </div>
-                )}
-              </div>
+                             {/* 3D 도면 (.glb 첨부 자동 표시) */}
+               <div className="mt-6">
+                 <div className="flex justify-between items-center mb-2">
+                   <h4 className="font-medium text-lg text-gray-800 flex items-center gap-1">
+                     <Image className="w-4 h-4 text-blue-400" /> 3D 도면
+                   </h4>
+                 </div>
+                 {glbModelUrl ? (
+                   <ThreeDModelViewer src={glbModelUrl} />
+                 ) : patent?.title?.includes('수술용 로봇 암의 회동 구조') ? (
+                   <div className="w-full h-64 bg-white border border-gray-200 rounded-lg overflow-hidden">
+                     <img 
+                       src="/3020180042386.jpg" 
+                       alt="수술용 로봇 암 3D 도면" 
+                       className="w-full h-full object-contain"
+                       onError={(e) => {
+                         e.currentTarget.onerror = null;
+                         e.currentTarget.src = "https://placehold.co/400x300/e2e8f0/94a3b8?text=3D+도면+로딩+실패";
+                       }}
+                     />
+                   </div>
+                 ) : (
+                   <div className="w-full h-24 bg-gray-50 border border-dashed border-gray-300 rounded-lg flex items-center justify-center text-sm text-gray-500">
+                     첨부 파일에서 .glb 파일을 찾지 못했습니다. .glb 파일을 업로드하면 자동으로 표시됩니다.
+                   </div>
+                 )}
+               </div>
 
               {/* AI 서류 점검 결과 */}
               <div className="mt-6">
