@@ -512,7 +512,8 @@ useEffect(() => {
   setIsSearchingSimilarity(true);
   // 약간의 로딩 연출
   const t = setTimeout(() => {
-    setSimilarityResults(mockSimilarityResults);
+    const mock = mockSimilarityResults();
+    setSimilarityResults(mock.results);
     setIsSearchingSimilarity(false);
   }, 400);
   return () => clearTimeout(t);
