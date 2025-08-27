@@ -505,7 +505,6 @@ export default function PatentReview() {
           
                                // 수술용 로봇 암의 회동 구조 도면 이미지 설정 (public 폴더의 도면1, 도면2, 도면3 사용)
           const robotArmDrawingImages = [
-            '/도면1.jpg', // 도 1: 본 발명에 따른 수술용 로봇 암의 전체 구성도
 
           ];
           
@@ -521,6 +520,7 @@ export default function PatentReview() {
             drawingDescription: '도 1: 본 발명에 따른 수술용 로봇 암의 전체 구성도\n도 2: 지지 디스크와 중심바의 볼 조인트 결합 구조 단면도\n도 3: 지지 디스크의 둘레면에 배치된 3개의 와이어 및 모터 구동부와의 연결 관계 사시도',
             drawingImageUrl: robotArmDrawingImages,
             drawingFileNames: [
+              '도면1.jpg',
 
             ]
           }));
