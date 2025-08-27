@@ -284,7 +284,11 @@ const DocumentEditor = () => {
 const handleSubmit = () => {
   if (window.confirm('최종 제출 전, 마지막 확인 페이지로 이동합니다. 이동하시겠습니까?')) {
     navigate(`/patent/${patentId}/submit`, { 
-      state: { documentToSubmit: document }
+      state: { 
+        documentToSubmit: document,
+        drawingsToSubmit: drawingFiles, // 도면 파일 정보 추가
+        modelToSubmit: modelFile       // 3D 모델 파일 정보 추가
+      }
     });
   }
 };
