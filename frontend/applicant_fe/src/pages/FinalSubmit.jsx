@@ -1,6 +1,7 @@
 import React from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import ThreeDModelViewer from '../components/ThreeDModelViewer';
 
 const FinalSubmitPage = () => {
   const { id: patentId } = useParams();
@@ -9,16 +10,18 @@ const FinalSubmitPage = () => {
   const location = useLocation();
 
   const document = location.state?.documentToSubmit;
+  const drawings = location.state?.drawingsToSubmit;
+  const model = location.state?.modelToSubmit;
 
   const submissionMutation = useMutation({
     mutationFn: async (patentId) => {
-      console.log(`Submitting for patentId: ${patentId}`);
-      return new Promise(resolve => {
-        setTimeout(() => {
-          resolve({ applicationNumber: '10-2025-0123456' });
-        }, 2000);
-      });
-    },
+      console.log(`Submitting for patentId: ${patentId}`);
+      return new Promise(resolve => {
+        setTimeout(() => {
+          resolve({ applicationNumber: '10-2025-0123456' });
+        }, 2000);
+      });
+    },
     onSuccess: (result) => {
       alert(`최종 제출이 완료되었습니다. (출원번호: ${result.applicationNumber})`);
       queryClient.invalidateQueries({ queryKey: ['myPatents'] });
@@ -53,40 +56,39 @@ const FinalSubmitPage = () => {
         <h1 className="text-3xl font-bold text-gray-800">출원 최종 등록</h1>
         <p className="mt-2 text-gray-600">제출 전, 마지막으로 서류 내용을 확인해주세요. 제출 후에는 내용을 수정할 수 없습니다.</p>
         
-        {/* --- 💡 이 부분을 수정했습니다 --- */}
         <div className="mt-8 p-8 bg-white border border-gray-200 rounded-lg shadow-sm space-y-6">
           <div>
             <h3 className="text-sm font-semibold text-gray-500">발명의 명칭</h3>
             <p className="text-xl font-bold text-gray-800">{document?.title}</p>
           </div>
-          <div className="border-t my-4"></div>
+          <div className="border-t my-4"></div>
           <div>
             <h3 className="text-sm font-semibold text-gray-500">기술분야</h3>
             <p className="text-gray-700 whitespace-pre-wrap">{document?.technicalField}</p>
           </div>
-          <div className="border-t my-4"></div>
+          <div className="border-t my-4"></div>
           <div>
             <h3 className="text-sm font-semibold text-gray-500">배경기술</h3>
             <p className="text-gray-700 whitespace-pre-wrap">{document?.backgroundTechnology}</p>
           </div>
-          <div className="border-t my-4"></div>
-          <div>
-            <h3 className="text-sm font-semibold text-gray-500 mb-2">발명의 상세한 설명</h3>
-            <div className="space-y-4 pl-4 border-l-2">
-              <div>
-                <h4 className="font-semibold text-gray-600">해결하려는 과제</h4>
-                <p className="text-gray-700 whitespace-pre-wrap">{document?.inventionDetails?.problemToSolve}</p>
-              </div>
-              <div>
-                <h4 className="font-semibold text-gray-600">과제의 해결 수단</h4>
-                <p className="text-gray-700 whitespace-pre-wrap">{document?.inventionDetails?.solution}</p>
-              </div>
-              <div>
-                <h4 className="font-semibold text-gray-600">발명의 효과</h4>
-                <p className="text-gray-700 whitespace-pre-wrap">{document?.inventionDetails?.effect}</p>
-              </div>
-            </div>
-          </div>
+          <div className="border-t my-4"></div>
+          <div>
+            <h3 className="text-sm font-semibold text-gray-500 mb-2">발명의 상세한 설명</h3>
+            <div className="space-y-4 pl-4 border-l-2">
+              <div>
+                <h4 className="font-semibold text-gray-600">해결하려는 과제</h4>
+                <p className="text-gray-700 whitespace-pre-wrap">{document?.inventionDetails?.problemToSolve}</p>
+              </div>
+              <div>
+                <h4 className="font-semibold text-gray-600">과제의 해결 수단</h4>
+                <p className="text-gray-700 whitespace-pre-wrap">{document?.inventionDetails?.solution}</p>
+              </div>
+              <div>
+                <h4 className="font-semibold text-gray-600">발명의 효과</h4>
+                <p className="text-gray-700 whitespace-pre-wrap">{document?.inventionDetails?.effect}</p>
+              </div>
+            </div>
+          </div>
           <div className="border-t my-4"></div>
           <div>
             <h3 className="text-sm font-semibold text-gray-500">요약</h3>
@@ -99,6 +101,34 @@ const FinalSubmitPage = () => {
               {document?.claims?.map((claim, index) => <li key={index} className="whitespace-pre-wrap">{claim}</li>)}
             </ul>
           </div>
+
+          {(drawings && drawings.length > 0) && (
+            <>
+              <div className="border-t my-4"></div>
+              <div>
+                <h3 className="text-sm font-semibold text-gray-500">대표 도면</h3>
+                <div className="mt-2 flex justify-center p-4 border rounded-md">
+                  <img 
+                    src={drawings[0].fileUrl} 
+                    alt="대표 도면" 
+                    className="max-w-full h-auto max-h-80 object-contain"
+                  />
+                </div>
+              </div>
+            </>
+          )}
+
+          {model && (
+            <>
+              <div className="border-t my-4"></div>
+              <div>
+                <h3 className="text-sm font-semibold text-gray-500">3D 모델</h3>
+                <div className="mt-2">
+                  <ThreeDModelViewer src={model.fileUrl} />
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         <div className="flex justify-end mt-6">
