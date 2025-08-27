@@ -1536,17 +1536,7 @@ ${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getD
                  {glbModelUrl ? (
                    <ThreeDModelViewer src={glbModelUrl} />
                                    ) : patent?.title?.includes('수술용 로봇 암의 회동 구조') ? (
-                    <div className="w-full h-64 bg-white border border-gray-200 rounded-lg overflow-hidden">
-                      <img 
-                        src={publicAsset('3020180042386.jpg')} 
-                        alt="수술용 로봇 암 3D 도면" 
-                        className="w-full h-full object-contain"
-                        onError={(e) => {
-                          e.currentTarget.onerror = null;
-                          e.currentTarget.src = "https://placehold.co/400x300/e2e8f0/94a3b8?text=3D+도면+로딩+실패";
-                        }}
-                      />
-                    </div>
+                   <ThreeDModelViewer src="/demo_model.glb" />
                  ) : (
                    <div className="w-full h-24 bg-gray-50 border border-dashed border-gray-300 rounded-lg flex items-center justify-center text-sm text-gray-500">
                      첨부 파일에서 .glb 파일을 찾지 못했습니다. .glb 파일을 업로드하면 자동으로 표시됩니다.
