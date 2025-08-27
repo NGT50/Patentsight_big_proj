@@ -8,9 +8,6 @@ import {
 
 import axiosInstance from '../api/axiosInstance';
 
-import mock2 from '../assets/mock/mock2.jpg';
-import mock3 from '../assets/mock/mock3.glb';
-
 import { submitReview, getReviewDetail } from '../api/review';
 import {
   startChatSession,
@@ -76,9 +73,6 @@ function normalizeToApiContent(u) {
 }
 // public 폴더에 올려둔 이미지를 안전하게 불러오기
 const publicAsset = (file) => `${process.env.PUBLIC_URL || ''}/${file}`;
-// 퍼블릭 목 에셋
-const MOCK_2D_DRAWING = mock2;
-const MOCK_3D_MODEL   = mock3;
 
 
 // 유사특허 목데이터 (발표용)
@@ -427,7 +421,6 @@ export default function PatentReview() {
           }
         }
 
-        // 기존 코드 일부 발췌
         if (attachmentIds && attachmentIds.length > 0) {
           try {
             const [imgs, others] = await Promise.all([
@@ -437,33 +430,22 @@ export default function PatentReview() {
             setAttachmentImageUrls(imgs);
             setAttachmentOtherFiles(others);
 
-            // .glb 자동 표시
+            // 🔎 첨부 비이미지에서 .glb 찾기 → 3D 도면 자동 표시용
             const glb = others.find(
               (f) => /\.glb($|\?|#)/i.test(f?.name || '') || /\.glb($|\?|#)/i.test(f?.url || '')
             );
             setGlbModelUrl(glb ? glb.url : '');
-
-            // 👇👇 추가: 첨부가 있어도 2D/3D가 각각 없으면 목으로 보강
-            if (!imgs || imgs.length === 0) {
-              setAttachmentImageUrls([MOCK_2D_DRAWING]);
-            }
-            if (!glb) {
-              setGlbModelUrl(MOCK_3D_MODEL);
-            }
           } catch (e) {
             console.warn('첨부 로드 실패:', e);
-            // 실패 시 목으로 대체
-            setAttachmentImageUrls([MOCK_2D_DRAWING]);
+            setAttachmentImageUrls([]);
             setAttachmentOtherFiles([]);
-            setGlbModelUrl(MOCK_3D_MODEL);
+            setGlbModelUrl('');
           }
         } else {
-          // 첨부 자체가 없을 때 목으로 대체
-          setAttachmentImageUrls([MOCK_2D_DRAWING]);
+          setAttachmentImageUrls([]);
           setAttachmentOtherFiles([]);
-          setGlbModelUrl(MOCK_3D_MODEL);
+          setGlbModelUrl('');
         }
-
 
         // 상태 매핑 (Review.Decision: SUBMITTED/REVIEWING/APPROVE/REJECT)
         let translatedStatus = '';
@@ -697,7 +679,9 @@ useEffect(() => {
 
 5. 수술 로봇 시스템 (출원번호: 1020240170032)
    - 유사도: 89%
-   - 최신 수술 로봇 시스템 구조`,
+   - 최신 수술 로봇 시스템 구조
+
+출원서 상세 페이지 하단에서 해당 출원의 제품 및 도면에 대한 유사이미지 결과를 확인하실 수 있습니다.`,
                 timestamp: new Date(),
               };
               setChatMessages((prev) => [...prev, botMessage]);
