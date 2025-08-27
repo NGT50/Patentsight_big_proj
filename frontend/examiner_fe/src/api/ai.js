@@ -7,6 +7,10 @@ const API_ORIGIN =
 
 const toApiAbsolute = (p) => (p.startsWith('http') ? p : `${API_ORIGIN}${p}`);
 
+
+const PUBLIC_BASE =
+  (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.BASE_URL) || '/';
+
 /** 공통 404-더미 헬퍼 */
 const swallow404 = async (fn, fallback) => {
   try {

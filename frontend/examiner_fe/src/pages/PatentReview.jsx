@@ -71,45 +71,47 @@ function normalizeToApiContent(u) {
     return u;
   }
 }
+// public 폴더에 올려둔 이미지를 안전하게 불러오기
+const publicAsset = (file) => `${process.env.PUBLIC_URL || ''}/${file}`;
 
-// 시연용 유사특허 결과 (flat)
-export const MOCK_SIMILAR_RESULTS = [
-  {
-    title: '수술용 로봇',
-    application_number: '1020120043476',
-    similarity: 0.87,
-    image_url:
-      'http://plus.kipris.or.kr/kiprisplusws/fileToss.jsp?arg=ed43a0609e94d6e22d01c5c32ba711cf9118776b53ad305f8d058a9ca0fd3cb61e7490f1d957bcdf265297316ab471bad4e20946e715ea9a0777d3a4fce530419f0c8ed50381c45c',
-  },
-  {
-    title: '수술 로봇의 절삭 경로 플래닝 장치 및 그 방법',
-    application_number: '1020220121028',
-    similarity: 0.92,
-    image_url:
-      'http://plus.kipris.or.kr/kiprisplusws/fileToss.jsp?arg=ed43a0609e94d6e22d01c5c32ba711cfafcbc342afaea4d5870ccdf59b826823313ce68f4420ea243bfe1a59aa3a63cf317575ca5d3b0c44d3c81eaae44e69e1a0b0f47d5efaef8f',
-  },
-  {
-    title: '전계 인가 장치',
-    application_number: '1020200171573',
-    similarity: 0.74,
-    image_url:
-      'http://plus.kipris.or.kr/kiprisplusws/fileToss.jsp?arg=ed43a0609e94d6e22d01c5c32ba711cfc55451d21dba040280978512582e54ce45afaa9940ea5aff4885a5d51a97b17e8f63d5fb0b66d97e88dcb00b47dc2fcbf2f9b79e2eed4430',
-  },
-  {
-    title: '수술 로봇 시스템 및 그 제어방법',
-    application_number: '1020160089635',
-    similarity: 0.81,
-    image_url:
-      'http://plus.kipris.or.kr/kiprisplusws/fileToss.jsp?arg=ed43a0609e94d6e22d01c5c32ba711cf180e368476a00bc24a2bef232365eb08c1fb7f0b94653d18e8563235341c8ba820ae9f93e8040e277a67dbcd2d51ff3963c94911bdd52f42',
-  },
-  {
-    title: '수술 로봇 시스템',
-    application_number: '1020240170032',
-    similarity: 0.89,
-    image_url:
-      'http://plus.kipris.or.kr/kiprisplusws/fileToss.jsp?arg=ed43a0609e94d6e22d01c5c32ba711cf10add4f4d6d868b31d7afc1cbe6808c324cb9aa7e94b6662c6031a9109bba104d874bbb6b3bada112560a96d6112f8bc8095cb1e0fd01c16',
-  },
-];
+
+// 유사특허 목데이터 (발표용)
+function mockSimilarityResults(inputImg) {
+  return {
+    results: [
+      {
+        application_number: '3020180042386',
+        similarity: 0.96,
+        title: '수술용 로봇',
+        applicant: 'Mock Applicant A',
+        image_url: publicAsset('3020180042386.jpg'),
+      },
+      {
+        application_number: '3020157000418',
+        similarity: 0.91,
+        title: '환자 측 카트에 설치된 수술용 로봇 암',
+        applicant: 'Mock Applicant B',
+        image_url: publicAsset('3020157000418.jpg'),
+      },
+      {
+        application_number: '3020110011889',
+        similarity: 0.87,
+        title: '수술용 로봇',
+        applicant: 'Mock Applicant C',
+        image_url: publicAsset('3020110011889.jpg'),
+      },
+      {
+        application_number: '3020190046746',
+        similarity: 0.80,
+        title: '수술용 로봇암',
+        applicant: 'Mock Applicant D',
+        image_url: publicAsset('3020190046746.jpg'),
+      },
+    ],
+    input_image: inputImg || '/vite.svg',
+    mock: true,
+  };
+}
 
 /* ---- 유사특허 스키마 정규화 (핵심) ---- */
 // 서로 다른 스키마(flat | {basicInfo: {...}})를 단일 뷰모델로 변환
@@ -477,6 +479,19 @@ export default function PatentReview() {
 
     fetchReviewData();
   }, [id]);
+
+  // 👉 발표용: 어떤 출원을 눌러도 같은 목데이터가 뜨도록 고정
+useEffect(() => {
+  if (!patent) return;
+  setIsSearchingSimilarity(true);
+  // 약간의 로딩 연출
+  const t = setTimeout(() => {
+    setSimilarityResults(MOCK_SIMILAR_RESULTS);
+    setIsSearchingSimilarity(false);
+  }, 400);
+  return () => clearTimeout(t);
+}, [patent?.patentId]);
+
 
   const sendChatMessage = async (message = inputMessage) => {
     if (!message.trim()) return;
