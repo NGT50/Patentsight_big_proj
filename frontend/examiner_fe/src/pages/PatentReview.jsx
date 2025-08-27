@@ -268,7 +268,11 @@ function buildPatentDrawingSources(p) {
 
   // 3) (옵션) p.drawings / p.drawingImageUrl 도 있으면 병합
   if (Array.isArray(p.drawings) && p.drawings.length > 0) list.push(...p.drawings);
-  if (p.drawingImageUrl) list.push(p.drawingImageUrl);
+  if (Array.isArray(p.drawingImageUrl) && p.drawingImageUrl.length > 0) {
+    list.push(...p.drawingImageUrl);
+  } else if (p.drawingImageUrl) {
+    list.push(p.drawingImageUrl);
+  }
 
   // 문자열 중복 제거
   const seen = new Set();
@@ -493,11 +497,11 @@ export default function PatentReview() {
           
           // 수술용 로봇 암의 회동 구조 도면 이미지 설정
           const robotArmDrawingImages = [
-            '/3020180042386.jpg', // 도 1: 본 발명에 따른 수술용 로봇 암의 전체 구성도
-            '/3020157000418.jpg', // 도 2: 지지 디스크와 중심바의 볼 조인트 결합 구조 단면도
-            '/3020110011889.jpg', // 도 3: 지지 디스크의 둘레면에 배치된 3개의 와이어 및 모터 구동부와의 연결 관계 사시도
-            '/3020190046746.jpg', // 도 4: 와이어 구동에 의한 지지 디스크의 기울기 및 회동 동작 예시도
-            '/mock2.jpg' // 도 5: 본 발명의 로봇 암이 실제 수술 상황에서 조직을 파지하거나 절단하는 작동 예시도
+            publicAsset('3020180042386.jpg'), // 도 1: 본 발명에 따른 수술용 로봇 암의 전체 구성도
+            publicAsset('3020157000418.jpg'), // 도 2: 지지 디스크와 중심바의 볼 조인트 결합 구조 단면도
+            publicAsset('3020110011889.jpg'), // 도 3: 지지 디스크의 둘레면에 배치된 3개의 와이어 및 모터 구동부와의 연결 관계 사시도
+            publicAsset('3020190046746.jpg'), // 도 4: 와이어 구동에 의한 지지 디스크의 기울기 및 회동 동작 예시도
+            publicAsset('mock2.jpg') // 도 5: 본 발명의 로봇 암이 실제 수술 상황에서 조직을 파지하거나 절단하는 작동 예시도
           ];
           
           setPatent(prev => ({
