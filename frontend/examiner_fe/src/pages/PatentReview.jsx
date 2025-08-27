@@ -499,13 +499,11 @@ export default function PatentReview() {
             '[청구항 9] 제8항에 있어서, 상기 수술용 로봇 암은 정밀한 수술 환경에서 안정적이고 효율적인 조작을 가능하게 하며, 장치의 내구성과 경제성 면에서도 우수한 성능을 발휘하도록 구성된 수술용 로봇 암의 회동 구조.'
           ];
           
-          // 수술용 로봇 암의 회동 구조 도면 이미지 설정
+          // 수술용 로봇 암의 회동 구조 도면 이미지 설정 (도면1, 도면2, 도면3 사용)
           const robotArmDrawingImages = [
-            '/3020180042386.jpg', // 도 1: 본 발명에 따른 수술용 로봇 암의 전체 구성도
-            '/3020157000418.jpg', // 도 2: 지지 디스크와 중심바의 볼 조인트 결합 구조 단면도
-            '/3020110011889.jpg', // 도 3: 지지 디스크의 둘레면에 배치된 3개의 와이어 및 모터 구동부와의 연결 관계 사시도
-            '/3020190046746.jpg', // 도 4: 와이어 구동에 의한 지지 디스크의 기울기 및 회동 동작 예시도
-            mock2 // 도 5: 본 발명의 로봇 암이 실제 수술 상황에서 조직을 파지하거나 절단하는 작동 예시도
+            '/도면1.jpg', // 도 1: 본 발명에 따른 수술용 로봇 암의 전체 구성도
+            '/도면2.jpg', // 도 2: 지지 디스크와 중심바의 볼 조인트 결합 구조 단면도
+            '/도면3.jpg'  // 도 3: 지지 디스크의 둘레면에 배치된 3개의 와이어 및 모터 구동부와의 연결 관계 사시도
           ];
           
           setPatent(prev => ({
@@ -517,14 +515,12 @@ export default function PatentReview() {
             problemToSolve: '복잡한 기계적 구조로 인한 정밀 제어의 어려움, 유지보수의 복잡성, 고장 가능성 증가 등의 문제를 해결하고자 한다.',
             solution: '볼 조인트를 이용한 2축 회동 구조와 와이어 구동 방식을 결합하여 단순하면서도 정밀한 제어가 가능한 구조를 제안한다.',
             effect: '단순화된 구조로 인한 정밀 제어 향상, 유지보수 용이성 증대, 고장 가능성 감소 등의 효과를 얻을 수 있다.',
-            drawingDescription: '도 1: 본 발명에 따른 수술용 로봇 암의 전체 구성도\n도 2: 지지 디스크와 중심바의 볼 조인트 결합 구조 단면도\n도 3: 지지 디스크의 둘레면에 배치된 3개의 와이어 및 모터 구동부와의 연결 관계 사시도\n도 4: 와이어 구동에 의한 지지 디스크의 기울기 및 회동 동작 예시도\n도 5: 본 발명의 로봇 암이 실제 수술 상황에서 조직을 파지하거나 절단하는 작동 예시도',
+            drawingDescription: '도 1: 본 발명에 따른 수술용 로봇 암의 전체 구성도\n도 2: 지지 디스크와 중심바의 볼 조인트 결합 구조 단면도\n도 3: 지지 디스크의 둘레면에 배치된 3개의 와이어 및 모터 구동부와의 연결 관계 사시도',
             drawingImageUrl: robotArmDrawingImages,
             drawingFileNames: [
-              '도1_수술용로봇암_전체구성도.jpg',
-              '도2_지지디스크_볼조인트_단면도.jpg',
-              '도3_와이어_모터구동부_연결관계.jpg',
-              '도4_와이어구동_기울기_회동동작.jpg',
-              '도5_실제수술_조직파지_절단작동.jpg'
+              '도면1.jpg',
+              '도면2.jpg',
+              '도면3.jpg'
             ]
           }));
         }
@@ -1534,17 +1530,7 @@ ${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 ${new Date().getD
                  {glbModelUrl ? (
                    <ThreeDModelViewer src={glbModelUrl} />
                  ) : patent?.title?.includes('수술용 로봇 암의 회동 구조') ? (
-                   <div className="w-full h-64 bg-white border border-gray-200 rounded-lg overflow-hidden">
-                     <img 
-                       src="/3020180042386.jpg" 
-                       alt="수술용 로봇 암 3D 도면" 
-                       className="w-full h-full object-contain"
-                       onError={(e) => {
-                         e.currentTarget.onerror = null;
-                         e.currentTarget.src = "https://placehold.co/400x300/e2e8f0/94a3b8?text=3D+도면+로딩+실패";
-                       }}
-                     />
-                   </div>
+                   <ThreeDModelViewer src="/3dmodel.glb" />
                  ) : (
                    <div className="w-full h-24 bg-gray-50 border border-dashed border-gray-300 rounded-lg flex items-center justify-center text-sm text-gray-500">
                      첨부 파일에서 .glb 파일을 찾지 못했습니다. .glb 파일을 업로드하면 자동으로 표시됩니다.
