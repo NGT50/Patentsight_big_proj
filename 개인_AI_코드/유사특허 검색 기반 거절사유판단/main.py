@@ -1,15 +1,9 @@
 # main.py
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import PlainTextResponse   # ✅ JSONResponse → PlainTextResponse
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from korpat_utils import (
-    embed_exam_text,
-    search_korpat,
-    extract_similar_sentences,
-    generate_office_action_combined,  
-    extract_text_from_json
-)
+from korpat_utils import embed_exam_text, search_korpat, extract_similar_sentences, generate_office_action_filtered, extract_text_from_json
 
 app = FastAPI()
 
@@ -31,7 +25,7 @@ async def analyze(text: str):
         text: 분석할 특허 텍스트
     
     Returns:
-        의견 제출 통지서 (텍스트)
+        유사특허 검색 결과와 의견 제출 통지서
     """
     try:
         if not text.strip():
@@ -47,13 +41,15 @@ async def analyze(text: str):
         matches = extract_similar_sentences(text, similar)
         
         # 의견 제출 통지서 생성
-        opinion = generate_office_action_combined(
-            matches_with_pairs=None,
-            similar_matches=matches
-        )
+        opinion = generate_office_action_filtered(matches)
         
-        # ✅ opinion만 텍스트로 반환
-        return PlainTextResponse(content=opinion)
+        return JSONResponse(content={
+            "success": True,
+            "exam_text": text,
+            "similar_patents": similar,
+            "similar_matches": matches,
+            "opinion": opinion
+        })
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"처리 중 오류가 발생했습니다: {str(e)}")
@@ -67,7 +63,7 @@ async def analyze_json(patent_data: dict):
         patent_data: 특허 데이터 JSON 객체
     
     Returns:
-        의견 제출 통지서 (텍스트)
+        유사특허 검색 결과와 의견 제출 통지서
     """
     try:
         # JSON에서 텍스트 추출
@@ -86,13 +82,15 @@ async def analyze_json(patent_data: dict):
         matches = extract_similar_sentences(exam_text, similar)
         
         # 의견 제출 통지서 생성
-        opinion = generate_office_action_combined(
-            matches_with_pairs=None,
-            similar_matches=matches
-        )
+        opinion = generate_office_action_filtered(matches)
         
-        # ✅ opinion만 텍스트로 반환
-        return PlainTextResponse(content=opinion)
+        return JSONResponse(content={
+            "success": True,
+            "exam_text": exam_text,
+            "similar_patents": similar,
+            "similar_matches": matches,
+            "opinion": opinion
+        })
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"처리 중 오류가 발생했습니다: {str(e)}")
