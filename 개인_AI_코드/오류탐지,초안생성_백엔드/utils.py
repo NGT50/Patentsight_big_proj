@@ -10,7 +10,7 @@ import operator
 from langchain_core.tools import tool
 
 
-client = openai.OpenAI(api_key = "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")
+client = openai.OpenAI(api_key = "") # 키 제거함 
 # TypedDict를 사용하여 에이전트의 '상태' 또는 '기억'의 구조를 정의합니다.
 class AgentState(TypedDict):
     # 'messages' 키에는 대화 기록이 리스트 형태로 저장됩니다.
@@ -330,5 +330,6 @@ def text_refinement_tool(patent_document: dict, claim_index: int, instruction: s
         temperature=0.3,
     )
     return response.choices[0].message.content.strip()
+
 
 tools = [document_validation_tool, text_refinement_tool, specific_section_validation_tool]
