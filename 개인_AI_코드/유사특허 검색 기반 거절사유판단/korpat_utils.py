@@ -11,7 +11,7 @@ from transformers import AutoTokenizer, AutoModel
 from dotenv import load_dotenv
 from openai import OpenAI
 
-# 팀원 모듈(필요 시 비활성)
+
 try:
     from model import analyst  # KIPRIS 검색기
 except Exception:
@@ -27,7 +27,6 @@ load_dotenv(ROOT / ".env")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "").strip()
 HF_TOKEN       = os.getenv("HF_TOKEN", "").strip() or os.getenv("HUGGINGFACE_HUB_TOKEN","").strip()
 KIPRIS_API_KEY = os.getenv("KIPRIS_API_KEY", "").strip()
-print(f"[ENV] KIPRIS_API_KEY set: {bool(KIPRIS_API_KEY)}")
 
 oai = OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
 print(f"[ENV] OPENAI_API_KEY set: {bool(OPENAI_API_KEY)}")
@@ -215,6 +214,53 @@ def search_korpat_with_kipris(exam_text: str, exam_embedding: np.ndarray, top_k:
 
     return merged
 
+
+
+def extract_text_from_json(patent_data: dict) -> str:
+    """
+    JSON 특허 데이터에서 분석에 사용할 텍스트를 추출합니다.
+    프로젝트별 스키마가 다를 수 있어, 흔히 쓰는 필드들을 우선순위로 탐색합니다.
+    우선순위: exam_text > description > abstract > claims > claim_text > title
+    - claims가 리스트면 줄바꿈으로 합칩니다.
+    - dict가 들어오거나 타입이 다르면 안전하게 빈 문자열 반환합니다.
+    """
+    if not isinstance(patent_data, dict):
+        return ""
+
+    # 1) 가장 확실한 키들(문자열)
+    for key in ["exam_text", "description", "abstract", "claim_text", "title", "text", "summary"]:
+        val = patent_data.get(key)
+        if isinstance(val, str) and val.strip():
+            return val.strip()
+
+    # 2) claims 처리 (리스트일 가능성 높음)
+    claims = patent_data.get("claims")
+    if isinstance(claims, list):
+        joined = "\n".join(str(c).strip() for c in claims if c and str(c).strip())
+        if joined.strip():
+            return joined.strip()
+    elif isinstance(claims, str) and claims.strip():
+        return claims.strip()
+
+    # 3) 흔한 nested 케이스 (dict 내부 main/content/body)
+    for key in ["content", "body", "main"]:
+        sub = patent_data.get(key)
+        if isinstance(sub, str) and sub.strip():
+            return sub.strip()
+        if isinstance(sub, dict):
+            for subkey in ["content", "body", "text"]:
+                sval = sub.get(subkey)
+                if isinstance(sval, str) and sval.strip():
+                    return sval.strip()
+
+    # 4) 그래도 없으면 전체에서 문자열 후보 모아서 첫 번째 반환(보수적)
+    for v in patent_data.values():
+        if isinstance(v, str) and v.strip():
+            return v.strip()
+
+    return ""
+
+    
 # ──────────────────────────────────────────────────────────────────────────────
 # 7) 문장 매칭/페어링
 # ──────────────────────────────────────────────────────────────────────────────
