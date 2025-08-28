@@ -54,7 +54,7 @@ chat_sessions = {}
 
 # --- LangGraph AI 에이전트 설정 ---
 # [중요] OpenAI API 키 설정
-os.environ["OPENAI_API_KEY"] = "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" # 실제 키로 교체해주세요
+os.environ["OPENAI_API_KEY"] = "" # 실제 키로 교체해주세요
 
 llm = ChatOpenAI(model="gpt-4o")
 
@@ -299,4 +299,5 @@ async def post_chat_message(session_id: str, message: ChatMessageCreate):
 
     chat_sessions[session_id] = final_state
     
+
     return {"sender": "ai", "content": ai_response.content}
