@@ -32,3 +32,6 @@ class AiImageControllerTest {
                 .andExpect(status().isBadRequest());
     }
 }
+
+
+
