@@ -1,0 +1,15 @@
+fastapi
+uvicorn
+python-multipart
+
+torch
+transformers
+sentence-transformers
+
+faiss-cpu
+numpy
+Pillow
+xmltodict
+requests
+matplotlib
+sentencepiece
