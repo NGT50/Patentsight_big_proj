@@ -39,3 +39,6 @@ def serve_html():
 if __name__ == "__main__":
     print("🚀 HTML 서버 시작 중...")
     serve_html()
+
+
+
